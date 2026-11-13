@@ -359,6 +359,10 @@ function myFunction() {
 	
 	<label for="email"><b>Confirm Mikrotik Password</b></label><br>
     <input type="password" placeholder="Confirm Mikrotik Router Password" id="confirmMikrotikPw" required><br>
+
+	<label for="mikrotikApiPort"><b>RouterOS API Port</b></label><br>
+    <input type="number" value="8728" placeholder="RouterOS API Port" id="mikrotikApiPort" required><br>
+	<label>Enable the API service in RouterOS (IP &gt; Services &gt; api, default port 8728) and allow it from this device.</label>
 	</div>
 	
 	<div class="panel">
@@ -642,7 +646,8 @@ function saveSystemConfig(){
 				localIpAddress,
 				gatewayIp,
 				subnetMask,
-				dnsServer
+				dnsServer,
+				$('#mikrotikApiPort').val()
 			 ]);
 				 
 	$.ajax({
@@ -810,6 +815,7 @@ function populateSystemConfigFields(data){
 		$("#gatewayIp").val(configData[27] || '');
 		$("#subnetMask").val(configData[28] || '');
 		$("#dnsServer").val(configData[29] || '');
+		$('#mikrotikApiPort').val('8728');
 		return;
 	}
 	// previous 27-field (had abuse/ban at 9,10)
@@ -842,6 +848,40 @@ function populateSystemConfigFields(data){
 		$("#gatewayIp").val(configData[24] || '');
 		$("#subnetMask").val(configData[25] || '');
 		$("#dnsServer").val(configData[26] || '');
+		$('#mikrotikApiPort').val('8728');
+		return;
+	}
+	// 26-field (25 fields + RouterOS API port)
+	if(configData.length >= 26){
+		$('#vendoName').val(configData[0] || '');
+		$('#wifiSSID').val(configData[1] || '');
+		$('#wifiPW').val(configData[2] || '');
+		$('#mikrotikIp').val(configData[3] || '');
+		$('#mikrotikUser').val(configData[4] || '');
+		$('#mikrotikPw').val(configData[5] || '');
+		$('#confirmMikrotikPw').val(configData[5] || '');
+		$('#coinSlotWaitTime').val(configData[6] || '30');
+		$('#adminUser').val(configData[7] || '');
+		$('#adminPw').val(configData[8] || '');
+		$('#confirmAdminPw').val(configData[8] || '');
+		$('#coinSlotPin').val(configData[9] || '');
+		$('#coinSlotSetPin').val(configData[10] || '');
+		$('#systemReadyLEDPin').val(configData[11] || '');
+		$('#insertCoinLEDPin').val(configData[12] || '');
+		$('#checkInternetStatus').val(configData[13] || '0');
+		$('#voucherPrefix').val(configData[14] || 'P');
+		$('#setupDoneFlag').val(configData[15] || '0');
+		$('#voucherLoginOption').val(configData[16] || '0');
+		$('#voucherProfile').val(configData[17] || 'default');
+		$('#voucherValidity').val(configData[18] || '0');
+		$('#ledTriggerType').val(configData[19] || '1');
+		$("#ipAddressMode").val(configData[20] || '0');
+		$("#ipAddressMode").change();
+		$("#localIpAddress").val(configData[21] || '');
+		$("#gatewayIp").val(configData[22] || '');
+		$("#subnetMask").val(configData[23] || '');
+		$("#dnsServer").val(configData[24] || '');
+		$('#mikrotikApiPort').val(configData[25] || '8728');
 		return;
 	}
 	// new 25-field
@@ -873,6 +913,7 @@ function populateSystemConfigFields(data){
 	$("#gatewayIp").val(configData[22] || '');
 	$("#subnetMask").val(configData[23] || '');
 	$("#dnsServer").val(configData[24] || '');
+	$('#mikrotikApiPort').val('8728');
 }
 
 var rateCount = 0;
