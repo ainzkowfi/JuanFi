@@ -1459,6 +1459,10 @@ void topUp() {
 
 void handleGenerateVouchers() {
   if (!isAuthorized()) { handleNotAuthorize(); return; }
+  if (currentActiveVoucher.length() > 0 || coinSlotActive) {
+    server.send(409, "text/plain", "Coin session in progress; try again after the customer finishes.");
+    return;
+  }
   if (!ensureMikrotikConnection(true)) { server.send(503, "text/plain", "MikroTik unavailable"); return; }
   int amount = clampInt(server.arg("amt").toInt(), 0, 100000);
   int qty = clampInt(server.arg("qty").toInt(), 1, 50);
@@ -1671,15 +1675,25 @@ void loop() {
           coin = 0;
           coinsChange = 0;
           interrupts();
+          // Stop accepting further pulses until the portal has polled /checkCoin
+          // and received this coin. checkCoin() accumulates, recalculates and
+          // re-arms the slot; doing it here too would double-count and would
+          // never let the portal observe the "new coin" response.
+          coinSlotActive = false;
+          digitalWrite(COIN_SET_PIN, LOW);
+          digitalWrite(INSERT_COIN_LED, evaluateTriggerOutput(TURN_OFF));
           acceptCoin = false;
-          totalCoin += processCoin;
-          timeToAdd = calculateAddTime();
-          activateCoinSlot();
         }
       } else {
         disableCoinSlot();
         acceptCoin = false;
         coinExpired = true;
+        // If a coin was detected but the portal never polled /checkCoin to
+        // consume it, fold it in here so it is not lost on session expiry/commit.
+        if (processCoin > 0) {
+          totalCoin += processCoin;
+          processCoin = 0;
+        }
         timeToAdd = calculateAddTime();
         if (timeToAdd > 0 && currentActiveVoucher.length() > 0) {
           if (ensureMikrotikConnection(true)) {
