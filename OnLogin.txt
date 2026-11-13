@@ -1,0 +1,129 @@
+# WHERE THIS GOES
+# IP -> Hotspot -> User Profiles -> default -> Login tab -> On Login
+#
+# NOT Hotspot -> Server Profiles. The server profile's Login tab only holds
+# login-by checkboxes and trial-uptime; there is no script field there.
+# Every voucher the ESP creates is "/ip hotspot user add name=X" with no
+# profile=, so they all land on "default".
+#
+# Paste from the first line below to the closing brace. Clear the box first -
+# an older copy may still be sitting there.
+#
+# Run README script A1 FIRST. On-Login expects data/site-id.txt to exist.
+#
+# This is the original JuanFi on-login script (ivanalayan15/JuanFi README
+# step 8) with exactly one change, marked CHANGE below. Everything else is
+# verbatim, including the parts that look odd.
+#
+# Original also has three optional blocks for the upstream author's vending
+# business: Telegram notification, JuanFi online-monitoring API, and
+# daily/monthly income counters. They are dropped. The income counters call
+# "/system script get todayincome" with no error guard - if those scripts do
+# not exist, that line aborts the script.
+#
+# OnLogout.txt goes in the same tab's On Logout box.
+
+# HSFilePath for this repo: hAP lite = "hotspot" (hex/hAP-ax use "flash/hotspot").
+:local HSFilePath "hotspot";
+
+# --- # Get User Data -------------------------------------------------------
+:local aUsrNote [/ip hotspot user get $user comment];
+:local aUsrNote [:toarray $aUsrNote];
+:local iUsrTime [:totime ($aUsrNote->0)];
+:local iSaleAmt [:tonum ($aUsrNote->1)];
+:local iExtCode ($aUsrNote->2);
+:local iVdoName ($aUsrNote->3);
+:local iTimeMin [/ip hotspot user get $user limit-uptime];
+:local iUserReg [/system scheduler find name=$user];
+
+# --- # Check User Data -----------------------------------------------------
+:if (($iTimeMin>0) and ($iUsrTime>=0) and (($iUserReg="") or ($iExtCode=1))) do={
+  /ip hotspot user set $user comment="";
+  :local iFileMac;
+  :local mac $"mac-address";
+  :for i from=0 to=([:len $mac] - 1) do={
+    :local chr [:pick $mac $i]
+    :if ($chr = ":") do={ :set $chr "" }
+    :set iFileMac ($iFileMac . $chr)
+  }
+# --- # Extend User ---------------------------------------------------------
+  :if (($iUserReg!="") and ($iExtCode=1)) do={
+    :local iTimeInt [/system scheduler get $user interval];
+    :set iTimeInt ($iTimeInt+$iUsrTime);
+    :if ($iTimeMin>$iTimeInt) do={ :set iTimeInt ($iTimeMin+$iUsrTime) };
+    /system scheduler set $user interval=$iTimeInt;
+  }
+# --- # ADD User ------------------------------------------------------------
+  :local iDateBeg [/system clock get date];
+  :local iTimeBeg [/system clock get time];
+  :if ($iUserReg="") do={
+    :local iTimeInt $iUsrTime;
+    :if ($iTimeMin>$iUsrTime) do={ :set iTimeInt ($iTimeMin+$iUsrTime) };
+    # ponytail: the scheduler only removes the voucher, its session, its
+    # cookie, itself and the session file - read+write for the config, ftp
+    # for /file remove. It used to carry policy,password,sensitive,romon,
+    # reboot and sniff as well: `policy` alone reads every configured
+    # password in cleartext over the API, and this grant lives as long as
+    # the voucher does.
+    :do { /system scheduler add name="$user" interval=$iTimeInt \
+      start-date=$iDateBeg start-time=$iTimeBeg disable=no \
+      policy=ftp,read,write \
+      on-event=("/ip hotspot user remove [find name=$user];\r\n".\
+                "/ip hotspot active remove [find user=$user];\r\n".\
+                "/ip hotspot cookie remove [find user=$user];\r\n".\
+                "/system scheduler remove [find name=$user];\r\n".\
+                ":do {/file remove \"$HSFilePath/data/$iFileMac.txt\"} on-error={};\r\n")
+    } on-error={ log error "( $user ) /system scheduler add => ERROR ADD!" };
+    :local x 10;:while (($x>0) and ([/system scheduler find name="$user"]="")) do={:set x ($x-1);:delay 1s};
+  };
+# --- # Save Data File ------------------------------------------------------
+  :if ([/file find name="$HSFilePath/data"]="") do={
+    :do {/tool fetch dst-path=("$HSFilePath/data/.") url="https://127.0.0.1/"} on-error={ };
+  }
+  :local iValidUntil [/system scheduler get $user next-run];
+  :if ([/system scheduler find name=$user]!="") do={
+    /file print file="$HSFilePath/data/$iFileMac.txt" where name="dummyfile";
+    :local x 10;:while (($x>0) and ([/file find name="$HSFilePath/data/$iFileMac.txt"]="")) do={:set x ($x-1);:delay 1s};
+    # CHANGE vs upstream: upstream writes "$HSFilePath/data/$iFileMac" with no
+    # .txt extension, while the line above creates <mac>.txt. The set then
+    # targets a file that does not exist, errors out, and leaves the .txt
+    # empty. The portal reads that file, so an empty one looks exactly like a
+    # missing one. Same extension on both sides.
+    /file set "$HSFilePath/data/$iFileMac.txt" contents="$user#$iValidUntil";
+    # ponytail: the log line is the only way to tell "file written" from
+    # "gate skipped" from "no scheduler". Delete once it has done its job.
+    :log info ("On-Login(" . $user . "): mac=[" . $iFileMac . "] dir=" . $HSFilePath . " time=[" . $iTimeMin . "] usr=[" . $iUsrTime . "] valid=[" . $iValidUntil . "]");
+  }
+# --- end of gate -----------------------------------------------------------
+};
+
+# --- # Session File for vouchers made outside the portal -------------------
+# CHANGE: a voucher created in Winbox has no comment array and no scheduler,
+# so the gate above never opens and data/<mac>.txt is never written. That file
+# is the only thing resumeSession() reads to decide whether to auto-reconnect,
+# so without it the portal asks for the code on every single visit. The clock
+# already runs from limit-uptime, so fall back to now + limit-uptime.
+# Only fires when there is no scheduler AND no file yet, so every coin path is
+# untouched. A top-up on a Winbox voucher opens the gate above instead, which
+# creates the scheduler and writes the file itself.
+:if (($iTimeMin>0) and ($iUserReg="")) do={
+  :local mac $"mac-address";
+  :local macNoCol "";
+  :for i from=0 to=([:len $mac] - 1) do={
+    :local chr [:pick $mac $i]
+    :if ($chr = ":") do={ :set $chr "" }
+    :set macNoCol ($macNoCol . $chr)
+  }
+  :local jfSess ($HSFilePath . "/data/" . $macNoCol . ".txt");
+  :if ([:len [/file find name=$jfSess]]=0) do={
+    :if ([/file find name="$HSFilePath/data"]="") do={
+      :do {/tool fetch dst-path=("$HSFilePath/data/.") url="https://127.0.0.1/"} on-error={ };
+    }
+    /file print file="$jfSess" where name="dummyfile";
+    :local x 10;:while (($x>0) and ([/file find name="$jfSess"]="")) do={:set x ($x-1);:delay 1s};
+    :local jfEnd [/system clock get time];
+    :set jfEnd ($jfEnd + [:totime $iTimeMin]);
+    /file set "$jfSess" contents=("$user#$jfEnd");
+    :log info ("On-Login(" . $user . "): no-scheduler session file [" . $jfSess . "] valid=[" . $jfEnd . "]");
+  }
+}
