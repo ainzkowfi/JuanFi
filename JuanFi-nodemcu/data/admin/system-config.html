@@ -379,11 +379,6 @@ function myFunction() {
 	<label for="email"><b>Coin slot insert wait time(Seconds)</b></label><br>
     <input type="text" placeholder="Coin slot insert wait time" id="coinSlotWaitTime" required><br>
 
-	<label for="email"><b>Coins Slot Abuse Count</b></label><br>
-    <input type="text" placeholder="Coins Slot Abuse Count" id="coinSlotAbuseCount" required><br>
-
-	<label for="email"><b>Coins Slot Ban Minutes</b></label><br>
-    <input type="text" placeholder="Coins Slot Ban Minutes" id="coinSlotBanMinutes" required>
 	</div>
 	
 	<div class="panel">
@@ -632,8 +627,6 @@ function saveSystemConfig(){
 				$('#coinSlotWaitTime').val(),
 				$('#adminUser').val(),
 				$('#adminPw').val(),
-				$('#coinSlotAbuseCount').val(),
-				$('#coinSlotBanMinutes').val(),
 				coinSlotPin,
 				coinSlotSetPin,
 				systemReadyLEDPin,
@@ -787,7 +780,7 @@ function openSystemConfig(evt){
 
 function populateSystemConfigFields(data){
 	var configData = data.split(separator);
-	// legacy 30-field format: has LCD_TYPE at 15, insert coin btn at 16, marquee at 19
+	// legacy 30-field
 	if(configData.length >= 30){
 		$('#vendoName').val(configData[0]);
 		$('#wifiSSID').val(configData[1]);
@@ -800,8 +793,6 @@ function populateSystemConfigFields(data){
 		$('#adminUser').val(configData[7]);
 		$('#adminPw').val(configData[8]);
 		$('#confirmAdminPw').val(configData[8]);
-		$('#coinSlotAbuseCount').val(configData[9]);
-		$('#coinSlotBanMinutes').val(configData[10]);
 		$('#coinSlotPin').val(configData[11]);
 		$('#coinSlotSetPin').val(configData[12]);
 		$('#systemReadyLEDPin').val(configData[13]);
@@ -821,36 +812,67 @@ function populateSystemConfigFields(data){
 		$("#dnsServer").val(configData[29] || '');
 		return;
 	}
-	$('#vendoName').val(configData[0]);
-	$('#wifiSSID').val(configData[1]);
-	$('#wifiPW').val(configData[2]);
-	$('#mikrotikIp').val(configData[3]);
-	$('#mikrotikUser').val(configData[4]);
-	$('#mikrotikPw').val(configData[5]);
-	$('#confirmMikrotikPw').val(configData[5]);
-	$('#coinSlotWaitTime').val(configData[6]);
-	$('#adminUser').val(configData[7]);
-	$('#adminPw').val(configData[8]);
-	$('#confirmAdminPw').val(configData[8]);
-	$('#coinSlotAbuseCount').val(configData[9]);
-	$('#coinSlotBanMinutes').val(configData[10]);
-	$('#coinSlotPin').val(configData[11]);
-	$('#coinSlotSetPin').val(configData[12]);
-	$('#systemReadyLEDPin').val(configData[13]);
-	$('#insertCoinLEDPin').val(configData[14]);
-	$('#checkInternetStatus').val(configData[15] !== undefined ? configData[15] : '0');
-	$('#voucherPrefix').val(configData[16] !== undefined ? configData[16] : 'P');
-	$('#setupDoneFlag').val(configData[17] !== undefined ? configData[17] : '0');
-	$('#voucherLoginOption').val(configData[18] !== undefined ? configData[18] : '0');
-	$('#voucherProfile').val(configData[19] !== undefined ? configData[19] : 'default');
-	$('#voucherValidity').val(configData[20] !== undefined ? configData[20] : '0');
-	$('#ledTriggerType').val(configData[21] !== undefined ? configData[21] : '1');
-	$("#ipAddressMode").val(configData[22] !== undefined ? configData[22] : '0');
+	// previous 27-field (had abuse/ban at 9,10)
+	if(configData.length >= 27){
+		$('#vendoName').val(configData[0]);
+		$('#wifiSSID').val(configData[1]);
+		$('#wifiPW').val(configData[2]);
+		$('#mikrotikIp').val(configData[3]);
+		$('#mikrotikUser').val(configData[4]);
+		$('#mikrotikPw').val(configData[5]);
+		$('#confirmMikrotikPw').val(configData[5]);
+		$('#coinSlotWaitTime').val(configData[6]);
+		$('#adminUser').val(configData[7]);
+		$('#adminPw').val(configData[8]);
+		$('#confirmAdminPw').val(configData[8]);
+		$('#coinSlotPin').val(configData[11]);
+		$('#coinSlotSetPin').val(configData[12]);
+		$('#systemReadyLEDPin').val(configData[13]);
+		$('#insertCoinLEDPin').val(configData[14]);
+		$('#checkInternetStatus').val(configData[15] || '0');
+		$('#voucherPrefix').val(configData[16] || 'P');
+		$('#setupDoneFlag').val(configData[17] || '0');
+		$('#voucherLoginOption').val(configData[18] || '0');
+		$('#voucherProfile').val(configData[19] || 'default');
+		$('#voucherValidity').val(configData[20] || '0');
+		$('#ledTriggerType').val(configData[21] || '1');
+		$("#ipAddressMode").val(configData[22] || '0');
+		$("#ipAddressMode").change();
+		$("#localIpAddress").val(configData[23] || '');
+		$("#gatewayIp").val(configData[24] || '');
+		$("#subnetMask").val(configData[25] || '');
+		$("#dnsServer").val(configData[26] || '');
+		return;
+	}
+	// new 25-field
+	$('#vendoName').val(configData[0] || '');
+	$('#wifiSSID').val(configData[1] || '');
+	$('#wifiPW').val(configData[2] || '');
+	$('#mikrotikIp').val(configData[3] || '');
+	$('#mikrotikUser').val(configData[4] || '');
+	$('#mikrotikPw').val(configData[5] || '');
+	$('#confirmMikrotikPw').val(configData[5] || '');
+	$('#coinSlotWaitTime').val(configData[6] || '30');
+	$('#adminUser').val(configData[7] || '');
+	$('#adminPw').val(configData[8] || '');
+	$('#confirmAdminPw').val(configData[8] || '');
+	$('#coinSlotPin').val(configData[9] || '');
+	$('#coinSlotSetPin').val(configData[10] || '');
+	$('#systemReadyLEDPin').val(configData[11] || '');
+	$('#insertCoinLEDPin').val(configData[12] || '');
+	$('#checkInternetStatus').val(configData[13] || '0');
+	$('#voucherPrefix').val(configData[14] || 'P');
+	$('#setupDoneFlag').val(configData[15] || '0');
+	$('#voucherLoginOption').val(configData[16] || '0');
+	$('#voucherProfile').val(configData[17] || 'default');
+	$('#voucherValidity').val(configData[18] || '0');
+	$('#ledTriggerType').val(configData[19] || '1');
+	$("#ipAddressMode").val(configData[20] || '0');
 	$("#ipAddressMode").change();
-	$("#localIpAddress").val(configData[23] || '');
-	$("#gatewayIp").val(configData[24] || '');
-	$("#subnetMask").val(configData[25] || '');
-	$("#dnsServer").val(configData[26] || '');
+	$("#localIpAddress").val(configData[21] || '');
+	$("#gatewayIp").val(configData[22] || '');
+	$("#subnetMask").val(configData[23] || '');
+	$("#dnsServer").val(configData[24] || '');
 }
 
 var rateCount = 0;

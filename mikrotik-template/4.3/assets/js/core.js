@@ -26,6 +26,51 @@ var chargerTimer = null;
 var rateType = "1";
 var voucherToConvert = "";
 
+// --- Coinslot ban (portal-side) ---
+function getCoinslotBanState(){
+  try {
+    if(typeof enableCoinslotBan === 'undefined' || !enableCoinslotBan) return null;
+    var key = 'csban_' + (typeof mac !== 'undefined' ? mac : 'na');
+    var raw = getStorageValue(key);
+    if(!raw) return {count:0, until:0, key:key};
+    var obj = JSON.parse(raw);
+    if(!obj || typeof obj.count === 'undefined') obj = {count:0, until:0};
+    obj.key = key;
+    return obj;
+  } catch(e){ return null; }
+}
+function saveCoinslotBanState(st){
+  if(!st || !st.key) return;
+  setStorageValue(st.key, JSON.stringify({count:st.count||0, until:st.until||0}));
+}
+function isCoinslotBanned(){
+  var st = getCoinslotBanState();
+  if(!st) return false;
+  var now = (new Date()).getTime();
+  if(st.until && st.until > now){ return true; }
+  if(st.until && st.until <= now){ st.count = 0; st.until = 0; saveCoinslotBanState(st); }
+  return false;
+}
+function recordCoinslotAbuseAttempt(){
+  var st = getCoinslotBanState();
+  if(!st) return;
+  var maxC = (typeof coinslotBanCount !== 'undefined') ? parseInt(coinslotBanCount) : 3;
+  var mins = (typeof coinslotBanMinutes !== 'undefined') ? parseInt(coinslotBanMinutes) : 30;
+  if(!maxC || maxC <= 0) return;
+  st.count = (st.count||0) + 1;
+  if(st.count >= maxC){
+    st.until = (new Date()).getTime() + (mins*60000);
+  }
+  saveCoinslotBanState(st);
+}
+function clearCoinslotAbuseAttempts(){
+  var st = getCoinslotBanState();
+  if(!st) return;
+  st.count = 0; st.until = 0; saveCoinslotBanState(st);
+}
+
+
+
 
 $(document).ready(function(){
   $( "#saveVoucherButton" ).prop('disabled', true);	
@@ -37,10 +82,10 @@ $(document).ready(function(){
   $('#insertCoinModal').on('hidden.bs.modal', function () {
 		clearInterval(timer);
 		timer = null;
-		insertingCoin = false;
 		insertcoinbg.pause();
 		insertcoinbg.currentTime = 0.0;
 		if(totalCoinReceived == 0){
+			if(insertingCoin && (typeof topupMode === 'undefined' || topupMode == TOPUP_INTERNET)){ recordCoinslotAbuseAttempt(); }
 			$.ajax({
 			  type: "POST",
 			  url: "http://"+vendorIpAddress+"/cancelTopUp",
@@ -52,6 +97,7 @@ $(document).ready(function(){
 			  }
 			});
 		}
+		insertingCoin = false;
 		
 	});
 
@@ -262,6 +308,7 @@ function chargingBtnAction(){
 var timer = null;
 
 function insertBtnAction(){
+	if(isCoinslotBanned()){ notifyCoinSlotError('coin.slot.banned'); return false; }
 	removeStorageValue("ignoreSaveCode");
 	setStorageValue('insertCoinRefreshed', "0");
 	$("#progressDiv").attr('style','width: 100%');
@@ -452,6 +499,7 @@ function onRateTypeChange(evt){
 }
 
 function addChargerTime(port, portName, retryCount){
+	if(isCoinslotBanned()){ notifyCoinSlotError('coin.slot.banned'); return; }
 	topupMode = TOPUP_CHARGER;
 	$.ajax({
 	  type: "POST",
@@ -571,6 +619,7 @@ function saveVoucherBtnAction(){
 			totalCoinReceived = 0;
 			$("#loaderDiv").attr("class","spinner hidden");
 			if(data.status == "true"){
+				if(topupMode == TOPUP_INTERNET){ clearCoinslotAbuseAttempts(); }
 				if(topupMode == TOPUP_CHARGER){
 					populateChargingStations();
 					$.toast({

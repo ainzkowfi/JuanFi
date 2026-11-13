@@ -35,7 +35,7 @@ var vendorIpAddress = "10.10.10.252";
 var chargingEnable = false; //replace true if you enable charging, this can be override if multivendo setup
 
 //hide pause time / logout true = you want to show pause / logout button
-var showPauseTime = true;
+var showPauseTime = false; // keep-alive by default (pause hidden)
 
 //enable member login, true = if you want to enable member login
 var showMemberLogin = true;
@@ -45,3 +45,7 @@ var showExtendTimeButton = true;
 
 //disable voucher input
 var disableVoucherInput = false;
+// Coinslot abuse protection (portal-side; moved from ESP firmware)
+var enableCoinslotBan = false;
+var coinslotBanCount = 3;
+var coinslotBanMinutes = 30;

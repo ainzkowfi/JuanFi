@@ -1,7 +1,7 @@
 /*
  * JuanFi firmware (ESP8266)
  * Security/robustness fixes: 2,3,6,7,8
- * Removed: ESP32, LCD, e-load, charging support
+ * Removed: ESP32, LCD, e-load, charging, ESP-side coinslot banning
  */
 
 #define CURRENT_VERSION "2.4"
@@ -28,7 +28,6 @@ volatile int totalCoin = 0;
 bool isNewVoucher = false;
 volatile int coinsChange = 0;
 String currentActiveVoucher = "";
-String currentMacAttempt = "";
 int timeToAdd = 0;
 bool coinSlotActive = false;
 bool acceptCoin = false;
@@ -48,14 +47,6 @@ typedef struct {
   String profileName;
 } PromoRates;
 
-typedef struct {
-  String mac;
-  unsigned long unlockTime;
-  int attemptCount;
-} AttemptMacAddress;
-
-const int ATTEMPT_MAX_COUNT = 20;
-AttemptMacAddress attempted[ATTEMPT_MAX_COUNT];
 PromoRates rates[100];
 int ratesCount = 0;
 int currentValidity = 0;
@@ -90,8 +81,6 @@ String VOUCHER_PROFILE = "default";
 String VOUCHER_PREFIX = "P";
 
 int MAX_WAIT_COIN_SEC = 30000;
-int COINSLOT_BAN_COUNT = 0;
-int COINSLOT_BAN_MINUTES = 0;
 int SETUP_FINISH = 0;
 
 IPAddress mikrotikRouterIp(10, 0, 0, 1);
@@ -121,10 +110,6 @@ const String INTERNET_CHECK_URL = "http://ifconfig.me";
 
 bool networkConnected = false;
 
-int thankyou_cooldown = 5000;
-unsigned long lastSaleTime = 0;
-
-// ---------- helpers ----------
 String safeField(const String &in, int maxLen) {
   if (maxLen < 0) maxLen = 0;
   String out = in;
@@ -200,7 +185,6 @@ void setupCORSPolicy() {
   server.sendHeader("Access-Control-Allow-Credentials", "false");
 }
 
-// ---------- eeprom ----------
 void eeWriteInt(int pos, int val) {
   byte *p = (byte *)&val;
   EEPROM.write(pos, *p);
@@ -243,7 +227,6 @@ String eeReadString(int addr, int str_len) {
   return val;
 }
 
-// ---------- filesystem ----------
 String getContentType(const String &filename) {
   if (filename.endsWith(".html")) return "text/html";
   else if (filename.endsWith(".css")) return "text/css";
@@ -286,7 +269,6 @@ String readFile(const String &path) {
   return content;
 }
 
-// ---------- parsing (fix 8) ----------
 int split(String rows[], int maxRows, const String &data, char delimeter) {
   if (maxRows <= 0) return 0;
   int count = 0;
@@ -367,9 +349,9 @@ void populateSystemConfiguration() {
   int count = split(rows, 40, data, '|');
 
   auto get = [&](int idx)->String { return (idx >= 0 && idx < 40) ? rows[idx] : String(""); };
-  bool isLegacy = (count >= 30); // old layout with LCD fields
 
-  if (isLegacy) {
+  if (count >= 30) {
+    // Legacy 30-field: 0 vendor,1 ssid,2 wifiPW,3 mikrotikIp,4 user,5 pw,6 wait,7 adminU,8 adminP,9 abuse,10 ban,11 coinPin,12 setPin,13 ready,14 insert,15 lcd,16 btn,17 check,18 prefix,19 marquee,20 setup,21 loginOpt,22 profile,23 validity,24 ledTrig,25 ipMode,26 local,27 gw,28 sub,29 dns
     vendorName = safeField(get(0), 32);
     ssid = safeField(get(1), 32);
     password = safeField(get(2), 64);
@@ -379,8 +361,6 @@ void populateSystemConfiguration() {
     MAX_WAIT_COIN_SEC = clampInt(get(6).toInt(), 5, 600) * 1000;
     ADMIN_USER = safeField(get(7), 32);
     ADMIN_PW = safeField(get(8), 64);
-    COINSLOT_BAN_COUNT = clampInt(get(9).toInt(), 0, 100);
-    COINSLOT_BAN_MINUTES = clampInt(get(10).toInt(), 0, 1440);
     COIN_SELECTOR_PIN = get(11).toInt();
     COIN_SET_PIN = get(12).toInt();
     SYSTEM_READY_LED = get(13).toInt();
@@ -399,7 +379,8 @@ void populateSystemConfiguration() {
       applyIpField(subnet, get(28), subnet);
       applyIpField(primaryDNS, get(29), primaryDNS);
     }
-  } else {
+  } else if (count >= 27) {
+    // Previous 27-field: included abuse/ban at 9,10
     vendorName = safeField(get(0), 32);
     ssid = safeField(get(1), 32);
     password = safeField(get(2), 64);
@@ -409,8 +390,6 @@ void populateSystemConfiguration() {
     MAX_WAIT_COIN_SEC = clampInt(get(6).toInt(), 5, 600) * 1000;
     ADMIN_USER = safeField(get(7), 32);
     ADMIN_PW = safeField(get(8), 64);
-    COINSLOT_BAN_COUNT = clampInt(get(9).toInt(), 0, 100);
-    COINSLOT_BAN_MINUTES = clampInt(get(10).toInt(), 0, 1440);
     COIN_SELECTOR_PIN = get(11).toInt();
     COIN_SET_PIN = get(12).toInt();
     SYSTEM_READY_LED = get(13).toInt();
@@ -429,6 +408,35 @@ void populateSystemConfiguration() {
       applyIpField(subnet, get(25), subnet);
       applyIpField(primaryDNS, get(26), primaryDNS);
     }
+  } else {
+    // New 25-field: abuse/ban removed
+    vendorName = safeField(get(0), 32);
+    ssid = safeField(get(1), 32);
+    password = safeField(get(2), 64);
+    applyIpField(mikrotikRouterIp, get(3), IPAddress(10, 0, 0, 1));
+    user = safeField(get(4), 32);
+    pwd = safeField(get(5), 64);
+    MAX_WAIT_COIN_SEC = clampInt(get(6).toInt(), 5, 600) * 1000;
+    ADMIN_USER = safeField(get(7), 32);
+    ADMIN_PW = safeField(get(8), 64);
+    COIN_SELECTOR_PIN = get(9).toInt();
+    COIN_SET_PIN = get(10).toInt();
+    SYSTEM_READY_LED = get(11).toInt();
+    INSERT_COIN_LED = get(12).toInt();
+    CHECK_INTERNET_CONNECTION = get(13).toInt() ? 1 : 0;
+    VOUCHER_PREFIX = sanitizeCommandToken(get(14), 2, "P");
+    SETUP_FINISH = get(15).toInt() ? 1 : 0;
+    VOUCHER_LOGIN_OPTION = get(16).toInt() ? 1 : 0;
+    VOUCHER_PROFILE = sanitizeCommandToken(get(17), 24, "default");
+    VOUCHER_VALIDITY_OPTION = get(18).toInt() ? 1 : 0;
+    LED_TRIGGER_TYPE = get(19).toInt() ? 1 : 0;
+    IP_ADDRESS_MODE = get(20).toInt() ? 1 : 0;
+    if (IP_ADDRESS_MODE == 1) {
+      applyIpField(local_IP, get(21), local_IP);
+      applyIpField(gateway, get(22), gateway);
+      applyIpField(subnet, get(23), subnet);
+      applyIpField(primaryDNS, get(24), primaryDNS);
+    }
   }
 
   if (ADMIN_USER.length() == 0) ADMIN_USER = "admin";
@@ -444,7 +452,6 @@ void backupSystemConfig() {
   eeWriteString(BACKUP_CONFIG_LENGTH_INDEX + 5, data);
 }
 
-// ---------- auth & http ----------
 bool isAuthorized() {
   String auth = server.header("Authorization");
   String expectedAuth = "Basic " + adminAuth;
@@ -465,19 +472,14 @@ void handleNotFound() {
   server.send(404, "text/plain", "");
 }
 
-void handleHealth() {
-  setupCORSPolicy();
-  server.send(200, "text/plain", "ok");
-}
+void handleHealth() { setupCORSPolicy(); server.send(200, "text/plain", "ok"); }
 
 void handleLogout() {
   server.sendHeader("WWW-Authenticate", "Basic realm=\"Secure\"");
   server.send(401, "text/html", "Authentication failed");
 }
 
-// ---------- mikrotik (fix 2,3) ----------
 void sendCommand(const String &script) {
-  // Callers must pass sanitized/constructed commands only.
   int scriptLength = script.length() + 1;
   char command[scriptLength];
   script.toCharArray(command, scriptLength);
@@ -488,7 +490,6 @@ void loginMirotik() {
   tc.setPromptChar('>');
   mikrotikConnectionSuccess = tc.login(mikrotikRouterIp, user.c_str(), pwd.c_str());
   if (!mikrotikConnectionSuccess) {
-    // Fix 2: do not mask failure
     Serial.println("MikroTik login failed");
   }
 }
@@ -504,7 +505,6 @@ bool checkIfSystemIsAvailable() {
   return true;
 }
 
-// ---------- networking checks (fix 7) ----------
 bool hasInternetConnect() {
   if (WiFi.status() != WL_CONNECTED) return false;
   HTTPClient http;
@@ -518,7 +518,6 @@ bool hasInternetConnect() {
   return ok;
 }
 
-// ---------- coin/voucher logic (fix 3,6) ----------
 String generateVoucher() {
   const char alphabet[] = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const int alphaLen = (int)(sizeof(alphabet) - 1);
@@ -681,83 +680,17 @@ void addTimeToVoucher(const String &voucher, int secondsToAdd) {
   }
 }
 
-void addAttemptToCoinslot() {
-  if (COINSLOT_BAN_COUNT > 0 && currentMacAttempt.length() > 0) {
-    int currentMacIndex = -1;
-    int availableIndex = -1;
-    for (int i = 0; i < ATTEMPT_MAX_COUNT; i++) {
-      if (attempted[i].mac == currentMacAttempt) { currentMacIndex = i; break; }
-      if (availableIndex == -1 && attempted[i].mac == "") availableIndex = i;
-    }
-    if (currentMacIndex > -1) {
-      attempted[currentMacIndex].attemptCount++;
-      if (attempted[currentMacIndex].attemptCount >= COINSLOT_BAN_COUNT) {
-        attempted[currentMacIndex].unlockTime = millis() + (unsigned long)COINSLOT_BAN_MINUTES * 60000UL;
-      }
-    } else if (availableIndex > -1) {
-      attempted[availableIndex].mac = currentMacAttempt;
-      attempted[availableIndex].attemptCount = 1;
-      attempted[availableIndex].unlockTime = 0;
-    }
-  }
-}
-
-void clearAttemptToCoinSlot() {
-  if (COINSLOT_BAN_COUNT > 0 && currentMacAttempt.length() > 0) {
-    for (int i = 0; i < ATTEMPT_MAX_COUNT; i++) {
-      if (attempted[i].mac == currentMacAttempt) {
-        attempted[i].mac = "";
-        attempted[i].unlockTime = 0;
-        attempted[i].attemptCount = 0;
-        break;
-      }
-    }
-  }
-}
-
-bool checkMacAddress(const String &mac) {
-  if (COINSLOT_BAN_COUNT <= 0) return true;
-  unsigned long curMil = millis();
-  for (int i = 0; i < ATTEMPT_MAX_COUNT; i++) {
-    if (attempted[i].mac.length() == 0) continue;
-    if (attempted[i].unlockTime > 0 && attempted[i].unlockTime <= curMil) {
-      attempted[i].mac = "";
-      attempted[i].attemptCount = 0;
-      attempted[i].unlockTime = 0;
-    } else if (attempted[i].mac == mac) {
-      if (attempted[i].attemptCount >= COINSLOT_BAN_COUNT) return false;
-    }
-  }
-  return true;
-}
-
-// ---------- http handlers ----------
-void handleAdminPage() {
-  if (!isAuthorized()) { handleNotAuthorize(); return; }
-  handleFileRead("/admin/system-config.html");
-}
-
-void handleAdminGeneratedVoucherPage() {
-  if (!isAuthorized()) { handleNotAuthorize(); return; }
-  handleFileRead("/admin/voucher-generate.html");
-}
-
+void handleAdminPage() { if (!isAuthorized()) { handleNotAuthorize(); return; } handleFileRead("/admin/system-config.html"); }
+void handleAdminGeneratedVoucherPage() { if (!isAuthorized()) { handleNotAuthorize(); return; } handleFileRead("/admin/voucher-generate.html"); }
 void handleJquerySript() { handleFileRead("/admin/js/jquery.min.js"); }
-
 void handleUserGetRates() { setupCORSPolicy(); handleFileRead("/admin/config/rates.data"); }
-
-void handleAdminGetRates() {
-  if (!isAuthorized()) { handleNotAuthorize(); return; }
-  handleFileRead("/admin/config/rates.data");
-}
+void handleAdminGetRates() { if (!isAuthorized()) { handleNotAuthorize(); return; } handleFileRead("/admin/config/rates.data"); }
 
 void handleAdminSaveRates() {
   if (!isAuthorized()) { handleNotAuthorize(); return; }
   String data = server.arg("data");
   if (data.length() > 4096) { server.send(413, "text/plain", "too large"); return; }
-  if (!handleFileWrite("/admin/config/rates.data", data)) {
-    server.send(500, "text/plain", "write failed"); return;
-  }
+  if (!handleFileWrite("/admin/config/rates.data", data)) { server.send(500, "text/plain", "write failed"); return; }
   populateRates();
   server.send(200, "text/plain", "ok");
 }
@@ -766,18 +699,13 @@ void handleAdminSaveSystemConfig() {
   if (!isAuthorized()) { handleNotAuthorize(); return; }
   String data = server.arg("data");
   if (data.length() > 2048) { server.send(413, "text/plain", "too large"); return; }
-  if (!handleFileWrite("/admin/config/system.data", data)) {
-    server.send(500, "text/plain", "write failed"); return;
-  }
+  if (!handleFileWrite("/admin/config/system.data", data)) { server.send(500, "text/plain", "write failed"); return; }
   server.send(200, "text/plain", "ok");
   delay(1000);
   ESP.restart();
 }
 
-void handleAdminGetSystemConfig() {
-  if (!isAuthorized()) { handleNotAuthorize(); return; }
-  handleFileRead("/admin/config/system.data");
-}
+void handleAdminGetSystemConfig() { if (!isAuthorized()) { handleNotAuthorize(); return; } handleFileRead("/admin/config/system.data"); }
 
 void handleAdminResetStats() {
   if (!isAuthorized()) { handleNotAuthorize(); return; }
@@ -868,12 +796,9 @@ void useVoucher() {
   if (!validateVoucher(voucher)) return;
   disableCoinSlot();
   if (timeToAdd > 0) {
-    clearAttemptToCoinSlot();
     registerNewVoucher(currentActiveVoucher);
     updateStatistic();
     addTimeToVoucher(currentActiveVoucher, timeToAdd);
-  } else {
-    addAttemptToCoinslot();
   }
   char *keys[] = {"status", "totalCoin", "timeAdded", "validity"};
   char totalCoinStr[16]; itoa(totalCoin, totalCoinStr, 10);
@@ -897,16 +822,6 @@ void topUp() {
     return;
   }
   if (!checkIfSystemIsAvailable()) return;
-
-  String macAdd = safeField(server.arg("mac"), 32);
-  if (!checkMacAddress(macAdd)) {
-    char *keys[] = {"status", "errorCode"};
-    char *values[] = {"false", "coin.slot.banned"};
-    setupCORSPolicy();
-    server.send(200, "application/json", toJson(keys, values, 2));
-    return;
-  }
-  currentMacAttempt = macAdd;
 
   String voucher = server.arg("voucher");
   if (voucher.length() > 0 && !isValidVoucherCode(voucher)) {
@@ -974,9 +889,7 @@ void handleGenerateVouchers() {
   resetGlobalVariables();
 }
 
-// ---------- OTA (ESP8266) ----------
 bool hasUploadError = false;
-bool isFileSystemUpload = true;
 
 void handleFileUploadRequest() {
   if (Update.hasError() || hasUploadError) {
@@ -996,13 +909,11 @@ void handleFileUploadStream() {
     if (!isAuthorized()) { handleNotAuthorize(); hasUploadError = true; return; }
     hasUploadError = false;
     if (upload.name == "filesystem") {
-      isFileSystemUpload = true;
       backupSystemConfig();
       close_all_fs();
       size_t fsSize = ((size_t)&_FS_end - (size_t)&_FS_start);
       if (!Update.begin(fsSize, U_FS)) hasUploadError = true;
     } else {
-      isFileSystemUpload = false;
       uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
       if (!Update.begin(maxSketchSpace, U_FLASH)) hasUploadError = true;
     }
@@ -1023,7 +934,6 @@ void handleFileUploadStream() {
   delay(0);
 }
 
-// ---------- setup/loop ----------
 void setup() {
   Serial.begin(115200);
   delay(100);
@@ -1043,12 +953,6 @@ void setup() {
   digitalWrite(COIN_SET_PIN, LOW);
   digitalWrite(INSERT_COIN_LED, evaluateTriggerOutput(TURN_OFF));
   digitalWrite(SYSTEM_READY_LED, evaluateTriggerOutput(TURN_OFF));
-
-  for (int i = 0; i < ATTEMPT_MAX_COUNT; i++) {
-    attempted[i].mac = "";
-    attempted[i].unlockTime = 0;
-    attempted[i].attemptCount = 0;
-  }
 
   WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
@@ -1082,9 +986,7 @@ void setup() {
     attachInterrupt(digitalPinToInterrupt(COIN_SELECTOR_PIN), coinInserted, RISING);
     loginMirotik();
 
-    if (MDNS.begin("juanfi")) {
-      // mDNS started
-    }
+    if (MDNS.begin("juanfi")) { }
 
     server.on("/topUp", topUp);
     server.on("/checkCoin", checkCoin);
@@ -1156,15 +1058,11 @@ void loop() {
         coinExpired = true;
         timeToAdd = calculateAddTime();
         if (timeToAdd > 0 && currentActiveVoucher.length() > 0) {
-          clearAttemptToCoinSlot();
           if (isNewVoucher) registerNewVoucher(currentActiveVoucher);
           updateStatistic();
           addTimeToVoucher(currentActiveVoucher, timeToAdd);
-        } else {
-          addAttemptToCoinslot();
         }
         resetGlobalVariables();
-        lastSaleTime = millis();
       }
     }
   } else {
