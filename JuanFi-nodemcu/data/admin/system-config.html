@@ -436,17 +436,6 @@ function myFunction() {
 	  <option value="3">RX</option>
 	</select><br>
 	
-	<label for="insertCoinBtnPin"><b>Insert Coin Button Pin</b></label><br>
-    <select name="insertCoinBtnPin" id="insertCoinBtnPin">
-	  <option value="16">D0</option>
-	  <option value="0">D3</option>
-	  <option value="2">D4</option>
-	  <option value="14" selected>D5</option>
-	  <option value="12">D6</option>
-	  <option value="13">D7</option>
-	  <option value="15">D8</option>
-	  <option value="3">RX</option>
-	</select>
 	
 	<label for="ledTriggerType"><b>LED Trigger Output(Relay Trigger Type)</b></label><br>
     <select name="ledTriggerType" id="ledTriggerType">
@@ -455,18 +444,6 @@ function myFunction() {
 	</select>
 	</div>
 	
-	<div class="panel">
-	<span class="title">LCD Setting</span>
-	<label for="lcdScreen"><b>LCD Screen</b></label><br>
-    <select name="lcdScreen" id="lcdScreen">
-	  <option value="0" selected>None</option>
-	  <option value="1">16x2</option>
-	  <option value="2">20x4</option>
-	</select><br>
-	
-	<label for="welcomeLCDMarquee"><b>Welcome LCD Marquee(only for 20x4)</b></label><br>
-    <input type="text" placeholder="Welcome LCD Marquee" id="welcomeLCDMarquee" maxlength="20" required>
-	</div>
 	
 	<div class="panel">
 	<span class="title">Voucher Setting</span>
@@ -573,8 +550,8 @@ function myFunction() {
 		<label for="currentVersion"><b>Current Firmware Version: <span id="currentVersion">2.3</span></b></label>
 		<label for="mainBin"><b>Bin Type:</b></label><br>
 		<select name="binFileType" id="binFileType">
-		  <option value="sketch">Bin 1(Sketch[JuanFi-FlashFile1.bin or JuanFi-lan.ino.bin])</option>
-		  <option value="filesystem">Bin 2(Filesystem[JuanFi-FlashFile2.bin or JuanFi-lan.spiffs.bin])</option>
+		  <option value="sketch">Bin 1 (Sketch .bin)</option>
+		  <option value="filesystem">Bin 2 (Filesystem .bin)</option>
 		</select>
 		<label for="mainBin"><b>Bin File:</b></label><br>
 		<input type="file" name="mainBin" id="mainBin" accept=".bin" required>
@@ -605,14 +582,11 @@ function saveSystemConfig(){
 	var coinSlotSetPin = $('#coinSlotSetPin').val();
 	var systemReadyLEDPin = $('#systemReadyLEDPin').val();
 	var insertCoinLEDPin = $('#insertCoinLEDPin').val();
-	var insertCoinBtnPin = $('#insertCoinBtnPin').val();
-	
 	var pinMap = [];
 	pinMap['Coinslot Pin'] = coinSlotPin;
 	pinMap['Coinslot Set Pin'] = coinSlotSetPin;
 	pinMap['System Ready Pin'] = systemReadyLEDPin;
 	pinMap['Insert Coin LED Pin'] = insertCoinLEDPin;
-	pinMap['Insert Coin Button Pin'] = insertCoinBtnPin;
 	
 	if($('#mikrotikPw').val() != $('#confirmMikrotikPw').val()){
 		alert('Mikrotik password is not equal to confirm mikrotik password');
@@ -664,11 +638,8 @@ function saveSystemConfig(){
 				coinSlotSetPin,
 				systemReadyLEDPin,
 				insertCoinLEDPin,
-				$('#lcdScreen').val(),
-				insertCoinBtnPin,
 				$('#checkInternetStatus').val(),
 				$('#voucherPrefix').val(),
-				$('#welcomeLCDMarquee').val(),
 				$('#setupDoneFlag').val(),
 				$('#voucherLoginOption').val(),
 				$('#voucherProfile').val(),
@@ -793,46 +764,11 @@ function openDashboard(evt){
 		}
 		$('#macAddress').html(dashboardData[6]);
 		$('#ipAddress').html(dashboardData[7]);
-		hardwareType = dashboardData[8];
+		hardwareType = dashboardData[8] || "ESP8266";
 		$('#hardwareType').html(hardwareType);
-		version = dashboardData[9];
+		version = dashboardData[9] || "";
 		$('#appVersionAbout').html(version);
 		$('#currentVersion').html(version);
-		if(hardwareType == 'ESP32'){
-			$('#apSettingDiv').attr('style','display: none');
-			
-			$('select[name*="Pin"]' ).each(function( index ) {
-			  $(this).html(""); 	
-			  $(this)
-				.append(new Option("P0", "0"))
-				.append(new Option("P1", "1"))
-				.append(new Option("P2", "2"))
-				.append(new Option("P3", "6"))
-				.append(new Option("P4", "4"))
-				.append(new Option("P6", "5"))
-				.append(new Option("P7", "7"))
-				.append(new Option("P8", "8"))
-				.append(new Option("P9", "9"))
-				.append(new Option("P10", "10"))
-				.append(new Option("P11", "11"))
-				.append(new Option("P12", "12"))
-				.append(new Option("P13", "13"))
-				.append(new Option("P14", "14"))
-				.append(new Option("P15", "15"))
-				.append(new Option("P16", "16"))
-				.append(new Option("P17", "17"))
-				.append(new Option("P25", "25"))
-				.append(new Option("P26", "26"))
-				.append(new Option("P27", "27"))
-				.append(new Option("P32", "32"))
-				.append(new Option("P33", "33"))
-				.append(new Option("P34", "34"))
-				.append(new Option("P35", "35"))
-				.append(new Option("P36", "36"))
-				.append(new Option("P39", "39"));
-			});
-			
-		}
 	  }
 	});
 	openTab(evt, 'Dashboard');
@@ -851,6 +787,40 @@ function openSystemConfig(evt){
 
 function populateSystemConfigFields(data){
 	var configData = data.split(separator);
+	// legacy 30-field format: has LCD_TYPE at 15, insert coin btn at 16, marquee at 19
+	if(configData.length >= 30){
+		$('#vendoName').val(configData[0]);
+		$('#wifiSSID').val(configData[1]);
+		$('#wifiPW').val(configData[2]);
+		$('#mikrotikIp').val(configData[3]);
+		$('#mikrotikUser').val(configData[4]);
+		$('#mikrotikPw').val(configData[5]);
+		$('#confirmMikrotikPw').val(configData[5]);
+		$('#coinSlotWaitTime').val(configData[6]);
+		$('#adminUser').val(configData[7]);
+		$('#adminPw').val(configData[8]);
+		$('#confirmAdminPw').val(configData[8]);
+		$('#coinSlotAbuseCount').val(configData[9]);
+		$('#coinSlotBanMinutes').val(configData[10]);
+		$('#coinSlotPin').val(configData[11]);
+		$('#coinSlotSetPin').val(configData[12]);
+		$('#systemReadyLEDPin').val(configData[13]);
+		$('#insertCoinLEDPin').val(configData[14]);
+		$('#checkInternetStatus').val(configData[17] || '0');
+		$('#voucherPrefix').val(configData[18] || 'P');
+		$('#setupDoneFlag').val(configData[20] || '0');
+		$('#voucherLoginOption').val(configData[21] || '0');
+		$('#voucherProfile').val(configData[22] || 'default');
+		$('#voucherValidity').val(configData[23] || '0');
+		$('#ledTriggerType').val(configData[24] || '1');
+		$("#ipAddressMode").val(configData[25] || '0');
+		$("#ipAddressMode").change();
+		$("#localIpAddress").val(configData[26] || '');
+		$("#gatewayIp").val(configData[27] || '');
+		$("#subnetMask").val(configData[28] || '');
+		$("#dnsServer").val(configData[29] || '');
+		return;
+	}
 	$('#vendoName').val(configData[0]);
 	$('#wifiSSID').val(configData[1]);
 	$('#wifiPW').val(configData[2]);
@@ -868,22 +838,19 @@ function populateSystemConfigFields(data){
 	$('#coinSlotSetPin').val(configData[12]);
 	$('#systemReadyLEDPin').val(configData[13]);
 	$('#insertCoinLEDPin').val(configData[14]);
-	$('#lcdScreen').val(configData[15]);
-	$('#insertCoinBtnPin').val(configData[16]);
-	$('#checkInternetStatus').val(configData[17]);
-	$('#voucherPrefix').val(configData[18]);
-	$('#welcomeLCDMarquee').val(configData[19]);
-	$('#setupDoneFlag').val(configData[20]);
-	$('#voucherLoginOption').val(configData[21]);
-	$('#voucherProfile').val(configData[22]);
-	$('#voucherValidity').val(configData[23]);
-	$('#ledTriggerType').val(configData[24]);
-	$("#ipAddressMode").val(configData[25]);
+	$('#checkInternetStatus').val(configData[15] !== undefined ? configData[15] : '0');
+	$('#voucherPrefix').val(configData[16] !== undefined ? configData[16] : 'P');
+	$('#setupDoneFlag').val(configData[17] !== undefined ? configData[17] : '0');
+	$('#voucherLoginOption').val(configData[18] !== undefined ? configData[18] : '0');
+	$('#voucherProfile').val(configData[19] !== undefined ? configData[19] : 'default');
+	$('#voucherValidity').val(configData[20] !== undefined ? configData[20] : '0');
+	$('#ledTriggerType').val(configData[21] !== undefined ? configData[21] : '1');
+	$("#ipAddressMode").val(configData[22] !== undefined ? configData[22] : '0');
 	$("#ipAddressMode").change();
-	$("#localIpAddress").val(configData[26]);
-	$("#gatewayIp").val(configData[27]);
-	$("#subnetMask").val(configData[28]);
-	$("#dnsServer").val(configData[29]);
+	$("#localIpAddress").val(configData[23] || '');
+	$("#gatewayIp").val(configData[24] || '');
+	$("#subnetMask").val(configData[25] || '');
+	$("#dnsServer").val(configData[26] || '');
 }
 
 var rateCount = 0;
