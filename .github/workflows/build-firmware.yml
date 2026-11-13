@@ -1,0 +1,117 @@
+name: Build firmware
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "JuanFi-nodemcu/**"
+      - ".github/workflows/build-firmware.yml"
+  pull_request:
+    paths:
+      - "JuanFi-nodemcu/**"
+      - ".github/workflows/build-firmware.yml"
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+env:
+  SKETCH_DIR: JuanFi-nodemcu
+  FQBN: esp8266:esp8266:nodemcuv2:eesz=4M2M
+  CORE_VERSION: "3.1.2"
+  # Flash layout for eesz=4M2M: sketch at 0x000000, SPIFFS at 0x200000.
+  # _FS_end - _FS_start from the core's eagle.flash.4m2m.ld (0x1FA000 bytes).
+  SPIFFS_ADDRESS: "0x200000"
+  SPIFFS_SIZE: "2072576"
+  SPIFFS_BLOCK: "8192"
+  SPIFFS_PAGE: "256"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install arduino-cli
+        uses: arduino/setup-arduino-cli@v2
+        with:
+          version: "1.x"
+
+      - name: Cache Arduino core
+        uses: actions/cache@v4
+        with:
+          path: ~/.arduino15
+          key: arduino15-esp8266-${{ env.CORE_VERSION }}
+
+      - name: Install ESP8266 core
+        run: |
+          set -euo pipefail
+          arduino-cli config init --overwrite >/dev/null
+          arduino-cli config add board_manager.additional_urls https://arduino.esp8266.com/stable/package_esp8266com_index.json
+          arduino-cli core update-index
+          arduino-cli core install "esp8266:esp8266@${CORE_VERSION}"
+          arduino-cli core list
+
+      - name: Compile sketch
+        run: |
+          set -euo pipefail
+          rm -rf "$RUNNER_TEMP/build" out
+          mkdir -p out
+          arduino-cli compile \
+            --fqbn "$FQBN" \
+            --build-path "$RUNNER_TEMP/build" \
+            --warnings default \
+            "$SKETCH_DIR"
+
+      - name: Build filesystem image
+        run: |
+          set -euo pipefail
+          MKSPIFFS=$(find "$HOME/.arduino15/packages/esp8266/tools/mkspiffs" -type f -name mkspiffs | head -n 1)
+          if [ -z "$MKSPIFFS" ]; then
+            echo "mkspiffs not found in the ESP8266 core package" >&2
+            exit 1
+          fi
+          chmod +x "$MKSPIFFS"
+          "$MKSPIFFS" -c "$SKETCH_DIR/data" \
+            -b "$SPIFFS_BLOCK" -p "$SPIFFS_PAGE" -s "$SPIFFS_SIZE" \
+            out/JuanFi-FlashFile2.bin
+
+      - name: Assemble artifacts
+        run: |
+          set -euo pipefail
+          cp "$RUNNER_TEMP/build/JuanFi-nodemcu.ino.bin" out/JuanFi-FlashFile1.bin
+          {
+            echo "Firmware:   JuanFi-FlashFile1.bin  -> flash at 0x000000"
+            echo "Filesystem: JuanFi-FlashFile2.bin  -> flash at ${SPIFFS_ADDRESS}"
+            echo "Build:      ${GITHUB_SHA} ($FQBN, core ${CORE_VERSION})"
+          } > out/FLASHING.txt
+          ls -l out
+          {
+            echo "### Firmware build"
+            echo ""
+            echo "| file | flash offset | size |"
+            echo "| --- | --- | --- |"
+            printf '| JuanFi-FlashFile1.bin | 0x000000 | %s bytes |\n' "$(stat -c %s out/JuanFi-FlashFile1.bin)"
+            printf '| JuanFi-FlashFile2.bin | %s | %s bytes |\n' "$SPIFFS_ADDRESS" "$(stat -c %s out/JuanFi-FlashFile2.bin)"
+            echo ""
+            echo "Target: \`$FQBN\` with ESP8266 core ${CORE_VERSION}."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: juanfi-firmware
+          path: out/*
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach binaries to release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release upload "${{ github.event.release.tag_name }}" out/* --clobber

@@ -117,10 +117,14 @@ Here are the instructions to flash the ESP8622 using the custom pyflasher. Follo
 
 ## Step 1: Download the Flashing Files
 
-Download the necessary ESP8622 flashing files for your setup:
+Download the two flashing files from the latest **Build firmware** workflow run
+(**Actions** -> **Build firmware** -> **Artifacts** -> `juanfi-firmware`), or from a
+release that has them attached:
 
-- [**ESP8622 Wireless Base folder**](/release/WirelessBase/ES8622) - For wireless setup.
-- [**ESP8622 Lan Base folder**](/release/LanBased/ESP8622/) - For LAN-based setup.
+- `JuanFi-FlashFile1.bin` - the firmware itself.
+- `JuanFi-FlashFile2.bin` - the filesystem image holding the admin pages and config.
+
+Both are built in CI for `esp8266:esp8266:nodemcuv2` with 4 MB flash (2 MB filesystem).
 
 ## Step 2: Open the NodeMCU-PyFlasher
 

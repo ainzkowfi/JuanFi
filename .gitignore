@@ -1,2 +1,5 @@
 
 .vscode/settings.json
+
+# GitHub Actions build output (workflow writes the flash images here)
+out/
