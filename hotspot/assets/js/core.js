@@ -2486,17 +2486,23 @@ function escHtml(s) {
 	return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
-// priceHint is the authoritative price column (rates.data field 1). The name
-// normally already carries the number, so output is unchanged for every shipped
-// row; the hint only rescues names that do not, e.g. "2-hour promo" scraping
-// as 2 when the real price is 5.
-// ponytail: kept the scrape rather than adding a column, so today's table is
-// byte-identical and only the broken case changes.
+function pesoLabel(v) {
+	try { return currencySym + new Intl.NumberFormat("en-PH", { maximumFractionDigits: 2 }).format(v); } catch (e) { return currencySym + v; }
+}
+
+// The price column (rates.data field 1) is authoritative - the firmware charges
+// from it - so it wins over whatever number happens to appear first in the name.
+// Every shipped name carries the same number ("5 peso / 1hour" -> 5), so their
+// output is unchanged; names that do not were rendering the wrong price:
+// "1hour unlimited" at 20 showed as 1, "10 min promo" at 2 showed as 10.
+// The name scrape is now only the fallback for a blank or non-numeric price.
 function rateDisplay(raw, priceHint) {
+	var hint = String(priceHint == null ? "" : priceHint).trim();
+	var price = parseFloat(hint);
+	if (hint != "" && isFinite(price)) { return pesoLabel(price); }
 	var t = String(raw == null ? "" : raw).trim();
 	var m = t.match(/(\d+(?:\.\d+)?)/);
-	if (m) { try { return currencySym + new Intl.NumberFormat("en-PH", { maximumFractionDigits: 2 }).format(parseFloat(m[1])); } catch (e) {} return currencySym + m[1]; }
-	if (priceHint != null && String(priceHint).trim() != "") { return rateDisplay(String(priceHint)); }
+	if (m) { return pesoLabel(parseFloat(m[1])); }
 	return t;
 }
 

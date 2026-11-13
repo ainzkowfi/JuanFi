@@ -200,6 +200,14 @@ h2 {
 	color: #fff
 }
 
+.rate-preview {
+	color: #05c46b;
+	font-size: 14px;
+	text-align: center;
+	margin: 2px 0 8px;
+	min-height: 18px
+}
+
 .spinner { 
     position: fixed; 
     z-index: 99; 
@@ -681,15 +689,27 @@ function validateCoinSlotPin(pinMap){
 function savePromoRates(){
 	var params = [];
 	for(var i=0;i<100;i++){
-		var rateNameText = $("#rateNameText"+i).val();
-		var priceText = $("#priceText"+i).val();
-		var minutesText = $("#minutesText"+i).val();
-		var validityText = $("#validityText"+i).val();
-		var dataLimitText = $("#dataLimitText"+i).val();
-		var profileNameText = $("#profileNameText"+i).val();
-		if(rateNameText != null && priceText != null && minutesText != null && validityText != null){
-			params.push(rateNameText+"#"+priceText+"#"+minutesText+"#"+validityText+"#"+dataLimitText+"#"+profileNameText);
-		}
+		if($("#rateNameText"+i).length == 0){ continue; }
+		var rateNameText = String($("#rateNameText"+i).val() || "").trim();
+		var priceText = String($("#priceText"+i).val() || "").trim();
+		var minutesText = String($("#minutesText"+i).val() || "").trim();
+		var validityText = String($("#validityText"+i).val() || "").trim();
+		var dataLimitText = String($("#dataLimitText"+i).val() || "").trim();
+		var profileNameText = String($("#profileNameText"+i).val() || "").trim();
+		// A row the operator cleared is a row they deleted: it must not be saved
+		// as "####". The old guard only checked that the inputs existed, which
+		// they always do, so blank rows became zero-value rates on the vendo.
+		if(rateNameText == "" && priceText == "" && minutesText == "" && validityText == ""){ continue; }
+		if(rateNameText == ""){ alert("Rate row " + (i+1) + " has no name. Give it a name or clear the whole row."); return; }
+		if(priceText == "" || !(parseFloat(priceText) > 0)){ alert("Rate row " + (i+1) + " needs a price greater than 0."); return; }
+		if(minutesText == "" || !(parseInt(minutesText, 10) > 0)){ alert("Rate row " + (i+1) + " needs minutes greater than 0."); return; }
+		// "#" and "|" separate fields and rates on the vendo; a value holding one
+		// would swallow every rate after it.
+		var badField = "";
+		if(rateNameText.indexOf("#") >= 0 || rateNameText.indexOf("|") >= 0){ badField = "Rate name"; }
+		else if(profileNameText.indexOf("#") >= 0 || profileNameText.indexOf("|") >= 0){ badField = "User profile"; }
+		if(badField != ""){ alert(badField + " must not contain # or | - they separate rates on the vendo."); return; }
+		params.push(rateNameText+"#"+priceText+"#"+minutesText+"#"+validityText+"#"+dataLimitText+"#"+profileNameText);
 	}
 	var postData = createParam(params);
 	$.ajax({
@@ -704,6 +724,11 @@ function savePromoRates(){
 	  } 
 	});
 }
+
+$(document).on("input change", "#promoRateBody input", function(){
+	var m = String(this.id).match(/(\d+)$/);
+	if(m){ updateRatePreview(m[1]); }
+});
 
 function createParam(params){
 	var data = "";
@@ -918,6 +943,62 @@ function populateSystemConfigFields(data){
 
 var rateCount = 0;
 
+// --- Rate readability helpers ---------------------------------------------
+// The portal (assets/js/core.js) already shows buyers a formatted price and a
+// human duration ("3 days", not "4320"). These mirror that wording so the
+// operator sees the same thing the customer will, instead of raw minute counts.
+
+var rateCurrencySym = "\u20b1";
+
+function humanDuration(mins) {
+	mins = parseInt(mins || 0, 10);
+	if (isNaN(mins) || mins <= 0) { return "-"; }
+	if (mins < 60) { return mins + (mins == 1 ? " min" : " mins"); }
+	var d = Math.floor(mins / 1440);
+	var h = Math.floor(mins % 1440 / 60);
+	var m = mins % 60;
+	var parts = [];
+	if (d) { parts.push(d + (d == 1 ? " day" : " days")); }
+	if (h) { parts.push(h + (h == 1 ? " hour" : " hours")); }
+	if (m) { parts.push(m + (m == 1 ? " min" : " mins")); }
+	return parts.join(" ");
+}
+
+function pesoLabel(v) {
+	try { return rateCurrencySym + new Intl.NumberFormat("en-PH", { maximumFractionDigits: 2 }).format(v); } catch (e) { return rateCurrencySym + v; }
+}
+
+// Price column first (the firmware charges from it), name scrape as fallback -
+// the same rule the portal uses after this change.
+function ratePriceLabel(name, price) {
+	var hint = String(price == null ? "" : price).trim();
+	var p = parseFloat(hint);
+	if (hint != "" && isFinite(p)) { return pesoLabel(p); }
+	var m = String(name == null ? "" : name).trim().match(/(\d+(?:\.\d+)?)/);
+	if (m) { return pesoLabel(parseFloat(m[1])); }
+	return String(name == null ? "" : name).trim();
+}
+
+function ratePreviewText(name, price, minutes, validity) {
+	var time = humanDuration(minutes);
+	var expiry = humanDuration(validity);
+	return ratePriceLabel(name, price) + " \u00b7 " + (time == "-" ? "no time set" : time) + " \u00b7 " + (expiry == "-" ? "no expiry" : expiry);
+}
+
+function updateRatePreview(i) {
+	var box = $("#ratePreview" + i);
+	if (box.length == 0) { return; }
+	var name = $("#rateNameText" + i).val() || "";
+	var price = $("#priceText" + i).val() || "";
+	var minutes = $("#minutesText" + i).val() || "";
+	var validity = $("#validityText" + i).val() || "";
+	if (String(name).trim() == "" && String(price).trim() == "" && String(minutes).trim() == "") {
+		box.text("Customers see: (blank row, not saved)");
+		return;
+	}
+	box.text("Customers see: " + ratePreviewText(name, price, minutes, validity));
+}
+
 var script = " <div id='rateRow' class='rateholder'>";
 			script += "<div><span class='rate-title'>Rate Name</span><input type='text' value='rateNameValue' placeholder='Rate Name' id='rateNameText'></div>";
 			script += "<div><span class='rate-title'>Price</span><input type='number' value='priceValue' placeholder='Price' id='priceText'></div>";
@@ -925,13 +1006,14 @@ var script = " <div id='rateRow' class='rateholder'>";
 			script += "<div><span class='rate-title'>Validity in minutes</span><input type='number' value='validityValue' placeholder='Validity' id='validityText'></div>";
 			script += "<div><span class='rate-title'>Data(MB) Limit Usage(Optional)</span><input type='number' value='dataLimitValue' placeholder='Data Limit Usage' id='dataLimitText'></div>";
 			script += "<div><span class='rate-title'>User Profile(Optional, it overrides the default profile set in system config)</span><input type='text' value='profileNameValue' placeholder='User Profile' id='profileNameText'></div>";
+			script += "<div class='rate-preview' id='ratePreview'></div>";
 			script += "<center><div><button class='delratebtn' onClick='deleteRate(rateIndex)'>Delete</button></div></center>";
 			script += "</div>";
 
 function addRate(){
 	var rowData = ["","","","","",""];
-	var rowScript = generateRowScript(rateCount, rowData);
-	$("#promoRateBody").append(rowScript);
+	$("#promoRateBody").append(generateRowScript(rateCount, rowData));
+	updateRatePreview(rateCount);
 	rateCount++;
 }
 
@@ -952,37 +1034,48 @@ function openPromoRates(evt){
 }
 
 function populateRateFields(data){
-	var rateData = data.split('|');
+	var rateData = String(data == null ? "" : data).split('|');
 	var html = "";
+	rateCount = 0;
 	for(var i=0;i<rateData.length;i++){
+		// rates.data ends with the field separator, so the last split is always
+		// empty. It used to become a real row filled with the string "undefined",
+		// which then got saved back as a junk rate.
+		if(String(rateData[i]).trim() == ""){ continue; }
 		var rowData = rateData[i].split('#');
-		var rowScript = generateRowScript(i, rowData);
-		html += rowScript;
+		html += generateRowScript(rateCount, rowData);
 		rateCount++;
 	}
 	$("#promoRateBody").html(html);
+	for(var r=0;r<rateCount;r++){ updateRatePreview(r); }
 }
 
 function openVoucherGenerate(evt){
 	openTab(evt, 'VoucherGenerate');
 }
 
+function rateValue(v){
+	return String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/'/g, "&#39;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 function generateRowScript(i , rowData){
+	rowData = rowData || [];
 	var rowScript = script.replace("rateNameText", "rateNameText"+i);
-	rowScript = rowScript.replace("rateNameValue", rowData[0]);
+	rowScript = rowScript.replace("rateNameValue", rateValue(rowData[0]));
 	rowScript = rowScript.replace("priceText", "priceText"+i);
-	rowScript = rowScript.replace("priceValue", rowData[1]);
+	rowScript = rowScript.replace("priceValue", rateValue(rowData[1]));
 	rowScript = rowScript.replace("minutesText", "minutesText"+i);
-	rowScript = rowScript.replace("minutesValue", rowData[2]);
+	rowScript = rowScript.replace("minutesValue", rateValue(rowData[2]));
 	rowScript = rowScript.replace("validityText", "validityText"+i);
-	rowScript = rowScript.replace("validityValue", rowData[3]);
+	rowScript = rowScript.replace("validityValue", rateValue(rowData[3]));
 	rowScript = rowScript.replace("dataLimitText", "dataLimitText"+i);
-	rowScript = rowScript.replace("dataLimitValue", rowData[4]);
+	rowScript = rowScript.replace("dataLimitValue", rateValue(rowData[4]));
 	rowScript = rowScript.replace("profileNameText", "profileNameText"+i);
-	rowScript = rowScript.replace("profileNameValue", rowData[5]);
-	
+	rowScript = rowScript.replace("profileNameValue", rateValue(rowData[5]));
+
 	rowScript = rowScript.replace("rateIndex", i);
 	rowScript = rowScript.replace("rateRow", "rateRow"+i);
+	rowScript = rowScript.replace("ratePreview", "ratePreview"+i);
 	return rowScript;
 }
 
