@@ -2644,9 +2644,9 @@ function resumeSession() {
 			try { dbgLog("resume: uptime/traffic exhausted, voucher cleared", "dbg-err"); } catch (e) { }
 			$.toast({ title: 'Expired', content: (spentVoucher ? ("Your " + spentVoucher + " time has all been used") : "This code has used up all its time"), type: 'error', delay: 5000 });
 		} else if (em.indexOf("invalid username or password") !== -1 || em.indexOf("invalid-username") !== -1 || em.indexOf("wrong password") !== -1) {
-			// The box writes the new user to the router over telnet and
-			// never reads the reply, so a code it just minted can be
-			// rejected for a second or two. Retry once before believing it.
+			// The box confirms every write through the RouterOS API, but RouterOS
+			// can still take a second or two before a code it just minted logs in.
+			// Retry once before believing the code is bad.
 			try {
 				var retried = getSessionValue("__loginRetry");
 				if (voucher && retried !== "1") {
@@ -3181,11 +3181,11 @@ function saveVoucherBtnAction() {
 		type: "POST",
 		url: "http://" + vendorIpAddress + "/useVoucher",
 		// ponytail: useVoucher is the one endpoint that can exceed VENDO_TIMEOUT.
-		// It does two blocking telnet round-trips inside the request
-		// (registerNewVoucher + addTimeToVoucher), so on a slow MikroTik it timed
-		// out and told the customer the coin was processed when the router may
-		// never have received the command. Only this call gets the longer budget;
-		// the rest stay at 5000.
+		// It does several blocking RouterOS API round-trips inside the request
+		// (add, then print + set to extend), so on a slow MikroTik it timed out and
+		// told the customer the coin was processed when the router may have
+		// refused the write. Only this call gets the longer budget; the rest stay
+		// at 5000.
 		timeout: 10000,
 		data: { voucher: voucher },
 		complete: function(){ currentUseVoucherXhr = null; },
@@ -3600,7 +3600,9 @@ function convertVoucherAction() {
 		url: "http://" + vendorIpAddress + "/convertVoucher",
 		data: "voucher=" + encodeURIComponent(voucher) + "&convertVoucher=" + encodeURIComponent(vc),
 		dataType: "text",
-		timeout: VENDO_TIMEOUT
+		// The box reads both codes, extends the session and frees the merged code,
+		// so this needs the same longer budget useVoucher gets.
+		timeout: 15000
 	}).done(function (txt) {
 		try { if (btn) btn.prop("disabled", false); } catch (e) {}
 		var ok = false;

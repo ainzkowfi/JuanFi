@@ -63,6 +63,20 @@
 
 :do { /system script run juanfi-setup } on-error={ :log warning "setup: juanfi-setup run failed" };
 
+:put "=== RouterOS API for the coin box ===";
+:do { /ip service enable api } on-error={ :log warning "setup: api service not enabled" };
+:do { /ip service set api port=8728 } on-error={ :log warning "setup: api port not set" };
+:if ([:len [/user group find name="juanfi-api"]] = 0) do={
+  :do { /user group add name="juanfi-api" policy=api,read,write comment="ESP coin box (RouterOS API)" } on-error={ :log warning "setup: juanfi-api group not created" };
+};
+:if ([:len [/ip firewall filter find comment="juanfi api from hotspots"]] = 0) do={
+  :do { /ip firewall filter add chain=input action=accept protocol=tcp dst-port=8728 src-address=10.0.0.0/16 comment="juanfi api from hotspots" } on-error={ :log warning "setup: api input rule not added" };
+  :do { /ip firewall filter move [find comment="juanfi api from hotspots"] destination=0 } on-error={};
+};
+:local apiUserCount 0;
+:foreach u in=[/user find] do={ :do { :if ([/user get $u group] = "juanfi-api") do={ :set apiUserCount ($apiUserCount + 1) } } on-error={} };
+:if ($apiUserCount = 0) do={ :put "WARNING: no user in group juanfi-api - create one and enter the same name/password in the ESP admin page"; :log warning "setup: no user in group juanfi-api yet" } else={ :put ("juanfi-api users = " . $apiUserCount) };
+
 :do {
   /system script add name="juanfi-netstatus" policy=read,write,test source={
     :local HSFilePath "";

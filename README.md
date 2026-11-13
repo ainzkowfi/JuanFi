@@ -34,9 +34,8 @@ Join our vibrant community group to connect with other users and contributors. S
 - Mikrotik integration
 - Pause expiration
 - Codeless generation
-- Anti Coinslot abuse system
-- LCD Display
-- Code generation in vendo using LCD without device needed
+- Anti Coinslot abuse system (portal-side)
+- Voucher merge: unused time from a second code moves onto the active session and the code is freed
 - Multi vendo system
 
 ### Admin System
@@ -50,7 +49,7 @@ Join our vibrant community group to connect with other users and contributors. S
 
 ## Requirements
 
-1.) NodeMCU(ESP8266) for wireless/lan or NodeMCU(ESP32) for wireless/lan
+1.) NodeMCU(ESP8266) for wireless/lan
 
 2.) Coinslot
 
@@ -64,7 +63,7 @@ Join our vibrant community group to connect with other users and contributors. S
 
 7.) W5500 for Lan based
 
-8.) LM2596 or any DC to DC buck that can convert to 5v for (Lan based only since no available baseboard for ESP32)
+8.) LM2596 or any DC to DC buck that can convert to 5v (Lan based only)
 
 
 ---
@@ -74,14 +73,6 @@ Join our vibrant community group to connect with other users and contributors. S
 ![alt text](docs/JuanFi-Architecture.PNG?raw=true)
 
 ---
-
-## ESP32 LAN Based Connection Diagram
-
-![alt text](/docs/esp32-lan-diagram.jpg)
-
-## ESP32 Wireless Based Connection Diagram
-
-![alt text](/docs/esp32-wireless-diagram.jpg)
 
 ## ESP8622 Wireless Based Connection Diagram
 
@@ -165,69 +156,30 @@ Congratulations! You've successfully flashed your ESP8622 hardware and are ready
 <br>
 
 
-# ESP32 Flashing Instructions
+# RouterOS API setup (required)
 
-<details>
-<summary>Expand for Instructions</summary>
+The ESP talks to the MikroTik through the RouterOS API (default port 8728), not telnet.
+`juanfi-setup.rsc` enables the service, creates the access group and adds the firewall
+rule, but the account itself is yours to create.
 
-Follow these instructions to flash the ESP32 hardware using `esptool.exe`. This process will load the necessary firmware onto the ESP32 module.
+```
+/ip service enable api
+/ip service set api port=8728
+/user group add name=juanfi-api policy=api,read,write comment="ESP coin box"
+/user add name=pisonet group=juanfi-api password=CHANGE-ME
+/ip firewall filter add chain=input action=accept protocol=tcp dst-port=8728 src-address=10.0.0.0/16 comment="juanfi api from hotspots"
+/ip firewall filter move [find comment="juanfi api from hotspots"] destination=0
+```
 
-## Step 1: Download Flashing Files
-
-Download the required flashing files based on your setup:
-
-- [**ESP32 Wireless Base folder**](/release/WirelessBase/ESP32/) - For wireless setup.
-- [**ESP32 Lan Base folder**](/release/LanBased/ESP32/) - For LAN-based setup.
-
-## Step 2: Run the Flashing Script
-
-1. Double-click `start_flash.bat`.
-2. Connect your ESP32 to your PC using a USB cable.
-
-![Connect ESP32](https://github.com/ivanalayan15/JuanFi/blob/master/docs/JuanFi-Lan-FlashFile1.PNG?raw=true)
-
-3. A command prompt will appear, prompting you to select an available COM port for your ESP32.
-
-![Select COM Port](https://github.com/ivanalayan15/JuanFi/blob/master/docs/JuanFi-Lan-FlashFile2.PNG?raw=true)
-
-## Step 3: Select COM Port
-
-1. Choose the appropriate COM port for your ESP32 (e.g., COM9).
-2. Press "Enter."
-
-![Select COM Port](https://github.com/ivanalayan15/JuanFi/blob/master/docs/JuanFi-Lan-FlashFile3.PNG?raw=true)
-
-3. A connecting message will appear, indicating the tool is attempting to connect to the ESP32.
-
-![Connecting](https://github.com/ivanalayan15/JuanFi/blob/master/docs/JuanFi-Lan-FlashFile4.PNG?raw=true)
-
-## Step 4: Initiate Flashing
-
-1. Press and hold the flash button on the ESP32 for 3-5 seconds.
-2. The flashing process will start.
-
-![Initiate Flashing](https://github.com/ivanalayan15/JuanFi/blob/master/docs/JuanFi-Lan-FlashFile5.PNG?raw=true)
-
-## Step 5: Wait for Completion
-
-Wait for the flashing process to complete.
-
-## Step 6: Finish
-
-After the flashing process is finished, you can disconnect the ESP32 from your PC. The device is now ready for the JuanFi Setup.
-
-Congratulations! You've successfully flashed your ESP32 hardware and are ready to proceed with the JuanFi Setup.
-
-
-</details>
-
-<br>
+Enter the same username, password and port in the ESP admin page under
+**Mikrotik Setting** (the port field defaults to 8728). The `juanfi-api` group is
+least privilege: it can read and write hotspot users and nothing else.
 
 > # Setting up the Vendo
 
 ## 1. Connect to JuanFi Setup
 
-### For Esp32/Esp8622 Wireless Based
+### For Esp8266 Wireless Based
 
 1. Look for the **"JuanFi Setup"** SSID on your device.
 2. connect to the SSID
@@ -235,7 +187,7 @@ Congratulations! You've successfully flashed your ESP32 hardware and are ready t
 
 ![Wireless Setup](/docs/JuanFi-Step01.PNG)
 
-### For Esp32/Esp8622 LanBase
+### For Esp8266 LanBase
 
 1. Plug your vendo into your PC/Laptop's ethernet port.
 2. Set your PC/Laptop's IP address as static to **172.217.28.10**:

@@ -524,6 +524,9 @@ struct ApiResult {
   String reName;
   String reLimitUptime;
   String reLimitBytesTotal;
+  String reUptime;
+  String reBytesIn;
+  String reBytesOut;
   String reComment;
   String reProfile;
 };
@@ -541,6 +544,9 @@ void apiResetResult() {
   apiLast.reName = "";
   apiLast.reLimitUptime = "";
   apiLast.reLimitBytesTotal = "";
+  apiLast.reUptime = "";
+  apiLast.reBytesIn = "";
+  apiLast.reBytesOut = "";
   apiLast.reComment = "";
   apiLast.reProfile = "";
 }
@@ -747,6 +753,9 @@ bool apiTransact(const String &cmd, const String attrs[], int attrCount, unsigne
         else if (key == "name" && apiLast.reName.length() == 0) apiLast.reName = val;
         else if (key == "limit-uptime" && apiLast.reLimitUptime.length() == 0) apiLast.reLimitUptime = val;
         else if (key == "limit-bytes-total" && apiLast.reLimitBytesTotal.length() == 0) apiLast.reLimitBytesTotal = val;
+        else if (key == "uptime" && apiLast.reUptime.length() == 0) apiLast.reUptime = val;
+        else if (key == "bytes-in" && apiLast.reBytesIn.length() == 0) apiLast.reBytesIn = val;
+        else if (key == "bytes-out" && apiLast.reBytesOut.length() == 0) apiLast.reBytesOut = val;
         else if (key == "comment" && apiLast.reComment.length() == 0) apiLast.reComment = val;
         else if (key == "profile" && apiLast.reProfile.length() == 0) apiLast.reProfile = val;
       }
@@ -921,7 +930,8 @@ String formatRosTimeSeconds(long seconds) {
   return out;
 }
 
-bool registerNewVoucher(const String &voucher) {
+bool registerNewVoucher(const String &voucher, bool *existedBefore = nullptr) {
+  if (existedBefore) *existedBefore = false;
   String v = sanitizeCommandToken(voucher, 24, "");
   if (v.length() == 0) return false;
   String prof = sanitizeCommandToken(VOUCHER_PROFILE, 24, "");
@@ -939,7 +949,10 @@ bool registerNewVoucher(const String &voucher) {
   // Idempotent create: an already existing voucher is not an error here.
   String msg = apiLast.trapMessage;
   msg.toLowerCase();
-  if (msg.indexOf("already") >= 0 || msg.indexOf("exist") >= 0) return true;
+  if (msg.indexOf("already") >= 0 || msg.indexOf("exist") >= 0) {
+    if (existedBefore) *existedBefore = true;
+    return true;
+  }
   Serial.print("registerNewVoucher trap: ");
   Serial.println(apiLast.trapMessage);
   return false;
@@ -1279,6 +1292,106 @@ void useVoucher() {
   server.send(200, "application/json", toJson(keys, values, 4));
 }
 
+void replyConvertRefused() {
+  char *keys[] = {"status", "errorCode"};
+  char *values[] = {"false", "convertVoucher.refused"};
+  setupCORSPolicy();
+  server.send(200, "application/json", toJson(keys, values, 2));
+}
+
+bool removeVoucherUser(const String &target) {
+  String a[1];
+  a[0] = "=numbers=" + target;
+  if (apiTransact("/ip/hotspot/user/remove", a, 1, 7000)) return true;
+  Serial.print("remove voucher failed: ");
+  Serial.println(apiLast.trapMessage);
+  return false;
+}
+
+// Move the unused time (and unused data) of a second voucher onto the customer's
+// active voucher, then delete the merged code so its name returns to the pool the
+// generator draws from. Without this, spent codes stay behind as dead hotspot users
+// and the finite code space fills up with codes nobody can use.
+void convertVoucher() {
+  if (!checkIfSystemIsAvailable()) return;
+
+  String active = sanitizeCommandToken(server.arg("voucher"), 24, "");
+  String source = sanitizeCommandToken(server.arg("convertVoucher"), 24, "");
+  if (!isValidVoucherCode(active) || !isValidVoucherCode(source) || active == source) {
+    replyConvertRefused();
+    return;
+  }
+
+  // 1) what is left on the code being handed in?
+  String q[2];
+  q[0] = "?name=" + source;
+  q[1] = "=.proplist=.id,uptime,limit-uptime,limit-bytes-total,bytes-in,bytes-out";
+  if (!apiTransact("/ip/hotspot/user/print", q, 2, 7000) || apiLast.records == 0) {
+    replyConvertRefused();
+    return;
+  }
+  String sourceTarget = apiLast.reId.length() > 0 ? apiLast.reId : source;
+  long sourceLimit = parseRosTimeToSeconds(apiLast.reLimitUptime);
+  long sourceUsed = parseRosTimeToSeconds(apiLast.reUptime);
+  long remainingTime = sourceLimit - sourceUsed;
+  // Unlimited profiles report no limit, and a spent code has nothing left to give.
+  if (sourceLimit <= 0 || remainingTime <= 0) {
+    replyConvertRefused();
+    return;
+  }
+
+  unsigned long long sourceBytesLimit = 0, sourceBytesIn = 0, sourceBytesOut = 0, sourceBytesUsed = 0;
+  parseU64(apiLast.reLimitBytesTotal, sourceBytesLimit);
+  parseU64(apiLast.reBytesIn, sourceBytesIn);
+  parseU64(apiLast.reBytesOut, sourceBytesOut);
+  sourceBytesUsed = sourceBytesIn + sourceBytesOut;
+  unsigned long long remainingBytes = (sourceBytesLimit > sourceBytesUsed) ? (sourceBytesLimit - sourceBytesUsed) : 0;
+
+  // 2) what does the active voucher already hold?
+  q[0] = "?name=" + active;
+  q[1] = "=.proplist=.id,limit-uptime,limit-bytes-total";
+  if (!apiTransact("/ip/hotspot/user/print", q, 2, 7000) || apiLast.records == 0) {
+    replyConvertRefused();
+    return;
+  }
+  String activeTarget = apiLast.reId.length() > 0 ? apiLast.reId : active;
+  long activeLimit = parseRosTimeToSeconds(apiLast.reLimitUptime);
+  unsigned long long activeBytes = 0;
+  parseU64(apiLast.reLimitBytesTotal, activeBytes);
+  // An unlimited session already has all the time it can use; adding a limit here
+  // would cap the customer instead of helping them.
+  if (activeLimit <= 0) {
+    replyConvertRefused();
+    return;
+  }
+
+  long newLimit = activeLimit + remainingTime;
+  if (newLimit < 0) newLimit = activeLimit;
+
+  // 3) grant first: the customer has already paid for both codes.
+  String sattrs[4];
+  int sn = 0;
+  sattrs[sn++] = "=numbers=" + activeTarget;
+  sattrs[sn++] = "=limit-uptime=" + formatRosTimeSeconds(newLimit);
+  // Only merge data when the session is already data-limited; adding a cap to an
+  // unlimited voucher would silently throttle it.
+  if (remainingBytes > 0 && activeBytes > 0) sattrs[sn++] = "=limit-bytes-total=" + u64ToString(activeBytes + remainingBytes);
+  if (!apiTransact("/ip/hotspot/user/set", sattrs, sn, 7000)) {
+    replyConvertRefused();
+    return;
+  }
+
+  // 4) best effort: free the merged code so it can be sold again.
+  removeVoucherUser(sourceTarget);
+
+  char timeAddedStr[16]; ltoa(remainingTime, timeAddedStr, 10);
+  char totalTimeStr[16]; ltoa(newLimit, totalTimeStr, 10);
+  char *keys[] = {"status", "timeAdded", "totalTime"};
+  char *values[] = {"true", timeAddedStr, totalTimeStr};
+  setupCORSPolicy();
+  server.send(200, "application/json", toJson(keys, values, 3));
+}
+
 void topUp() {
   bool hasInternetConnection = true;
   if (CHECK_INTERNET_CONNECTION == 1) hasInternetConnection = hasInternetConnect();
@@ -1339,16 +1452,27 @@ void handleGenerateVouchers() {
   String prefix = sanitizeCommandToken(server.arg("pfx"), 4, VOUCHER_PREFIX);
   String voucherGenerated = "";
   int successCount = 0;
+  const char alphabet[] = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  // Codes minted here are fresh sessions, never extensions of an existing one.
+  isNewVoucher = true;
+  totalCoin = amount;
+  timeToAdd = calculateAddTime();
   for (int i = 0; i < qty; i++) {
-    String voucher = prefix;
-    const char alphabet[] = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    for (int j = 0; j < 4; j++) {
-      voucher += alphabet[ESP.random() % (sizeof(alphabet) - 1)];
+    // A 4-character suffix shares its name space with every voucher ever printed,
+    // and registerNewVoucher() treats "already exists" as success. Redraw instead of
+    // silently extending some other customer's voucher.
+    String voucher = "";
+    for (int attempt = 0; attempt < 5 && voucher.length() == 0; attempt++) {
+      String candidate = prefix;
+      for (int j = 0; j < 4; j++) {
+        candidate += alphabet[ESP.random() % (sizeof(alphabet) - 1)];
+      }
+      bool existed = false;
+      if (!registerNewVoucher(candidate, &existed)) break;  // real trap: stop retrying
+      if (!existed) voucher = candidate;
     }
-    totalCoin = amount;
-    timeToAdd = calculateAddTime();
-    bool regOk = registerNewVoucher(voucher);
-    bool extOk = regOk && addTimeToVoucher(voucher, timeToAdd);
+    if (voucher.length() == 0) continue;
+    bool extOk = addTimeToVoucher(voucher, timeToAdd);
     if (!extOk) continue;
     if (addToSales == 1) updateStatistic();
     if (successCount > 0) voucherGenerated += "#";
@@ -1472,6 +1596,7 @@ void setup() {
     server.on("/health", handleHealth);
     server.on("/getRates", handleUserGetRates);
     server.on("/cancelTopUp", handleCancelTopUp);
+    server.on("/convertVoucher", convertVoucher);
     server.on("/testInsertCoin", testInsertCoin);
     server.onNotFound(handleNotFound);
   } else {
