@@ -166,7 +166,7 @@ int evaluateTriggerOutput(int state) {
   return (state == TURN_ON) ? LOW : HIGH;
 }
 
-String toJson(char *keys[], char *values[], int nField) {
+String toJson(const char *keys[], const char *values[], int nField) {
   String json = "{";
   for (int i = 0; i < nField; i++) {
     if (i > 0) json += ",";
@@ -300,27 +300,38 @@ void populateRates() {
   ratesCount = 0;
   String data = readFile("/admin/config/rates.data");
   if (data.length() == 0) return;
-  String rows[100];
-  int totalRows = split(rows, 100, data, '|');
-  int n = (totalRows > 100) ? 100 : totalRows;
-  for (int i = 0; i < n; i++) {
-    if (rows[i].length() == 0) continue;
-    String column[6];
-    for (int c = 0; c < 6; c++) column[c] = "";
-    int cols = split(column, 6, rows[i], '#');
-    PromoRates r;
-    r.rateName = (cols > 0) ? column[0] : "";
-    r.price = (cols > 1) ? column[1].toInt() : 0;
-    r.minutes = (cols > 2) ? column[2].toInt() : 0;
-    r.validity = (cols > 3) ? column[3].toInt() : 0;
-    r.dataLimit = (cols > 4) ? column[4].toInt() : 0;
-    r.profileName = (cols > 5) ? column[5] : "";
-    if (r.price < 0) r.price = 0;
-    if (r.minutes < 0) r.minutes = 0;
-    if (r.validity < 0) r.validity = 0;
-    if (r.dataLimit < 0) r.dataLimit = 0;
-    rates[ratesCount++] = r;
-    if (ratesCount >= 100) break;
+  int start = 0;
+  int len = (int)data.length();
+  while (start <= len && ratesCount < 100) {
+    int end = data.indexOf('|', start);
+    if (end < 0) end = len;
+    if (end > start) {
+      // Parse "name#price#minutes#validity#dataLimit#profile" without a 100-row stack array.
+      String column[6];
+      for (int c = 0; c < 6; c++) column[c] = "";
+      int col = 0;
+      int fstart = start;
+      for (int i = start; i <= end && col < 6; i++) {
+        char ch = (i < end) ? data.charAt(i) : '#';
+        if (ch == '#' || i == end) {
+          column[col++] = data.substring(fstart, i);
+          fstart = i + 1;
+        }
+      }
+      PromoRates r;
+      r.rateName = column[0];
+      r.price = column[1].toInt();
+      r.minutes = column[2].toInt();
+      r.validity = column[3].toInt();
+      r.dataLimit = column[4].toInt();
+      r.profileName = column[5];
+      if (r.price < 0) r.price = 0;
+      if (r.minutes < 0) r.minutes = 0;
+      if (r.validity < 0) r.validity = 0;
+      if (r.dataLimit < 0) r.dataLimit = 0;
+      rates[ratesCount++] = r;
+    }
+    start = end + 1;
   }
 }
 
@@ -669,7 +680,8 @@ bool apiReadWord(String &out, unsigned long timeoutMs, uint32_t maxLen = 4096) {
   if (!apiReadLen(len, timeoutMs)) return false;
   if (len == 0) return true;
   if (len > maxLen) {
-    // Drain oversized word so the stream stays aligned.
+    // Drain oversized word to keep the stream aligned, but fail closed: returning an
+    // empty word would be misread as an end-of-sentence marker and desync parsing.
     uint8_t tmp[64];
     uint32_t remaining = len;
     while (remaining > 0) {
@@ -677,7 +689,7 @@ bool apiReadWord(String &out, unsigned long timeoutMs, uint32_t maxLen = 4096) {
       if (!apiReadExact(tmp, chunk, timeoutMs)) return false;
       remaining -= chunk;
     }
-    return true;
+    return false;
   }
   out.reserve(len);
   unsigned long start = millis();
@@ -727,9 +739,10 @@ bool apiTransact(const String &cmd, const String attrs[], int attrCount, unsigne
     if (!apiReadWord(word, remain)) { apiLast.fatal = true; apiClient.stop(); return false; }
 
     if (word.length() == 0) {
-      // End of a reply sentence.
+      // End of a reply sentence. RouterOS sends !done after !trap for the same
+      // command, so a trap must keep reading or the stale !done desyncs the next call.
       if (current == ApiReplyType::DONE) { apiLast.gotDone = true; finished = true; }
-      else if (current == ApiReplyType::TRAP) { finished = true; }
+      else if (current == ApiReplyType::TRAP) { /* consume trailing !done */ }
       else if (current == ApiReplyType::FATAL) { finished = true; }
       current = ApiReplyType::NONE;
       continue;
@@ -1020,8 +1033,8 @@ void handleLogout() {
 bool checkIfSystemIsAvailable() {
   if (!ensureMikrotikConnection()) {
     digitalWrite(SYSTEM_READY_LED, evaluateTriggerOutput(TURN_OFF));
-    char *keys[] = {"status", "errorCode"};
-    char *values[] = {"false", "coin.slot.notavailable"};
+    const char *keys[] = {"status", "errorCode"};
+    const char *values[] = {"false", "coin.slot.notavailable"};
     setupCORSPolicy();
     server.send(200, "application/json", toJson(keys, values, 2));
     return false;
@@ -1060,8 +1073,8 @@ bool isValidVoucherCode(const String &v) {
 
 bool validateVoucher(const String &voucher) {
   if (!isValidVoucherCode(voucher) || voucher != currentActiveVoucher) {
-    char *keys[] = {"status", "errorCode"};
-    char *values[] = {"false", "coinslot.busy"};
+    const char *keys[] = {"status", "errorCode"};
+    const char *values[] = {"false", "coinslot.busy"};
     setupCORSPolicy();
     server.send(200, "application/json", toJson(keys, values, 2));
     return false;
@@ -1075,6 +1088,7 @@ void resetGlobalVariables() {
   totalCoin = 0;
   currentDataLimit = 0;
   currentRateProfile = "";
+  isNewVoucher = false;
 }
 
 void disableCoinSlot() {
@@ -1206,8 +1220,8 @@ void handleCancelTopUp() {
   String voucher = server.arg("voucher");
   if (!validateVoucher(voucher)) return;
   targetMilis = millis();
-  char *keys[] = {"status"};
-  char *values[] = {"true"};
+  const char *keys[] = {"status"};
+  const char *values[] = {"true"};
   setupCORSPolicy();
   server.send(200, "application/json", toJson(keys, values, 1));
 }
@@ -1218,8 +1232,8 @@ void checkCoin() {
   if (!validateVoucher(voucher)) return;
 
   if (coinExpired) {
-    char *keys[] = {"status", "errorCode"};
-    char *values[] = {"false", "coins.wait.expired"};
+    const char *keys[] = {"status", "errorCode"};
+    const char *values[] = {"false", "coins.wait.expired"};
     setupCORSPolicy();
     server.send(200, "application/json", toJson(keys, values, 2));
     return;
@@ -1228,25 +1242,25 @@ void checkCoin() {
   if (!acceptCoin) {
     totalCoin += processCoin;
     timeToAdd = calculateAddTime();
-    char *keys[] = {"status", "newCoin", "timeAdded", "totalCoin", "validity", "data"};
+    const char *keys[] = {"status", "newCoin", "timeAdded", "totalCoin", "validity", "data"};
     char coinStr[16]; itoa(processCoin, coinStr, 10);
     char timeToAddStr[16]; itoa(timeToAdd, timeToAddStr, 10);
     char totalCoinStr[16]; itoa(totalCoin, totalCoinStr, 10);
     char validityStr[16]; itoa(currentValidity, validityStr, 10);
     char currentDataLimitStr[16]; itoa(currentDataLimit, currentDataLimitStr, 10);
-    char *values[] = {"true", coinStr, timeToAddStr, totalCoinStr, validityStr, currentDataLimitStr};
+    const char *values[] = {"true", coinStr, timeToAddStr, totalCoinStr, validityStr, currentDataLimitStr};
     activateCoinSlot();
     setupCORSPolicy();
     server.send(200, "application/json", toJson(keys, values, 6));
   } else {
-    char *keys[] = {"status", "errorCode", "remainTime", "timeAdded", "totalCoin", "waitTime", "validity", "data"};
+    const char *keys[] = {"status", "errorCode", "remainTime", "timeAdded", "totalCoin", "waitTime", "validity", "data"};
     char remainTimeStr[20]; long remain = (long)targetMilis - (long)millis(); itoa(remain, remainTimeStr, 10);
     char timeToAddStr[16]; itoa(timeToAdd, timeToAddStr, 10);
     char totalCoinStr[16]; itoa(totalCoin, totalCoinStr, 10);
     char waitTimeStr[16]; itoa(MAX_WAIT_COIN_SEC, waitTimeStr, 10);
     char validityStr[16]; itoa(currentValidity, validityStr, 10);
     char currentDataLimitStr[16]; itoa(currentDataLimit, currentDataLimitStr, 10);
-    char *values[] = {"false", "coin.not.inserted", remainTimeStr, timeToAddStr, totalCoinStr, waitTimeStr, validityStr, currentDataLimitStr};
+    const char *values[] = {"false", "coin.not.inserted", remainTimeStr, timeToAddStr, totalCoinStr, waitTimeStr, validityStr, currentDataLimitStr};
     setupCORSPolicy();
     server.send(200, "application/json", toJson(keys, values, 8));
   }
@@ -1257,8 +1271,8 @@ void useVoucher() {
   String voucher = server.arg("voucher");
   if (!validateVoucher(voucher)) return;
   if (timeToAdd > 0 && !ensureMikrotikConnection(true)) {
-    char *keys[] = {"status", "errorCode"};
-    char *values[] = {"false", "coin.slot.notavailable"};
+    const char *keys[] = {"status", "errorCode"};
+    const char *values[] = {"false", "coin.slot.notavailable"};
     setupCORSPolicy();
     server.send(200, "application/json", toJson(keys, values, 2));
     return;
@@ -1271,8 +1285,8 @@ void useVoucher() {
       updateStatistic();
     } else {
       // Do not commit stats/state on failure; keep voucher context out but report error
-      char *keys[] = {"status", "errorCode"};
-      char *values[] = {"false", "coin.slot.notavailable"};
+      const char *keys[] = {"status", "errorCode"};
+      const char *values[] = {"false", "coin.slot.notavailable"};
       setupCORSPolicy();
       server.send(200, "application/json", toJson(keys, values, 2));
       resetGlobalVariables();
@@ -1281,11 +1295,11 @@ void useVoucher() {
       return;
     }
   }
-  char *keys[] = {"status", "totalCoin", "timeAdded", "validity"};
+  const char *keys[] = {"status", "totalCoin", "timeAdded", "validity"};
   char totalCoinStr[16]; itoa(totalCoin, totalCoinStr, 10);
   char timeToAddStr[16]; itoa(timeToAdd, timeToAddStr, 10);
   char validityStr[16]; itoa(currentValidity, validityStr, 10);
-  char *values[] = {"true", totalCoinStr, timeToAddStr, validityStr};
+  const char *values[] = {"true", totalCoinStr, timeToAddStr, validityStr};
   resetGlobalVariables();
   setupCORSPolicy();
   acceptCoin = false;
@@ -1293,8 +1307,8 @@ void useVoucher() {
 }
 
 void replyConvertRefused() {
-  char *keys[] = {"status", "errorCode"};
-  char *values[] = {"false", "convertVoucher.refused"};
+  const char *keys[] = {"status", "errorCode"};
+  const char *values[] = {"false", "convertVoucher.refused"};
   setupCORSPolicy();
   server.send(200, "application/json", toJson(keys, values, 2));
 }
@@ -1386,8 +1400,8 @@ void convertVoucher() {
 
   char timeAddedStr[16]; ltoa(remainingTime, timeAddedStr, 10);
   char totalTimeStr[16]; ltoa(newLimit, totalTimeStr, 10);
-  char *keys[] = {"status", "timeAdded", "totalTime"};
-  char *values[] = {"true", timeAddedStr, totalTimeStr};
+  const char *keys[] = {"status", "timeAdded", "totalTime"};
+  const char *values[] = {"true", timeAddedStr, totalTimeStr};
   setupCORSPolicy();
   server.send(200, "application/json", toJson(keys, values, 3));
 }
@@ -1396,8 +1410,8 @@ void topUp() {
   bool hasInternetConnection = true;
   if (CHECK_INTERNET_CONNECTION == 1) hasInternetConnection = hasInternetConnect();
   if (!hasInternetConnection) {
-    char *keys[] = {"status", "errorCode"};
-    char *values[] = {"false", "no.internet.detected"};
+    const char *keys[] = {"status", "errorCode"};
+    const char *values[] = {"false", "no.internet.detected"};
     setupCORSPolicy();
     server.send(200, "application/json", toJson(keys, values, 2));
     return;
@@ -1406,16 +1420,16 @@ void topUp() {
 
   String voucher = server.arg("voucher");
   if (voucher.length() > 0 && !isValidVoucherCode(voucher)) {
-    char *keys[] = {"status", "errorCode"};
-    char *values[] = {"false", "invalid.voucher"};
+    const char *keys[] = {"status", "errorCode"};
+    const char *values[] = {"false", "invalid.voucher"};
     setupCORSPolicy();
     server.send(200, "application/json", toJson(keys, values, 2));
     return;
   }
 
   if (currentActiveVoucher.length() > 0 && voucher.length() > 0 && voucher != currentActiveVoucher) {
-    char *keys[] = {"status", "errorCode"};
-    char *values[] = {"false", "coinslot.busy"};
+    const char *keys[] = {"status", "errorCode"};
+    const char *values[] = {"false", "coinslot.busy"};
     setupCORSPolicy();
     server.send(200, "application/json", toJson(keys, values, 2));
     return;
@@ -1432,8 +1446,8 @@ void topUp() {
   int voucherLength = voucher.length() + 1;
   char voucherChar[voucherLength];
   voucher.toCharArray(voucherChar, voucherLength);
-  char *keys[] = {"status", "voucher"};
-  char *values[] = {"true", voucherChar};
+  const char *keys[] = {"status", "voucher"};
+  const char *values[] = {"true", voucherChar};
   if (voucher != currentActiveVoucher) {
     resetGlobalVariables();
     activateCoinSlot();
@@ -1652,9 +1666,11 @@ void loop() {
         coinExpired = false;
         if (coinsChange > 0) {
           delay(50);
+          noInterrupts();
           processCoin = coin;
           coin = 0;
           coinsChange = 0;
+          interrupts();
           acceptCoin = false;
           totalCoin += processCoin;
           timeToAdd = calculateAddTime();
