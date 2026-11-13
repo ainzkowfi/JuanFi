@@ -34,6 +34,8 @@ bool acceptCoin = false;
 unsigned long targetMilis = 0;
 bool coinExpired = false;
 bool mikrotikConnectionSuccess = false;
+unsigned long lastMikrotikReconnectAttempt = 0;
+const unsigned long MIKROTIK_RECONNECT_INTERVAL = 15000;
 String currentMacAddress = "";
 String currentIpAddress = "";
 const String HARDWARE_TYPE = "ESP8266";
@@ -479,29 +481,62 @@ void handleLogout() {
   server.send(401, "text/html", "Authentication failed");
 }
 
-void sendCommand(const String &script) {
+bool sendCommand(const String &script) {
+  if (!ensureMikrotikConnection()) return false;
   int scriptLength = script.length() + 1;
   char command[scriptLength];
   script.toCharArray(command, scriptLength);
   tc.sendCommand(command);
+  return true;
 }
 
 void loginMirotik() {
+  if (WiFi.status() != WL_CONNECTED) {
+    mikrotikConnectionSuccess = false;
+    return;
+  }
+  if (client.connected()) {
+    client.stop();
+    delay(50);
+  }
   tc.setPromptChar('>');
   mikrotikConnectionSuccess = tc.login(mikrotikRouterIp, user.c_str(), pwd.c_str());
   if (!mikrotikConnectionSuccess) {
     Serial.println("MikroTik login failed");
+    client.stop();
+  } else {
+    Serial.println("MikroTik login ok");
   }
 }
 
+bool ensureMikrotikConnection(bool force = false) {
+  if (!networkConnected || WiFi.status() != WL_CONNECTED) {
+    mikrotikConnectionSuccess = false;
+    return false;
+  }
+  if (mikrotikConnectionSuccess && client.connected()) {
+    return true;
+  }
+  unsigned long now = millis();
+  if (!force && (now - lastMikrotikReconnectAttempt) < MIKROTIK_RECONNECT_INTERVAL) {
+    mikrotikConnectionSuccess = client.connected() && mikrotikConnectionSuccess;
+    return mikrotikConnectionSuccess;
+  }
+  lastMikrotikReconnectAttempt = now;
+  loginMirotik();
+  return mikrotikConnectionSuccess && client.connected();
+}
+
 bool checkIfSystemIsAvailable() {
-  if (!mikrotikConnectionSuccess) {
+  if (!ensureMikrotikConnection()) {
+    digitalWrite(SYSTEM_READY_LED, evaluateTriggerOutput(TURN_OFF));
     char *keys[] = {"status", "errorCode"};
     char *values[] = {"false", "coin.slot.notavailable"};
     setupCORSPolicy();
     server.send(200, "application/json", toJson(keys, values, 2));
     return false;
   }
+  digitalWrite(SYSTEM_READY_LED, evaluateTriggerOutput(TURN_ON));
   return true;
 }
 
@@ -794,6 +829,13 @@ void useVoucher() {
   if (!checkIfSystemIsAvailable()) return;
   String voucher = server.arg("voucher");
   if (!validateVoucher(voucher)) return;
+  if (timeToAdd > 0 && !ensureMikrotikConnection(true)) {
+    char *keys[] = {"status", "errorCode"};
+    char *values[] = {"false", "coin.slot.notavailable"};
+    setupCORSPolicy();
+    server.send(200, "application/json", toJson(keys, values, 2));
+    return;
+  }
   disableCoinSlot();
   if (timeToAdd > 0) {
     registerNewVoucher(currentActiveVoucher);
@@ -864,6 +906,7 @@ void topUp() {
 
 void handleGenerateVouchers() {
   if (!isAuthorized()) { handleNotAuthorize(); return; }
+  if (!ensureMikrotikConnection(true)) { server.send(503, "text/plain", "MikroTik unavailable"); return; }
   int amount = clampInt(server.arg("amt").toInt(), 0, 100000);
   int qty = clampInt(server.arg("qty").toInt(), 1, 50);
   int addToSales = server.arg("sales").toInt() ? 1 : 0;
@@ -1034,9 +1077,14 @@ void loop() {
   if (networkConnected) {
     unsigned long currentMilis = millis();
 
-    if (!client.connected() && mikrotikConnectionSuccess) {
+    if (mikrotikConnectionSuccess && !client.connected()) {
       mikrotikConnectionSuccess = false;
       digitalWrite(SYSTEM_READY_LED, evaluateTriggerOutput(TURN_OFF));
+    }
+    if (!mikrotikConnectionSuccess) {
+      if (ensureMikrotikConnection()) {
+        digitalWrite(SYSTEM_READY_LED, evaluateTriggerOutput(TURN_ON));
+      }
     }
 
     if (acceptCoin) {
@@ -1058,11 +1106,19 @@ void loop() {
         coinExpired = true;
         timeToAdd = calculateAddTime();
         if (timeToAdd > 0 && currentActiveVoucher.length() > 0) {
-          if (isNewVoucher) registerNewVoucher(currentActiveVoucher);
-          updateStatistic();
-          addTimeToVoucher(currentActiveVoucher, timeToAdd);
+          if (ensureMikrotikConnection(true)) {
+            if (isNewVoucher) registerNewVoucher(currentActiveVoucher);
+            updateStatistic();
+            addTimeToVoucher(currentActiveVoucher, timeToAdd);
+            resetGlobalVariables();
+          } else {
+            // Keep session state so portal/user can retry when router link recovers.
+            mikrotikConnectionSuccess = false;
+            digitalWrite(SYSTEM_READY_LED, evaluateTriggerOutput(TURN_OFF));
+          }
+        } else {
+          resetGlobalVariables();
         }
-        resetGlobalVariables();
       }
     }
   } else {
