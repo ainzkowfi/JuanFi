@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<link rel="stylesheet" href="assets/css/base.css?v=174">
+	<link rel="stylesheet" href="assets/css/core.css?v=205">
+	<link rel="stylesheet" href="assets/css/portal.css?v=183">
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<meta name="theme-color" content="#f5a623">
+	<meta name="mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<link rel="icon" type="image/x-icon" sizes="32x32" href="favicon.ico?v=1">
+		<title>Logged out</title>
+	<script>
+	// Auto-login pending: leave before first paint, no screen flash.
+	try {
+		var r = null;
+		if (typeof localStorage !== 'undefined' && localStorage) { r = localStorage.getItem("reLogin"); }
+		if (r == null) { var m = document.cookie.match(/(?:^|; )reLogin=([^;]*)/); r = m ? decodeURIComponent(m[1]) : null; }
+		if (r === "1") { window.location.replace("login"); }
+	} catch (e) {}
+	</script>
+</head>
+
+<!-- The router already ended the session by the time this page renders, so
+     there is no uptime/usage to show: just the voucher, one button, and the
+     way back. $(username) is user-typed and RouterOS escapes neither it nor
+     quotes, so -esc percent-encodes < > " & and the read below decodes it
+     once, so what is displayed and copied is the real code. -->
+<body id="loginBody">
+<noscript><div style="padding:20px;text-align:center">This portal needs JavaScript. Please enable it and reload.</div></noscript>
+<span id="loU" style="display:none">$(username-esc)</span>
+<span id="loLink" style="display:none">$(link-login)</span>
+
+<div class="portal">
+	<div class="hero">
+		<h1 class="sub">You are logged out</h1>
+		<p class="pausenote" style="margin-top: 0;">This page only opens if you typed the logout address yourself. To pause or end your time, use the buttons on the status page.</p>
+		<div class="vouchline">Voucher <span id="loUser"></span></div>
+	</div>
+
+	<div class="btnrow">
+		<a id="loLogin" href="login" class="btn btn-info" style="display: block; width: 100%; min-height: 48px; line-height: 34px;">CONNECT AGAIN</a>
+	</div>
+
+	<div class="btnrow">
+		<button type="button" id="loCopy" class="btn btn-primary" style="display: block; width: 100%; min-height: 48px;">COPY VOUCHER</button>
+	</div>
+
+	<p class="pausenote" id="loNote">Returning to login in <span id="loCount">10</span>s</p>
+	<!-- The countdown ticks once a second, so it must stay out of a live region
+	     (ten separate announcements); the copy result is announced here. -->
+	<p id="loLive" role="status" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);"></p>
+</div>
+
+<script>
+(function () {
+		function t(id) { try { return document.getElementById(id).textContent || ""; } catch (e) { return ""; } }
+		// loU arrives percent-encoded from $(username-esc); the voucher has to
+		// be readable and copyable, so decode it (raw fallback on stray %).
+		function dz(s) { try { return decodeURIComponent(s); } catch (e) { return s; } }
+		try {
+			var code = dz(t("loU"));
+			document.getElementById("loUser").textContent = code || "-";
+			var link = t("loLink") || "login";
+			// Same scheme check error.html uses, so this can never become an
+			// off-site redirect.
+			if (!/^(https?:\/\/|\/)/.test(link)) { link = "login"; }
+			document.getElementById("loLogin").href = link;
+		document.getElementById("loCopy").onclick = function () {
+			function done(ok) {
+				try { document.getElementById("loLive").textContent = ok ? "Voucher copied." : "Copy failed. Long-press the code above."; } catch (e) {}
+			}
+			try {
+				if (code && navigator.clipboard && navigator.clipboard.writeText) {
+					navigator.clipboard.writeText(code).then(function () { done(true); }, function () { done(false); });
+				} else { done(false); }
+			} catch (e) { done(false); }
+		};
+		// Auto-login pending (pause/renew set reLogin): the login page
+		// submits on its own, so leave at once.
+		var relogin = null;
+		try {
+			if (typeof localStorage !== 'undefined' && localStorage) { relogin = localStorage.getItem("reLogin"); }
+			if (relogin == null) {
+				var m = document.cookie.match(/(?:^|; )reLogin=([^;]*)/);
+				relogin = m ? decodeURIComponent(m[1]) : null;
+			}
+		} catch (e) {}
+		if (relogin === "1") { window.location.replace(link); return; }
+		var n = 10;
+		var el = document.getElementById("loCount");
+		var iv = setInterval(function () {
+			n--;
+			if (n <= 0) { clearInterval(iv); window.location.replace(link); return; }
+			try { el.textContent = n; } catch (e) {}
+		}, 1000);
+	} catch (e) {}
+})();
+</script>
+
+</body>
+
+</html>

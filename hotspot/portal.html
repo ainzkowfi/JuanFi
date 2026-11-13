@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<!-- JuanFiV2 single-file portal: probes the client status on load and renders
+     the matching view (login / status / paused) document.write-style.
+     Rates inline in the body. Preview: /portal/ (?state=login|status|paused
+     plus ?dbg=1, state override is dev-only since it bypasses real status).
+     Router files (login/status/logout.html) are thin shells over this app. -->
+<html lang="en">
+
+<head>
+	<link rel="stylesheet" href="assets/css/base.css?v=174">
+	<link rel="stylesheet" href="assets/css/core.css?v=205">
+	<link rel="stylesheet" href="assets/css/portal.css?v=183">
+	<link rel="icon" type="image/x-icon" sizes="32x32" href="favicon.ico?v=1">
+		<title>Voucher Hotspot Portal</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta name="theme-color" content="#101418">
+	<meta name="mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<script src="assets/js/md5.js?v=26"></script>
+	<script>
+		// Shared globals: router shells set these BEFORE this file loads;
+		// standalone (preview) falls back to the samples below.
+		window.PAGE = window.PAGE || "login";
+		window.mac = window.mac || "AA:BB:CC:DD:EE:FF";
+		window.uIp = window.uIp || "10.0.0.1";
+		window.loginError = window.loginError || "";
+		window.loginErrorOrig = window.loginErrorOrig || "";
+		window.hotspotAddress = window.hotspotAddress || "10.0.0.1";
+		window.interfaceName = window.interfaceName || "bridge-hotspot";
+		window.sessiontime = window.sessiontime || "3600";
+		window.currentVoucher = window.currentVoucher || "";
+		window.remainingTimer = window.remainingTimer || null;
+		window.chapId = window.chapId || "";
+		window.chapChallenge = window.chapChallenge || "";
+		window.loginAction = window.loginAction || "/portal/done";
+		window.logoutAction = window.logoutAction || "/portal/logout";
+		var PAGE = window.PAGE, mac = window.mac,
+			loginError = window.loginError, loginErrorOrig = window.loginErrorOrig,
+			hotspotAddress = window.hotspotAddress,
+			interfaceName = window.interfaceName;
+
+		// The customer's own code wins over anything the portal prefills or
+		// auto-connects. Bound here, not in core.js: boot() waits for
+		// settings.json, and a customer can start typing before that lands.
+		(function () {
+			var vi = document.getElementById("voucherInput");
+			if (!vi || vi.__touchedBound) { return; }
+			vi.__touchedBound = true;
+			function touched() {
+				window.__voucherTouched = true;
+				try { if (typeof cancelAutoLogin === "function") { cancelAutoLogin(); } } catch (e) { }
+			}
+			vi.addEventListener("focus", function () {
+				// A code the portal pre-filled must be REPLACED by typing, not
+				// appended to. Otherwise the box ends up holding the old code
+				// plus the new one, the login is refused, and the old voucher
+				// is what gets auto-connected afterwards.
+				try {
+					var cur = String(vi.value || "");
+					if (cur && cur === window.__prefillVoucher) { vi.select(); }
+				} catch (e) { }
+			});
+			vi.addEventListener("focus", touched);
+			vi.addEventListener("input", touched);
+		})();
+	</script>
+
+</head>
+
+<body id="loginBody">
+
+	<div id="bootLoader" aria-live="off">
+	<div class="spinner-ring"></div>
+	<div><b id="bootBrand">Loading your data…</b></div>
+	<div id="bootText"></div>
+</div>
+<div id="readyNote" role="status" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)"></div>
+
+<noscript><div style="padding:20px;text-align:center">This portal needs JavaScript. Please enable it and reload.</div></noscript>
+
+	<div id="app" style="display: none">
+
+<div id="coinDim" aria-hidden="true"></div>
+	<div class="portal" id="main">
+	<header class="topbar">
+		<div class="brandmark">
+			<h1 class="brand-big" id="brandHeader">Voucher<em>Hotspot</em></h1>
+			<div class="clientline"><span id="clientIp">10.0.0.1</span> &bull; <span id="clientMac">AA:BB:CC:DD:EE:FF</span></div>
+		</div>
+		<button type="button" id="histBtn" class="iconbtn" aria-label="Voucher history" onclick="showHistoryView(); return false"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></button>
+		<button type="button" id="bankBtn" class="iconbtn" aria-label="Voucher bank" onclick="showBankView(); return false" style="margin-left:8px;"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="10" width="18" height="10" rx="2"/><path d="M7 10V6a5 5 0 0 1 10 0v4"/></svg></button>
+	</header>
+
+	<div id="vendoSelectDiv">
+		<label for="vendoSelected" class="vendolabel">Choose vendo</label>
+		<select class="form-control" name="vendoSelected" id="vendoSelected">
+		</select>
+	</div>
+
+	<div id="view-login">
+		<div class="hero">
+			<button type="button" id="insertBtn" aria-label="Insert coin" onclick="insertBtnAction(); return false"><span class="coin-peso">₱</span><span class="coin-label">INSERT COIN</span></button>
+			<div id="coinSlot-login"></div>
+		</div>
+
+					<div id="voucherBlock" style="margin-top: 15px;">
+			<label for="voucherInput" class="vouchlabel">Voucher code</label>
+			<div class="voucher-pill">
+				<input type="text" class="form-control" id="voucherInput" name="voucher" aria-label="Voucher code" placeholder="Voucher code…" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="text" enterkeyhint="go" translate="no" onkeydown="if(event.key === 'Enter'){ doLogin(); return false; }">
+				<button type="button" id="connectBtn" onClick="doLogin(); return false" class="btn btn-info">CONNECT</button>
+			</div>
+			<div id="voucherErr" role="alert"></div>
+		</div>
+		
+		<div class="loginopts">
+		<div id="trialWrap" style="display: none; text-align: center; margin-top: 10px;">
+			<a id="trialBtn" class="trial-toggle" href="#">
+				<span class="member-text">
+					<span class="member-title">Free Trial</span>
+					<span class="member-hint">Limited free access</span>
+				</span>
+			</a>
+		</div>
+		<div id="memberSection">
+			<button type="button" class="panelTitle toggle member-toggle" id="memberSectionBodyHead" aria-expanded="false" aria-controls="memberSectionBody" onclick="toggleBlock('memberSectionBody'); return false;">
+				<span class="member-text">
+					<span class="member-title">Member Login</span>
+					<span class="member-hint">Have an account? Sign in</span>
+				</span>
+				<span class="member-chev" aria-hidden="true">&#9656;</span>
+			</button>
+			<div id="memberSectionBody" style="display: none">
+			<div class="memdiv">
+			<form name="login" action="/portal/done" method="post" onsubmit="return doLoginMember()">
+				<div class="memfield">
+					<label for="memberUsername">Username</label>
+					<input name="username" id="memberUsername" type="text" autocomplete="username" spellcheck="false" required />
+				</div>
+				<div class="memfield">
+					<label for="memberPassword">Password</label>
+					<input name="password" id="memberPassword" type="password" autocomplete="current-password" required />
+				</div>
+				<button class="btn btn-primary memlogin" type="submit" value="Connect">Login</button>
+			</form>
+			</div>
+			</div>
+		</div>
+		</div>
+	</div>
+
+	<div id="view-status" style="display: none">
+		<div class="hero" id="statusHero">
+			<h2 class="sub">Remaining Time</h2>
+			<div class="big odometer timeboxes" id="remainTime" role="timer" aria-live="off" aria-atomic="true"></div>
+		<div class="vouchline metatable"><div class="metacol metaleft">
+			<div class="metarow"><span class="metalabel"><svg class="mico" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span class="sr-only">Expiry</span></span><span class="metaval" id="expirationTime"></span></div>
+			<div class="metarow"><span class="metalabel"><svg class="mico" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg><span class="sr-only">Voucher</span></span><span class="metaval metaval-copy" id="statusVoucher" role="button" tabindex="0" title="Tap to copy"></span></div>
+			</div><div class="metacol metaright">
+			<div class="metarow"><span class="metalabel"><svg class="mico" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg><span class="sr-only">Up</span></span><span class="metaval" id="upUsed"></span></div>
+			<div class="metarow"><span class="metalabel"><svg class="mico" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg><span class="sr-only">Down</span></span><span class="metaval" id="downUsed"></span></div>
+		</div></div>
+		</div>
+
+		<div class="btnrow">
+			<button type="button" id="extendBtn" onclick="insertBtnAction(); return false" class="btn btn-success"><svg class="bico" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>EXTEND</button>
+			<button type="button" id="pauseTimeBtn" onClick="pause(); return false" class="btn"><svg class="bico" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="10" y1="5" x2="10" y2="19"/><line x1="16" y1="5" x2="16" y2="19"/></svg>PAUSE</button>
+		</div>
+		<div id="coinSlot-status"></div>
+	</div>
+
+	<div id="view-paused" style="display: none">
+		<div class="hero">
+			<h2 class="sub">Paused</h2>
+			<div class="big timeboxes" id="pauseRemainTime" aria-live="off" aria-atomic="true"></div>
+		<div class="vouchline metatable"><div class="metacol metaleft">
+			<div class="metarow"><span class="metalabel"><svg class="mico" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span class="sr-only">Expiry</span></span><span class="metaval" id="expirationTimePaused"></span></div>
+			<div class="metarow"><span class="metalabel"><svg class="mico" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg><span class="sr-only">Voucher</span></span><span class="metaval" id="pausedVoucher"></span></div>
+		</div><div class="metacol metaright">
+			<div class="metarow"><span class="metalabel"><svg class="mico" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m17 8-5-5-5 5"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/></svg><span class="sr-only">Up</span></span><span class="metaval" id="upUsedPaused"></span></div>
+			<div class="metarow"><span class="metalabel"><svg class="mico" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/></svg><span class="sr-only">Down</span></span><span class="metaval" id="downUsedPaused"></span></div>
+		</div></div>
+		</div>
+
+		<div class="btnrow">
+			<button type="button" id="resumeBtn" onClick="resume(); return false" class="btn btn-info" style="display: block; width: 100%;">RESUME SESSION</button>
+		</div>
+
+		<div class="pausenote">Time is <b>paused</b>. Feel free to turn off your Wi-Fi and close this browser. Reconnecting keeps your time paused; nothing happens until you tap <b>RESUME SESSION</b>.</div>
+	</div>
+
+	<div id="view-bank" style="display: none" role="dialog" aria-modal="true" aria-labelledby="bankTitle">
+		<div class="histhead">
+			<h2 class="sub" id="bankTitle">Voucher bank</h2>
+			<button type="button" id="bankBack" class="btn btn-info" onclick="closeBankView(); return false">BACK</button>
+		</div>
+		<div class="voucher-pill" style="margin:0 0 10px;">
+			<input type="text" id="bankVoucherInput" class="form-control" placeholder="Enter voucher code" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="text" aria-label="Voucher code">
+			<button type="button" id="bankSaveBtn" class="btn btn-success" onclick="saveVoucherToBank(); return false">ADD</button>
+		</div>
+		<div id="vbankFull" class="vhistlist"></div>
+	</div>
+
+	<div id="view-history" style="display: none" role="dialog" aria-modal="true" aria-labelledby="histTitle">
+		<div class="histhead">
+			<h2 class="sub" id="histTitle">Voucher history</h2>
+			<button type="button" id="histBack" class="btn btn-info" onclick="closeHistoryView(); return false">BACK</button>
+		</div>
+		<div id="vhistFull" class="vhistlist"></div>
+	</div>
+
+	<div id="ratesSection">
+		<span class="panelTitle">Wi-Fi Rates</span>
+		<div id="ratesBody"></div>
+	</div>
+
+	<hr class="foot-hr">
+
+	<div id="coinPanel" style="display: none" role="dialog" aria-modal="true" aria-labelledby="coinPanelTitle">
+		<div class="hero">
+			<h2 class="sub" id="coinPanelTitle" tabindex="-1">Please insert coins</h2>
+			<div class="big"><span class="cur" id="coinCur">₱</span><span id="totalCoin">0</span></div>
+			<div class="vouchline">Adds: <span id="totalTime">&#8212;</span></div>
+			<div class="vouchline">Voucher Code: <span id="codeGenerated" translate="no" style="color: #4cd137">-</span></div>
+		</div>
+		<div class="progress" style="margin: 10px 0">
+			<div id="progressDiv" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-valuetext="Waiting for coins" style="width: 0%"></div>
+			<span id="progressLabel" aria-hidden="true">Waiting for coins</span>
+		</div>
+		<p id="coinStage" class="coinstage" role="status" style="display: none;"></p>
+
+		<div id="coinErr" role="alert" tabindex="-1" style="display: none; text-align: center; color: #f0aaaa; font-weight: bold; margin-top: 8px;"></div>
+		<div class="coinbtns">
+			<button type="button" id="saveVoucherButton" onclick="saveVoucherBtnAction(); return false" class="btn btn-success"><svg class="bico" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17 4 12"/></svg>DONE</button>
+			<button type="button" id="cncl" onclick="cancelCoin(); return false" class="btn btn-danger"><svg class="bico" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg>CANCEL</button>
+		</div>
+		<div id="forfeitBar" style="display: none; text-align: center; margin-top: 10px;">
+			<div id="forfeitText" role="alert" style="margin-bottom: 8px; font-weight: bold;"></div>
+			<button type="button" id="forfeitYes" class="btn btn-danger">FORFEIT</button>
+			<button type="button" id="forfeitNo" class="btn btn-success">KEEP GOING</button>
+		</div>
+
+		<div id="convertWrap" class="convertbar">
+			<!-- Collapsed by default: it is a separate task from paying, and it
+			     used to sit right under the red CANCEL. -->
+			<button type="button" id="convertToggle" class="convertlink" aria-expanded="false" aria-controls="convertBody" onclick="toggleConvertBlock(); return false">Add time with another code</button>
+			<div id="convertBody" style="display: none;">
+				<div class="convertrow">
+					<input type="text" id="convertVoucherCode" class="convertinput" name="convertVoucherCode" aria-label="Voucher code" placeholder="Voucher code" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="text" enterkeyhint="done" translate="no" oninput="window.__convertBankVc = null">
+					<button type="button" id="convertBtn" class="btn btn-success btn-convert" onclick="convertVoucherAction(); return false">ADD TIME</button>
+				</div>
+				<div id="convertBank" class="vhistlist" style="margin-top:10px;"></div>
+			</div>
+		</div>
+	</div>
+
+	<footer class="footer">
+		<div class="brandmark">
+			<a class="footer-social" id="footerSocial" style="display:none" target="_blank" rel="noopener noreferrer"><span class="sico" id="socialIco" aria-hidden="true"></span><span id="socialLabel"></span></a>
+			<span class="brand-sub" style="font-size:10px;opacity:.45;">&copy; <span id="footYear"></span></span>
+			<span class="brand-sub" id="siteTag" style="font-size:10px;opacity:.45;"></span>
+			<span class="brand-sub" id="portalVer" style="font-size:10px;opacity:.45;"></span>
+		</div>
+	</footer>
+
+	<form name="sendin" action="/portal/done" method="post" style="display:none" aria-hidden="true">
+		<input type="hidden" name="username" />
+		<input type="hidden" name="password" />
+		<input type="hidden" name="dst" />
+		</form>
+		<form name="logout" action="/portal/logout" style="display:none" aria-hidden="true"></form>
+
+		<script src="assets/js/jquery.min.js?v=26"></script>
+		<script src="assets/js/core.js?v=230"></script>
+		<script>
+			// Router shells override form actions via globals before this runs.
+			if (window.loginAction) { document.sendin.action = window.loginAction; }
+			if (window.logoutAction) {
+				if (document.logout) { document.logout.action = window.logoutAction; }
+			}
+
+			// Instant submit feedback: the hidden-form submit navigates away,
+			// so a dead/static button reads as "nothing happened". Called
+			// only after CHAP/MD5 checks pass; the submit itself is unchanged.
+			function setSubmitBusy(sel) {
+				var btn = document.querySelector(sel);
+				if (!btn) { return; }
+				btn.disabled = true;
+				btn.setAttribute("aria-busy", "true");
+				btn.innerHTML = '<span class="spinner-ring btn-spin" aria-hidden="true"></span>Connecting…';
+			}
+
+			// The code this submit actually sent. The router answers a failed
+			// login by re-serving the login page with the error, and that page
+			// has no memory of what was typed, so the code is parked here for
+			// the next load to read.
+			function rememberSubmitted(vc) {
+				try { sessionStorage.setItem("__jfSubmitted", vc); } catch (e) {}
+			}
+
+			// Voucher users carry an empty password by default (firmware
+			// VOUCHER_LOGIN_OPTION=0). The PAP branch pins "" so a previous
+			// member login can't leak its password through the hidden form.
+			function doLogin() {
+				var vc = $("#voucherInput").val() || window.currentVoucher || "";
+				if (vc == "") {
+					try { dbgLog("doLogin: empty voucher"); } catch (e) { }
+					$.toast({ title: 'Error', content: 'Please enter your voucher code first', type: 'error', delay: 3000 });
+					try {
+						$("#voucherErr").text("Please enter your voucher code first").show();
+						var vi = document.getElementById("voucherInput");
+						if (vi && vi.focus) { vi.focus(); }
+						var pill = document.querySelector(".voucher-pill");
+						if (pill) {
+							pill.classList.remove("vshake");
+							void pill.offsetWidth;
+							pill.classList.add("vshake");
+						}
+					} catch (e) {}
+					return false;
+				}
+				try { dbgLog("doLogin: submit chap=" + (!!window.chapId) + " len=" + vc.length); } catch (e) { }
+				try { if (typeof markAutoLoginTried === "function") { markAutoLoginTried(); } } catch (e) { }
+				try { if (typeof rememberSubmitted === "function") { rememberSubmitted(vc); } } catch (e) { }
+
+		mergeTempValidity(vc);
+			document.sendin.username.value = vc;
+			// Post-login landing: router redirects to the pre-login URL
+			// (stock dst behavior). Empty = router default (status page).
+			try { document.sendin.dst.value = window.loginDst || ""; } catch (e) {}
+				if (window.chapId && typeof hexMD5 === "undefined") {
+					try { dbgLog("doLogin: md5 missing"); } catch (e) { }
+					$.toast({ title: 'Error', content: 'Login library failed to load, please reload and try again', type: 'error', delay: 3000 });
+					return false;
+				}
+				if (window.chapId) {
+					document.sendin.password.value = hexMD5(window.chapId + "" + window.chapChallenge);
+				} else {
+					document.sendin.password.value = "";
+				}
+				setSubmitBusy("#connectBtn");
+				document.sendin.submit();
+				return false;
+			}
+			// Member form submits through sendin so it hits the router login
+			// URL with CHAP hashing when offered (plain password otherwise).
+			// Wired via onsubmit on the member form above.
+			function doLoginMember() {
+			try { dbgLog("doLoginMember: submit chap=" + (!!window.chapId)); } catch (e) { }
+			try { document.login.action = window.loginAction || "/portal/done"; } catch (e) {}
+			document.sendin.username.value = document.login.username.value;
+			try { document.sendin.dst.value = window.loginDst || ""; } catch (e) {}
+				if (window.chapId && typeof hexMD5 === "undefined") {
+					try { dbgLog("doLoginMember: md5 missing"); } catch (e) { }
+					$.toast({ title: 'Error', content: 'Login library failed to load, please reload and try again', type: 'error', delay: 3000 });
+					return false;
+				}
+				if (window.chapId) {
+					document.sendin.password.value = hexMD5(window.chapId + document.login.password.value + window.chapChallenge);
+				} else {
+					document.sendin.password.value = document.login.password.value;
+				}
+				setSubmitBusy(".memlogin");
+				document.sendin.submit();
+				return false;
+			}
+			// Fold purchased minutes into the stored absolute expiry (was inline in login.html).
+			function mergeTempValidity(vc) {
+				var validity = getVouchValue(vc, "validity");
+				var tempValidity = getVouchValue(vc, "tempValidity");
+				if (tempValidity != null) {
+					// Non-numeric ESP values used to store "NaN" and poison
+					// later reads, bail instead of writing garbage.
+					var addMin = parseInt(tempValidity, 10);
+					if (!isFinite(addMin)) { return; }
+					var currentExpireDate = new Date();
+					if (validity != null) {
+						var base = parseInt(validity, 10);
+						if (!isFinite(base)) { return; }
+						currentExpireDate = new Date(base);
+					}
+					var expireDate = new Date(currentExpireDate.getTime() + addMin * 60000);
+					if (expireDate.getTime() < new Date().getTime()) {
+						try { dbgLog("validity cleared (expired temp)"); } catch (e) { }
+						removeVouchValue(vc, "validity");
+						removeVouchValue(vc, "tempValidity");
+					} else {
+						try { dbgLog("validity merged +" + tempValidity + "m"); } catch (e) { }
+						setVouchValue(vc, "validity", expireDate.getTime() + "");
+						removeVouchValue(vc, "tempValidity");
+					}
+				}
+			}
+
+			$("#clientIp").text(window.uIp);
+			$("#clientMac").text(window.mac);
+			// boot.js injects scripts in order, but a failed core.js means
+			// boot() is undefined, fail loud instead of a stuck loader.
+			if (typeof boot === "function") { boot(); }
+			else if (typeof setBootText === "undefined") {
+				var bt = document.getElementById("bootText");
+				if (bt) { bt.textContent = "Failed to load portal. "; }
+				var rb = document.createElement("button");
+				rb.textContent = "RETRY";
+				rb.className = "boot-retry";
+				rb.setAttribute("type", "button");
+				rb.onclick = function () { location.reload(); };
+				if (bt && bt.parentNode) { bt.parentNode.appendChild(rb); }
+			}
+		</script>
+
+		<div id="paidNote" role="status" aria-live="polite" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);"></div>
+		<div id="loaderDiv" class="spinner hidden" role="status">
+			<div style="text-align: center">
+				<div class="spinner-ring"></div>
+				<div id="loaderMsg">Please wait…</div>
+			</div>
+		</div>
+</div>
+</div>
+</body>
+
+</html>

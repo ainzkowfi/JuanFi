@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<!-- IAMNOTLOGINSTRINGPLEASEDONTREMOVE -->
+<html lang="en">
+
+<head>
+	<link rel="stylesheet" href="assets/css/base.css?v=174">
+		<link rel="stylesheet" href="assets/css/core.css?v=205">
+	<link rel="stylesheet" href="assets/css/portal.css?v=183">
+	<link rel="icon" type="image/x-icon" sizes="32x32" href="favicon.ico?v=1">
+		<title>Voucher Hotspot Login</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<meta name="theme-color" content="#e74c3c">
+	<meta name="mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<script>
+		// Client facts for the single-file portal (portal.html renders the UI).
+		window.PAGE = "login";
+		window.mac = "$(mac)";
+		window.uIp = "$(ip)";
+		window.loginError = "";
+		window.loginErrorOrig = "";
+		window.hotspotAddress = "$(server-address)";
+		window.interfaceName = "$(interface-name)";
+		window.loginAction = "$(link-login-only)";
+		window.logoutAction = "$(link-logout)";
+	</script>
+	$(if chap-id)
+	<script>
+		window.chapId = "$(chap-id)";
+		window.chapChallenge = "$(chap-challenge)";
+	</script>
+	$(endif)
+	<script>
+	$(if trial == 'yes')
+	window.trialAllowed = true;
+	window.trialUrl = "$(link-login-only)?dst=$(link-orig-esc)&username=T-$(mac-esc)";
+	$(endif)
+	</script>
+</head>
+
+<body id="loginBody">
+
+	<div id="bootLoader" aria-live="off">
+	<div class="spinner-ring"></div>
+	<div><b id="bootBrand">Loading your data…</b></div>
+	<div id="bootText"></div>
+</div>
+
+<noscript><div style="padding:20px;text-align:center">This portal needs JavaScript. Please enable it and reload.</div></noscript>
+
+<div id="app" style="display: none"></div>
+
+
+$(if error)
+<!-- RouterOS does no HTML escaping on $(var), and errors.txt embeds
+     $(username) in these messages, so a crafted login link could inject
+     markup here. -esc percent-encodes < > " &, which kills any tag or
+     attribute breakout. Decoded once below, back to readable text. -->
+<span id="loginErr" style="display:none">$(error-esc)</span>
+<span id="loginErrOrig" style="display:none">$(error-orig-esc)</span>
+<script>
+	// RouterOS hands these over form-encoded, so a space arrives as "+"
+	// ("no+more+sessions+are+allowed"). decodeURIComponent alone leaves "+"
+	// alone, which is why the error map kept missing real messages and the
+	// customer was told the code was invalid. Turn "+" into a space FIRST, then
+	// decode: a literal plus that was properly encoded arrives as %2B, survives
+	// the replace, and decodes back to a real "+".
+	function jfUnesc(s) {
+		s = String(s == null ? "" : s).replace(/\+/g, " ");
+		try { s = decodeURIComponent(s); } catch (x) { }
+		if (s.indexOf("$(") !== -1) { s = ""; }
+		return s;
+	}
+	try {
+		var le = jfUnesc(document.getElementById("loginErr").textContent);
+		window.loginError = le;
+		// $(error) is whatever errors.txt says, and operators overwrite that
+		// file with translations all the time -- so matching English phrases
+		// against it alone breaks on any non-English router. $(error-orig) is
+		// RouterOS's own untranslated text and is the same string in every
+		// locale, so core.js searches both. If the router does not expand this
+		// variable the raw placeholder text arrives instead; jfUnesc treats that
+		// as empty.
+		window.loginErrorOrig = jfUnesc(document.getElementById("loginErrOrig").textContent);
+	} catch (x) { }
+</script>
+$(endif)
+
+<!-- $(link-orig) is the pre-login URL the router redirects to after a
+     successful login. -esc keeps < > " ' out of the markup; it stays
+     percent-encoded on purpose because its only use is the dst form
+     field, which wants URL encoding. -->
+<span id="loginDst" style="display:none">$(link-orig-esc)</span>
+<script>
+	try { window.loginDst = document.getElementById("loginDst").textContent || ""; } catch (e) {}
+</script>
+
+	<!-- boot.js last: it fetches portal.html and writes into #app, which only
+	     exists once the body above has been parsed. -->
+	<script src="assets/js/boot.js?v=174"></script>
+
+</body>
+
+</html>

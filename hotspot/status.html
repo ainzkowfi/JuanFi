@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<link rel="stylesheet" href="assets/css/base.css?v=174">
+		<link rel="stylesheet" href="assets/css/core.css?v=205">
+	<link rel="stylesheet" href="assets/css/portal.css?v=183">
+	<link rel="icon" type="image/x-icon" sizes="32x32" href="favicon.ico?v=1">
+		<title>Voucher Hotspot - Status</title>
+	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<meta name="theme-color" content="#4cd137">
+	<meta name="mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-capable" content="yes">
+	<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<script>
+		// Client facts for the single-file portal (portal.html renders the UI).
+		window.PAGE = "status";
+		window.loginError = "";
+		window.loginErrorOrig = "";
+		window.mac = "$(mac)";
+		window.uIp = "$(ip)";
+		window.hotspotAddress = "$(server-address)";
+		window.interfaceName = "$(interface-name)";
+		window.sessiontime = "$(session-time-left-secs)";
+		window.currentVoucher = "";
+		window.loginAction = "$(link-login-only)";
+		window.logoutAction = "$(link-logout)";
+		window.name = "hotspot_status";
+	</script>
+	$(if chap-id)
+	<script>
+		window.chapId = "$(chap-id)";
+		window.chapChallenge = "$(chap-challenge)";
+	</script>
+	$(endif)
+</head>
+
+<!-- $(username) and $(link-orig) are user-controlled and RouterOS escapes
+     neither. -esc percent-encodes < > " & so no tag or attribute can break
+     out. Username is decoded below (it is displayed and prefilled);
+     link-orig stays encoded because it is only ever the dst form field. -->
+<body id="loginBody" data-session-time="$(session-time-left-secs)">
+<span id="curV" style="display:none">$(username-esc)</span>
+<span id="loginDst" style="display:none">$(link-orig-esc)</span>
+<span id="bytesIn" style="display:none">$(bytes-in-nice)</span>
+<span id="bytesOut" style="display:none">$(bytes-out-nice)</span>
+<script>
+	try {
+		var cv = document.getElementById("curV").textContent || "";
+		try { cv = decodeURIComponent(cv); } catch (x) { }
+		window.currentVoucher = cv;
+		document.getElementById("loginBody").setAttribute("data-current-voucher", cv);
+		window.loginDst = document.getElementById("loginDst").textContent || "";
+		window.bytesIn = document.getElementById("bytesIn").textContent || "";
+		window.bytesOut = document.getElementById("bytesOut").textContent || "";
+	} catch (e) {}
+</script>
+
+	<div id="bootLoader" aria-live="off">
+	<div class="spinner-ring"></div>
+	<div><b id="bootBrand">Loading your data…</b></div>
+	<div id="bootText"></div>
+</div>
+
+<noscript><div style="padding:20px;text-align:center">This portal needs JavaScript. Please enable it and reload.</div></noscript>
+
+<div id="app" style="display: none"></div>
+
+<script>
+	$(if refresh-timeout)
+		// Router session refresh; waits for the injected app (jQuery) first.
+		// Validate before it reaches setInterval: an unset or 0 value made
+		// NaN*1000 the interval, which fires every ~4ms and turns the page
+		// into a reload loop nothing can escape.
+		window.refreshSecs = parseInt($(refresh-timeout-secs), 10);
+		if (!isFinite(window.refreshSecs) || window.refreshSecs < 0) { window.refreshSecs = 0; }
+		if (window.refreshSecs > 0 && window.refreshSecs < 5) { window.refreshSecs = 5; }
+		var refreshWait = setInterval(function () {
+			if (typeof window.jQuery === 'undefined') { return; }
+			clearInterval(refreshWait);
+			if (window.refreshSecs <= 0) { return; }
+			window.__refreshTimer = setInterval(function () {
+				// A countdown that hit 0 is waiting out its logout timer.
+				// Reloading here wipes that timer (it lives in window) and
+				// hands the customer an "Unlimited" screen they can never
+				// get out of, so the pending stamp stops the bounce. Same
+				// 120s window armLogoutNow() uses, so a stamp left over
+				// from an earlier logout stops counting on its own.
+				var pending = "";
+				try { pending = sessionStorage.getItem("__logoutPending") || localStorage.getItem("__logoutPending") || ""; } catch (e) { }
+				if (pending) {
+					var pAge = Math.floor(Date.now() / 1000) - parseInt(pending, 10);
+					if (isFinite(pAge) && pAge >= 0 && pAge <= 120) { return; }
+				}
+				// __histOpen is set while the voucher-history overlay is up; the
+				// overlay is a full-screen modal, so reloading under it would throw
+				// away whatever the customer was picking.
+				// Soft session refresh: re-read /status in place and repaint the
+				// countdown (window.__softSessionRefresh in core.js). A full
+				// reload re-ran the whole boot chain every refresh-timeout and
+				// wiped the local countdown; only a logged-out verdict reloads.
+				if ((typeof insertingCoin === 'undefined' || !insertingCoin) && !window.__histOpen && !window.__bankOpen) {
+					try { if (typeof window.__softSessionRefresh === "function") { window.__softSessionRefresh(); } } catch (e) {}
+				}
+			}, window.refreshSecs * 1000);
+		}, 500);
+	$(endif)
+
+</script>
+
+	<script src="assets/js/boot.js?v=174"></script>
+
+</body>
+
+</html>
