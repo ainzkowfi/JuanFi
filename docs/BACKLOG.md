@@ -14,7 +14,7 @@ and so each one can be picked up later without re-reading that repo.
 
 | # | Item | Touches | RouterOS | Size | Why |
 |---|------|---------|----------|------|-----|
-| 1 | Telegram sale notifier | firmware | none | S–M | Owner sees every sale/abandon on a phone |
+| 1 | Sale notifier: Telegram + ntfy | firmware + admin UI | none | M | Owner sees every sale/abandon on a phone |
 | 2 | Voucher rollback on failed provisioning | firmware | none | S | Stops burning codes on a failed sale |
 | 3 | Admin auth: salted hash + lockout | firmware | none | S | Today: plaintext password, unlimited tries |
 | 4 | Router preflight + setup-script fixes | `juanfi-setup.rsc`, README | **v6/v7 differ** | S | Silent setup failures cost an evening |
@@ -27,27 +27,59 @@ and so each one can be picked up later without re-reading that repo.
 
 ---
 
-## 1. Telegram sale notifier
+## 1. Sale notifier — Telegram and ntfy
 
-**Goal (requested):** when a customer finishes inserting coins, send one message with
-the **total amount they inserted** and what it bought.
+**Goal (requested):** when a customer finishes inserting coins, send one message with the
+**total amount they inserted** and what it bought. Two providers, each independently
+switchable: **Telegram** (bot token + chat id) and **ntfy** (server + topic + optional token).
 
-**Hook points in our firmware**
+### Admin configuration
+
+A new **Notifications** block on the system config page (`JuanFi-nodemcu/data/admin/system-config.html`,
+added to the `postData` list at ~line 630), saved with the rest of the pipe-delimited
+`/admin/config/system.data`:
+
+| Setting | Notes |
+|---|---|
+| Provider | off / Telegram / ntfy / both |
+| Telegram bot token | ≤ 64 chars, from @BotFather |
+| Telegram chat id | numeric; a group is `-100…` |
+| ntfy server | blank = `https://ntfy.sh`; host only, no trailing slash |
+| ntfy topic | the channel to publish to |
+| ntfy access token | optional, sent as `Authorization: Bearer …` for protected topics |
+
+Storage detail: `system.data` holds **26 fields today** (0–25, `mikrotikApiPort` last) and
+`loadSystemConfig()` switches on explicit `count >= 27` / `count >= 30` legacy branches, so the
+notification fields **append as 26+** and are read only when `count` reaches the new total. Old
+config files keep parsing, and an older firmware ignores the tail. `handleAdminSaveSystemConfig()`
+caps the POST body at 2048 bytes — the new fields add ~200 bytes worst case, so re-check the cap.
+The page already restarts the board after saving, so no live-apply path is needed.
+
+On public ntfy.sh **topic names are public** — anyone who guesses one can read your sales. Either
+pick an unguessable topic and/or require an access token (create it under ntfy's `Access tokens`,
+scope `write-only` on that topic). The docs say so plainly; put the warning next to the field.
+
+A **"Send test notification"** admin action is worth including: it verifies token/topic in one tap
+instead of waiting for a real sale, and reports the HTTP status per provider.
+
+### Hook points in our firmware
 
 - `useVoucher()` (line ~1266) — success path right after `updateStatistic()`: the
   "Done inserting coins / confirm" action in the portal (`#saveVoucherButton` →
   `POST /useVoucher`). This is the sale to report.
 - `handleCancelTopUp()` (line ~1226) — the customer walked away after inserting coins;
-  worth a "abandoned, coins not applied" message so the owner can reconcile the cash box.
+  worth an "abandoned, coins not applied" message so the owner can reconcile the cash box.
 - `convertVoucher()` — a converted balance move; optional, same shape as a sale.
 
-**Message contents** (all already in RAM at those points): inserted total `totalCoin`
+### Message contents
+
+(all already in RAM at those points): inserted total `totalCoin`
 (pesos, integer), `timeToAdd` / `currentValidity` minutes, `currentDataLimit`,
 `currentRateProfile`, voucher code, `currentMacAddress`, `currentIpAddress`, shop label
 from system config. Per-customer total is naturally per-insert-session: `resetGlobalVariables()`
 zeroes `totalCoin`, so a top-up of an existing voucher reports only the new money.
 
-**Design constraints**
+### Design constraints
 
 - Never send inline from a handler: a TLS handshake is 1–3 s and would stall the
   `/useVoucher` response the customer is waiting on.
@@ -55,20 +87,38 @@ zeroes `totalCoin`, so a top-up of an existing voucher reports only the new mone
   message per `loop()` iteration**, newest-drops-oldest on overflow, `loop()` skips while
   a send is in flight.
 - Multi-line message, capped length; escape per Bot API; no retry storm — one retry, then drop.
-- Credentials (bot token, chat id) in system config, never in the portal JS.
+- Credentials (bot token, chat id, ntfy token) live in system config, never in the portal JS.
 
-**Cost / risk on our chip**
+### Transport, per provider
 
-- Needs `BearSSL::WiFiClientSecure` (+`setInsecure()`, as theirs does — no cert pinning;
-  acceptable for a token-authenticated notifier, but state it in the README).
+| Provider | Request | TLS |
+|---|---|---|
+| Telegram | `POST https://api.telegram.org/bot<token>/sendMessage`, `chat_id` + `text` form fields | required |
+| ntfy (public) | `POST https://ntfy.sh/<topic>`, plain-text body, `X-Title`, `X-Priority`, `Authorization: Bearer` | required |
+| ntfy (self-hosted, LAN) | `POST http://<host>/<topic>`, same headers | **none — plain `WiFiClient`** |
+
+The ntfy protocol is a plain HTTP POST with the message in the body, so a self-hosted instance on
+the shop LAN (a router container, a Pi) needs **no BearSSL at all** — that variant costs neither
+flash nor the TLS heap. JSON publishing only works against the instance root URL, so keep to the
+`/<topic>` text form. Server default message size limit is 4 KB; one sale message is well under it.
+`X-Priority` maps to ntfy's priority (`5` = max, `3` = default), so an abandoned coin session can
+be raised above a normal sale.
+
+### Cost / risk on our chip
+
+- Telegram and public ntfy need `BearSSL::WiFiClientSecure` (+`setInsecure()`, as theirs does — no
+  cert pinning; acceptable for a token-authenticated notifier, but state it in the README).
+  BearSSL is linked in whether or not a provider is enabled at runtime, so the flash cost is
+  paid on every build that includes the notifier.
 - Our last clean build: IROM 360,592 B, RAM 44%, **IRAM 93%**. BearSSL's buffers are heap,
   so RAM is the pressure point, and the RSA/BearSSL code lands in flash — probably fine,
   but measure a build before committing to it.
-- **Prerequisite on the router:** the EPS must reach the internet. In a hotspot setup it is
-  itself a client and sits behind the walled garden (we only grant clients access *to* it via
-  `/ip hotspot walled-garden ip … dst-address-list=JuanfiVendo`). Needs
+- **Prerequisite on the router:** the ESP must reach the notifier. In a hotspot setup it is
+  itself a client behind the walled garden (we only grant clients access *to* it via
+  `/ip hotspot walled-garden ip … dst-address-list=JuanfiVendo`), so Telegram and ntfy.sh need
   `/ip hotspot ip-binding add type=bypassed` for the board, or a LAN port outside the hotspot.
-  Document this, or the notifier silently never fires. Works the same on v6 and v7.
+  A self-hosted ntfy on the router itself needs no internet route at all. Document this, or the
+  notifier silently never fires. Works the same on v6 and v7.
 
 ## 2. Voucher rollback on failed provisioning
 
