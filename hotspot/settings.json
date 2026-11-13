@@ -94,10 +94,14 @@
   "footerSocialUrl": "https://www.facebook.com/profile.php?id=61595026080323",
   "footerSocialLabel": "NETBRO INTERNET SERVICES",
   "footerSocialIcon": "facebook",
-  "currency": "₱",
+  "currency": "\u20b1",
   "showMemberSection": true,
   "showTrialLogin": false,
   "trialNoExtend": true,
   "macAsVoucherCode": true,
-  "showConvertVoucher": true
+  "showConvertVoucher": true,
+  "showPauseTime": false,
+  "enableCoinslotBan": true,
+  "coinslotBanCount": 3,
+  "coinslotBanMinutes": 5
 }

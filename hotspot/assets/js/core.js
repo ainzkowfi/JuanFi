@@ -56,6 +56,12 @@ var macAsVoucherCode = false;
 // does the merge itself and only answers on builds that expose
 // /convertVoucher, so this is opt-out per site.
 var showConvertVoucher = true;
+// Keep-alive by default; pause/connection mode is hidden from admin configs.
+var showPauseTime = false;
+// Coinslot abuse protection moved from ESP to portal settings.
+var enableCoinslotBan = true;
+var coinslotBanCount = 3;
+var coinslotBanMinutes = 5;
 	// Set only when settings.json was served but would not parse. Missing file is
 // a supported case (the fallbacks above), malformed JSON is an operator error
 // and must not be silent - see the note at the parse below.
@@ -117,6 +123,12 @@ function applySettings(text) {
 		if (typeof __setJson.trialNoExtend === "boolean") { trialNoExtend = __setJson.trialNoExtend; }
 		if (typeof __setJson.macAsVoucherCode === "boolean") { macAsVoucherCode = __setJson.macAsVoucherCode; }
 		if (typeof __setJson.showConvertVoucher === "boolean") { showConvertVoucher = __setJson.showConvertVoucher; }
+		if (typeof __setJson.showPauseTime === "boolean") { showPauseTime = __setJson.showPauseTime; }
+		if (typeof __setJson.enableCoinslotBan === "boolean") { enableCoinslotBan = __setJson.enableCoinslotBan; }
+		if (typeof __setJson.coinslotBanCount === "number") { coinslotBanCount = parseInt(__setJson.coinslotBanCount, 10); }
+		if (typeof __setJson.coinslotBanMinutes === "number") { coinslotBanMinutes = parseInt(__setJson.coinslotBanMinutes, 10); }
+		if (!isFinite(coinslotBanCount) || coinslotBanCount < 1) { coinslotBanCount = 3; }
+		if (!isFinite(coinslotBanMinutes) || coinslotBanMinutes < 1) { coinslotBanMinutes = 5; }
 		}
 	} catch (e) {}
 }
@@ -1511,6 +1523,16 @@ function renderStoredRemain(sel, vc) {
 // The hero haze doubles as a state tell: gold on the live status view,
 // red on the two "not being served right now" views (login + paused).
 // The fade-in itself is armed once by hideBoot().
+function applyPauseModeUi() {
+	try {
+		var show = (typeof showPauseTime !== "undefined") && !!showPauseTime;
+		var btn = document.getElementById("pauseTimeBtn");
+		if (btn) { btn.style.display = show ? "" : "none"; }
+		// Keep-alive default: do not expose pause/connection mode toggle in admin configs.
+		if (!show) { try { removePausedFlag(); } catch (e) {} }
+	} catch (e) {}
+}
+
 function paintStateHaze(state) {
 	var b = document.body;
 	if (!b) { return; }
@@ -1526,6 +1548,7 @@ function paintStateHaze(state) {
 function render(state) {
 	setPortalState(state);
 	try { paintStateHaze(state); } catch (e) {}
+	try { applyPauseModeUi(); } catch (e) {}
 	// Record the code actually in use, not whatever the global happens to hold:
 	// with macAsVoucherCode the global can still be the boot-time MAC prefill
 	// even though the session is running on a stored voucher, and recording the
@@ -2880,9 +2903,64 @@ function fallbackValidity() {
 // Coin-session generation: bumped on every fresh insert AND every cancel.
 // topUp retries captured an old generation never fire, without this a
 var topUpGen = 0;
+function portalCoinslotBanKey() {
+	try {
+		var macKey = (typeof macNoColon === "function") ? macNoColon() : String(window.mac || "client").replace(/[^A-Za-z0-9]/g, "");
+		return "coinslotBan_" + venueScopeSuffix() + "_" + macKey;
+	} catch (e) { return "coinslotBan_global"; }
+}
+function getPortalCoinslotBanState() {
+	try {
+		var raw = getStorageValue(portalCoinslotBanKey());
+		if (!raw) return { attempts: 0, bannedUntil: 0 };
+		var st = JSON.parse(raw);
+		var attempts = parseInt(st && st.attempts, 10);
+		var bannedUntil = parseInt(st && st.bannedUntil, 10);
+		return { attempts: isFinite(attempts) ? attempts : 0, bannedUntil: isFinite(bannedUntil) ? bannedUntil : 0 };
+	} catch (e) { return { attempts: 0, bannedUntil: 0 }; }
+}
+function setPortalCoinslotBanState(state) {
+	try { setStorageValue(portalCoinslotBanKey(), JSON.stringify(state || { attempts: 0, bannedUntil: 0 })); } catch (e) {}
+}
+function clearPortalCoinslotBanState() {
+	try { removeStorageValue(portalCoinslotBanKey()); } catch (e) {}
+}
+function isPortalCoinslotBanned() {
+	if (typeof enableCoinslotBan === "undefined" || !enableCoinslotBan) return false;
+	var st = getPortalCoinslotBanState();
+	if (st.bannedUntil && Date.now() < st.bannedUntil) return true;
+	if (st.bannedUntil && Date.now() >= st.bannedUntil) clearPortalCoinslotBanState();
+	return false;
+}
+function recordPortalCoinslotInsertAttempt() {
+	if (typeof enableCoinslotBan === "undefined" || !enableCoinslotBan) return false;
+	var maxAttempts = parseInt(coinslotBanCount, 10);
+	var banMinutes = parseInt(coinslotBanMinutes, 10);
+	if (!isFinite(maxAttempts) || maxAttempts < 1) maxAttempts = 3;
+	if (!isFinite(banMinutes) || banMinutes < 1) banMinutes = 5;
+	var st = getPortalCoinslotBanState();
+	if (st.bannedUntil && Date.now() < st.bannedUntil) return true;
+	if (st.bannedUntil && Date.now() >= st.bannedUntil) st = { attempts: 0, bannedUntil: 0 };
+	st.attempts = (parseInt(st.attempts, 10) || 0) + 1;
+	if (st.attempts >= maxAttempts) {
+		st.bannedUntil = Date.now() + (banMinutes * 60 * 1000);
+	}
+	setPortalCoinslotBanState(st);
+	return !!(st.bannedUntil && Date.now() < st.bannedUntil);
+}
+
+
 function insertBtnAction() {
+	if (isPortalCoinslotBanned()) {
+		notifyCoinSlotError("coin.slot.banned");
+		return false;
+	}
 	// No double-submit: one coin session at a time (second tap = busy error).
 	if (insertingCoin) { return false; }
+	if (recordPortalCoinslotInsertAttempt()) {
+		notifyCoinSlotError("coin.slot.banned");
+		return false;
+	}
 	topUpGen++;
 	// Fresh session, fresh fail budget. Without this the streak left over from
 	// a previous give-up trips the >=8 stop on the FIRST poll of the new
@@ -3396,6 +3474,10 @@ function newLogin() {
 // Pause / resume.
 
 function pause() {
+	if (typeof showPauseTime === "undefined" || !showPauseTime) {
+		try { $.toast({ title: "Keep-alive mode", content: "Pause is disabled.", type: "info", delay: 2500 }); } catch (e) {}
+		return;
+	}
 	var vc = getActiveVoucher();
 	// PAUSE tears the coin flow down below (poll stopped, XHRs aborted, coins
 	// zeroed), so the unload guard must come off with it -- otherwise every
