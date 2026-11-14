@@ -2779,10 +2779,27 @@ function resumeSession() {
 
 function parseValidity(raw) {
 	// Invalid dates come back null (never Invalid Date), callers render
-	raw = String(raw == null ? "" : raw);
+	raw = String(raw == null ? "" : raw).trim();
 	if (raw.length == 0) { return null; }
-	if (raw.length > 15) { return parsedDate(Date.parse(raw)); }
-	var dt = raw.split(" ");
+
+	// RouterOS v6 scheduler next-run is commonly "nov/14/2026 16:30:00" (or
+	// similar month-name forms). Date.parse support for that varies by browser,
+	// so parse it explicitly before falling back to generic parsing.
+	var m = raw.match(/^([A-Za-z]{3})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+	if (m) {
+		var months = { jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11 };
+		var mon = months[String(m[1]).toLowerCase()];
+		if (mon != null) {
+			return parsedDate(new Date(parseInt(m[3], 10), mon, parseInt(m[2], 10), parseInt(m[4], 10), parseInt(m[5], 10), parseInt(m[6] || "0", 10)).getTime());
+		}
+	}
+
+	if (raw.length > 15) {
+		var direct = parsedDate(Date.parse(raw));
+		if (direct) { return direct; }
+	}
+
+	var dt = raw.split(/\s+/);
 	var now = new Date();
 	if (dt.length >= 2) {
 		// "MM/DD HH:MM(:SS)" carries no year. Picking the current year read
@@ -2792,13 +2809,16 @@ function parseValidity(raw) {
 		// always the nearest, since a code is never more than a year out.
 		var best = null, bestDist = Infinity;
 		for (var y = now.getFullYear() - 1; y <= now.getFullYear() + 1; y++) {
-			var c = parsedDate(Date.parse(dt[0] + "/" + y + " " + dt[1]));
+			var c = parsedDate(Date.parse(dt[0] + "/" + y + " " + dt.slice(1).join(" ")));
 			if (!c) { continue; }
 			var dist = Math.abs(c.getTime() - now.getTime());
 			if (dist < bestDist) { bestDist = dist; best = c; }
 		}
-		return best;
+		if (best) { return best; }
 	}
+
+	var fallback = parsedDate(Date.parse(raw));
+	if (fallback) { return fallback; }
 	return parsedDate(Date.parse((now.getMonth() + 1) + "/" + now.getDate() + "/" + now.getFullYear() + " " + raw));
 }
 function parsedDate(ms) {

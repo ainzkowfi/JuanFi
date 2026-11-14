@@ -17,24 +17,28 @@
   body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:16px;line-height:1.5;color:var(--foreground);background:var(--background);-webkit-font-smoothing:antialiased}
   .wrap{min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px 16px}
   .card{width:100%;max-width:400px;background:var(--card);color:var(--card-foreground);border:1px solid var(--border);border-radius:12px;padding:24px}
-  .brand{display:flex;align-items:center;gap:12px;margin-bottom:20px}
-  .mark{width:36px;height:36px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);background:var(--muted);color:var(--primary);flex:none}
-  .mark svg{width:20px;height:20px}
+  .brand{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:24px;text-align:center}
+  .mark{width:48px;height:48px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);background:var(--muted);color:var(--primary);flex:none}
+  .mark svg{width:24px;height:24px}
   h1{margin:0;font-size:1.25rem;line-height:1.2;font-weight:500;letter-spacing:0}
-  .sub{margin:4px 0 0;color:var(--muted-foreground);font-size:0.9375rem}
   form{display:grid;gap:16px}
   .field{display:grid;gap:8px}
   label{font-size:0.875rem;font-weight:500;color:var(--foreground)}
   input{width:100%;height:44px;padding:8px 12px;font:inherit;font-size:16px;color:var(--foreground);background:var(--input);border:1px solid var(--border);border-radius:var(--radius);outline:none}
   input::placeholder{color:#727d87}
   input:focus{border-color:var(--ring);box-shadow:0 0 0 3px rgba(221,180,90,.18)}
+  .pw-wrap{position:relative}
+  .pw-wrap input{padding-right:44px}
+  .pw-toggle{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:6px;background:transparent;color:var(--muted-foreground);cursor:pointer;padding:0}
+  .pw-toggle:hover{color:var(--foreground);background:rgba(255,255,255,.04)}
+  .pw-toggle:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(221,180,90,.18)}
+  .pw-toggle svg{width:18px;height:18px}
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 16px;width:100%;border-radius:var(--radius);border:1px solid transparent;background:var(--primary);color:var(--primary-foreground);font:inherit;font-size:0.9375rem;font-weight:500;cursor:pointer;touch-action:manipulation}
   .btn:hover{filter:brightness(1.05)}
   .btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(221,180,90,.28)}
   .btn[disabled]{opacity:.6;cursor:not-allowed}
   .error{display:none;padding:10px 12px;border-radius:var(--radius);border:1px solid rgba(196,92,90,.35);background:rgba(196,92,90,.1);color:#e6a3a1;font-size:0.875rem}
   .error.show{display:block}
-  .foot{margin-top:16px;color:var(--muted-foreground);font-size:0.8125rem}
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important}}
 </style>
 </head>
@@ -43,12 +47,9 @@
     <main class="card">
       <div class="brand">
         <div class="mark" aria-hidden="true">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2 2"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" x2="12.01" y1="20" y2="20"/></svg>
         </div>
-        <div>
-          <h1><span translate="no">JuanFi</span> admin</h1>
-          <p class="sub">Sign in to manage this vendo</p>
-        </div>
+        <h1>Admin System</h1>
       </div>
       <div id="error" class="error" role="alert"></div>
       <form id="loginForm" method="post" action="/admin/api/login" novalidate>
@@ -58,11 +59,15 @@
         </div>
         <div class="field">
           <label for="password">Password</label>
-          <input id="password" name="password" type="password" autocomplete="current-password" required>
+          <div class="pw-wrap">
+            <input id="password" name="password" type="password" autocomplete="current-password" required>
+            <button type="button" class="pw-toggle" aria-label="Show password" data-pw-toggle="password">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
         </div>
         <button id="submitBtn" class="btn" type="submit">Sign in</button>
       </form>
-      <p class="foot">Use the admin credentials configured on this device.</p>
     </main>
   </div>
 <script>
@@ -70,6 +75,18 @@
   var form = document.getElementById('loginForm');
   var err = document.getElementById('error');
   var btn = document.getElementById('submitBtn');
+  var eye = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
+  var eyeOff = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>';
+  document.addEventListener('click', function(e){
+    var t = e.target && e.target.closest ? e.target.closest('[data-pw-toggle]') : null;
+    if(!t) return;
+    var id = t.getAttribute('data-pw-toggle'), input = document.getElementById(id);
+    if(!input) return;
+    var show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    t.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    t.innerHTML = show ? eyeOff : eye;
+  });
   function showError(msg){ err.textContent = msg || 'Sign-in failed.'; err.className = 'error show'; }
   function clearError(){ err.textContent=''; err.className='error'; }
   form.addEventListener('submit', function(e){
