@@ -28,6 +28,7 @@ volatile int totalCoin = 0;
 bool isNewVoucher = false;
 volatile int coinsChange = 0;
 volatile int pulsesThisSession = 0;
+volatile int droppedPulsesThisSession = 0;
 const int MAX_PULSE_PER_SESSION = 20;
 String currentActiveVoucher = "";
 int timeToAdd = 0;
@@ -68,10 +69,14 @@ const int BACKUP_CONFIG_LENGTH_INDEX = 20;
 const int EEPROM_SIZE = 512;
 
 void ICACHE_RAM_ATTR coinInserted() {
-  if (coinSlotActive && pulsesThisSession < MAX_PULSE_PER_SESSION) {
-    pulsesThisSession++;
-    coin = coin + 1;
-    coinsChange = 1;
+  if (coinSlotActive) {
+    if (pulsesThisSession < MAX_PULSE_PER_SESSION) {
+      pulsesThisSession++;
+      coin = coin + 1;
+      coinsChange = 1;
+    } else {
+      droppedPulsesThisSession++;
+    }
   }
 }
 
@@ -509,7 +514,12 @@ void populateSystemConfiguration() {
 void backupSystemConfig() {
   String data = readFile("/admin/config/system.data");
   int len = data.length();
-  if (len <= 0 || len >= (EEPROM_SIZE - 30)) return;
+  int maxBackupLen = EEPROM_SIZE - (BACKUP_CONFIG_LENGTH_INDEX + 5);
+  if (len <= 0) return;
+  if (len > maxBackupLen) {
+    Serial.println("Config backup skipped: system.data too large for EEPROM backup");
+    return;
+  }
   eeWriteInt(BACKUP_CONFIG_LENGTH_INDEX, len);
   eeWriteString(BACKUP_CONFIG_LENGTH_INDEX + 5, data);
 }
@@ -1182,6 +1192,7 @@ void resetGlobalVariables() {
   currentRateProfile = "";
   isNewVoucher = false;
   pulsesThisSession = 0;
+  droppedPulsesThisSession = 0;
 }
 
 void disableCoinSlot() {
@@ -1197,6 +1208,7 @@ void activateCoinSlot() {
   coin = 0;
   coinsChange = 0;
   pulsesThisSession = 0;
+  droppedPulsesThisSession = 0;
   interrupts();
   processCoin = 0;
   acceptCoin = true;
@@ -1340,27 +1352,31 @@ void checkCoin() {
   if (!acceptCoin) {
     totalCoin += processCoin;
     timeToAdd = calculateAddTime();
-    const char *keys[] = {"status", "newCoin", "timeAdded", "totalCoin", "validity", "data"};
+    int droppedSnapshot = droppedPulsesThisSession;
+    const char *keys[] = {"status", "newCoin", "timeAdded", "totalCoin", "validity", "data", "droppedPulses"};
     char coinStr[16]; itoa(processCoin, coinStr, 10);
     char timeToAddStr[16]; itoa(timeToAdd, timeToAddStr, 10);
     char totalCoinStr[16]; itoa(totalCoin, totalCoinStr, 10);
     char validityStr[16]; itoa(currentValidity, validityStr, 10);
     char currentDataLimitStr[16]; itoa(currentDataLimit, currentDataLimitStr, 10);
-    const char *values[] = {"true", coinStr, timeToAddStr, totalCoinStr, validityStr, currentDataLimitStr};
+    char droppedStr[16]; itoa(droppedSnapshot, droppedStr, 10);
+    const char *values[] = {"true", coinStr, timeToAddStr, totalCoinStr, validityStr, currentDataLimitStr, droppedStr};
     activateCoinSlot();
     setupCORSPolicy();
-    server.send(200, "application/json", toJson(keys, values, 6));
+    server.send(200, "application/json", toJson(keys, values, 7));
   } else {
-    const char *keys[] = {"status", "errorCode", "remainTime", "timeAdded", "totalCoin", "waitTime", "validity", "data"};
+    int droppedSnapshot = droppedPulsesThisSession;
+    const char *keys[] = {"status", "errorCode", "remainTime", "timeAdded", "totalCoin", "waitTime", "validity", "data", "droppedPulses"};
     char remainTimeStr[20]; long remain = (long)targetMilis - (long)millis(); itoa(remain, remainTimeStr, 10);
     char timeToAddStr[16]; itoa(timeToAdd, timeToAddStr, 10);
     char totalCoinStr[16]; itoa(totalCoin, totalCoinStr, 10);
     char waitTimeStr[16]; itoa(MAX_WAIT_COIN_SEC, waitTimeStr, 10);
     char validityStr[16]; itoa(currentValidity, validityStr, 10);
     char currentDataLimitStr[16]; itoa(currentDataLimit, currentDataLimitStr, 10);
-    const char *values[] = {"false", "coin.not.inserted", remainTimeStr, timeToAddStr, totalCoinStr, waitTimeStr, validityStr, currentDataLimitStr};
+    char droppedStr[16]; itoa(droppedSnapshot, droppedStr, 10);
+    const char *values[] = {"false", "coin.not.inserted", remainTimeStr, timeToAddStr, totalCoinStr, waitTimeStr, validityStr, currentDataLimitStr, droppedStr};
     setupCORSPolicy();
-    server.send(200, "application/json", toJson(keys, values, 8));
+    server.send(200, "application/json", toJson(keys, values, 9));
   }
 }
 
@@ -1738,15 +1754,15 @@ void setup() {
 
   server.on("/admin/api/dashboard", handleAdminDashboard);
   server.on("/admin/js/jquery.min.js", handleJquerySript);
-  server.on("/admin/api/resetStatistic", handleAdminResetStats);
-  server.on("/admin/api/saveSystemConfig", handleAdminSaveSystemConfig);
+  server.on("/admin/api/resetStatistic", HTTP_POST, handleAdminResetStats);
+  server.on("/admin/api/saveSystemConfig", HTTP_POST, handleAdminSaveSystemConfig);
   server.on("/admin/api/getSystemConfig", handleAdminGetSystemConfig);
   server.on("/admin/api/getRates", handleAdminGetRates);
-  server.on("/admin/api/saveRates", handleAdminSaveRates);
+  server.on("/admin/api/saveRates", HTTP_POST, handleAdminSaveRates);
   server.on("/admin/api/login", HTTP_POST, handleAdminLogin);
   server.on("/admin/login", HTTP_GET, handleAdminLoginPage);
-  server.on("/admin/api/logout", handleLogout);
-  server.on("/admin/api/generateVouchers", handleGenerateVouchers);
+  server.on("/admin/api/logout", HTTP_POST, handleLogout);
+  server.on("/admin/api/generateVouchers", HTTP_POST, handleGenerateVouchers);
   server.on("/admin/api/getAutoRestart", handleAdminGetAutoRestart);
   server.on("/admin/api/saveAutoRestart", HTTP_POST, handleAdminSaveAutoRestart);
   server.on("/admin", HTTP_GET, handleAdminPage);

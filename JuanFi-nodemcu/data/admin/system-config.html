@@ -302,8 +302,8 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
     }).fail(function () { $('#mkLabel').text('MikroTik: unavailable'); $('#mkDot').removeClass('ok').addClass('bad'); });
     openTab('Dashboard');
   }
-  function resetStats(type) { if (!confirm('Reset this statistic?')) return; $.get('admin/api/resetStatistic?type=' + encodeURIComponent(type), function () { openDashboard(); }); }
-  function createParam(params) { return encodeURI(params.join(separator)); }
+  function resetStats(type) { if (!confirm('Reset this statistic?')) return; $.post('admin/api/resetStatistic', 'type=' + encodeURIComponent(type), function () { openDashboard(); }).fail(function(xhr){ alert('Reset failed: ' + (xhr.responseText || xhr.statusText || 'unknown error')); }); }
+  function createParam(params) { return encodeURIComponent(params.join(separator)); }
   function validateIPaddress(ip) { return /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(ip); }
   function validateIpAddressFields(fields) { for (var k in fields) { var v = fields[k]; if (!v || !validateIPaddress(v)) { alert(k + ' is not a valid IPv4 address.'); return false; } } return true; }
   function validateCoinSlotPin(pinMap) { var keys = Object.keys(pinMap); for (var i = 0; i < keys.length; i++) for (var j = i + 1; j < keys.length; j++) if (pinMap[keys[i]] === pinMap[keys[j]]) { alert(keys[j] + ' is already used by ' + keys[i] + '.'); return false; } return true; }
@@ -362,6 +362,8 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
     if (!validateCoinSlotPin(pinMap)) return;
     var ipAddressMode = $('#ipAddressMode').val();
     if (ipAddressMode === '1' && !validateIpAddressFields({ 'Local IP address': $('#localIpAddress').val(), 'Gateway': $('#gatewayIp').val(), 'Subnet mask': $('#subnetMask').val(), 'DNS server': $('#dnsServer').val() })) return;
+    var delimFields = { 'Vendo name': $('#vendoName').val(), 'WiFi SSID': $('#wifiSSID').val(), 'WiFi password': $('#wifiPW').val(), 'MikroTik IP': $('#mikrotikIp').val(), 'MikroTik username': $('#mikrotikUser').val(), 'MikroTik password': $('#mikrotikPw').val(), 'Admin username': $('#adminUser').val(), 'Admin password': $('#adminPw').val(), 'Voucher prefix': $('#voucherPrefix').val(), 'Hotspot profile': $('#voucherProfile').val() };
+    for (var dk in delimFields) { if (String(delimFields[dk]).indexOf('|') !== -1) { alert(dk + ' cannot contain the "|" character.'); return; } }
     $('#setupDoneFlag').val('1');
     var restartMinutes = parseInt($('#autoRestartMinutes').val(), 10); if (isNaN(restartMinutes) || restartMinutes < 0) restartMinutes = 0;
     var postData = createParam([
@@ -431,7 +433,7 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
     $.post('admin/api/saveRates', 'data=' + createParam(params)).done(function(){ alert('Rates saved.'); }).fail(function(xhr){ alert('Save failed: ' + (xhr.responseText || xhr.statusText || 'unknown error')); });
   }
   function generateVoucher() {
-    var postData = 'amt=' + $('#voucherAmount').val() + '&pfx=' + $('#voucherGeneratePrefix').val() + '&qty=' + $('#voucherQty').val() + '&sales=' + $('#addToSales').val();
+    var postData = 'amt=' + encodeURIComponent($('#voucherAmount').val()) + '&pfx=' + encodeURIComponent($('#voucherGeneratePrefix').val()) + '&qty=' + encodeURIComponent($('#voucherQty').val()) + '&sales=' + encodeURIComponent($('#addToSales').val());
     $.post('admin/api/generateVouchers', postData).done(function (data) {
       var append = $('#appendToPrevious').val(), voucherData = localStorage.getItem('voucherData');
       if (append === '1' && voucherData) voucherData += '~' + data; else voucherData = data;
@@ -447,7 +449,7 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
     var fd=new FormData(); fd.append(binFileType, files[0]);
     $.ajax({url:'/admin/updateMainBin', type:'POST', data:fd, contentType:false, processData:false}).done(function(r){ alert(r?('Upload complete: '+r):'File was not uploaded.'); }).fail(function(xhr){ alert('Upload failed: '+(xhr.responseText||xhr.statusText||'unknown error')); });
   }
-  function logout() { if(!confirm('Sign out of the admin panel?')) return; $.get('/admin/api/logout').always(function(){ window.location.href='/admin/login'; }); }
+  function logout() { if(!confirm('Sign out of the admin panel?')) return; $.post('/admin/api/logout').always(function(){ window.location.href='/admin/login'; }); }
   $(function () {
     $('.tablinks').on('click', function () { var tab=$(this).data('tab'); if(tab==='Dashboard') openDashboard(); else if(tab==='SystemConfigration') openSystemConfig(); else if(tab==='PromoRate') openPromoRates(); else openTab(tab); });
     $('#logoutBtn').on('click', logout);
