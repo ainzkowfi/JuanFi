@@ -4,34 +4,27 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>Generated Vouchers · JuanFi</title>
+<title>Generated vouchers · JuanFi</title>
 <style>
-  :root{--bg:#0f1215;--surface:#181e24;--surface-2:#1e252d;--border:#2b3440;--text:#e7edf3;--muted:#97a4b2;--accent:#d7a93d;--accent-ink:#171309;--radius:12px}
-  *,*::before,*::after{box-sizing:border-box}
-  body{margin:0;font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;font-size:16px;line-height:1.45;color:var(--text);background:var(--bg)}
-  .toolbar{position:sticky;top:0;z-index:10;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;background:rgba(15,18,21,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
-  .toolbar h1{margin:0;font-size:1.05rem;font-weight:700}
-  .toolbar .sub{margin:2px 0 0;color:var(--muted);font-size:.88rem}
-  .actions{display:flex;gap:8px;flex-wrap:wrap}
-  .btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 16px;border-radius:10px;border:1px solid #394554;background:#242c36;color:var(--text);font:inherit;font-size:.95rem;font-weight:700;cursor:pointer;touch-action:manipulation}
-  .btn:hover{background:#2b3541}
-  .btn.primary{background:linear-gradient(180deg,#e7c464,#c9982e);color:var(--accent-ink);border-color:transparent}
-  .btn:focus-visible{outline:3px solid rgba(240,201,106,.4);outline-offset:1px}
-  .wrap{padding:14px}
-  .empty{color:var(--muted);padding:24px 4px}
-  #theBody{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start}
-  .voucher-box{width:220px;min-height:118px;padding:12px;border:1px solid #8a949f;border-radius:10px;background:#fff;color:#111;break-inside:avoid;page-break-inside:avoid}
-  .voucher-box .title{display:block;text-align:center;font-weight:700;font-size:1rem;color:#1f2933;padding-bottom:6px;margin-bottom:8px;border-bottom:1px solid #c7ced6;overflow-wrap:anywhere}
-  .voucher-box .info{display:block;font-size:.9rem;line-height:1.45;overflow-wrap:anywhere}
-  .voucher-box .info b{font-weight:700}
-  @media print{
-    body{background:#fff;color:#000}
-    .toolbar{display:none!important}
-    .wrap{padding:0}
-    #theBody{gap:8px}
-    .voucher-box{border:1px solid #444;box-shadow:none}
-  }
-  @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important}}
+:root{--background:#111315;--foreground:#eceef0;--card:#181b1f;--muted-foreground:#9aa4ad;--border:#2a3036;--secondary:#23282e;--primary:#c89b3c;--primary-foreground:#16130b;--radius:8px}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:16px;line-height:1.5;color:var(--foreground);background:var(--background)}
+.bar{position:sticky;top:0;z-index:10;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:rgba(17,19,21,.92);border-bottom:1px solid var(--border)}
+.bar h1{margin:0;font-size:1rem;font-weight:500}
+.bar p{margin:2px 0 0;color:var(--muted-foreground);font-size:0.8125rem}
+.actions{display:flex;gap:8px}
+.btn{display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--secondary);color:var(--foreground);font:inherit;font-size:0.875rem;font-weight:500;cursor:pointer}
+.btn.primary{background:var(--primary);color:var(--primary-foreground);border-color:transparent}
+.btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(221,180,90,.22)}
+.wrap{padding:16px}
+.empty{color:var(--muted-foreground);padding:24px 0}
+#theBody{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
+.ticket{width:220px;min-height:120px;padding:12px 14px;border:1px solid #c8ced4;border-radius:10px;background:#fff;color:#111318;break-inside:avoid;page-break-inside:avoid}
+.ticket .name{display:block;font-weight:500;font-size:0.9375rem;padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid #dfe3e8;overflow-wrap:anywhere}
+.ticket .row{display:block;font-size:0.875rem;line-height:1.5;overflow-wrap:anywhere}
+.ticket .k{color:#4b5563}
+@media print{body{background:#fff;color:#000}.bar{display:none!important}.wrap{padding:0}#theBody{gap:8px}.ticket{border-color:#444}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important}}
 </style>
 <script>
 function printMe(){ window.print(); }
@@ -40,21 +33,17 @@ function clearAll(){
   document.getElementById('theBody').innerHTML = '<p class="empty">No vouchers loaded. Generate vouchers from the admin panel.</p>';
   try{ localStorage.removeItem('voucherData'); }catch(e){}
 }
-var ticketTemplate = "<div class='voucher-box'>"
-  + "<span class='title'>REPLACE_VENDO_NAME</span>"
-  + "<span class='info'><b>Code:</b> REPLACE_VOUCHER_CODE</span>"
-  + "<span class='info'><b>Duration:</b> REPLACE_DURATION</span>"
-  + "<span class='info'><b>Amount:</b> REPLACE_AMOUNT</span>"
+var ticketTemplate = "<div class='ticket'>"
+  + "<span class='name'>REPLACE_VENDO_NAME</span>"
+  + "<span class='row'><span class='k'>Code: </span><span>REPLACE_VOUCHER_CODE</span></span>"
+  + "<span class='row'><span class='k'>Duration: </span><span>REPLACE_DURATION</span></span>"
+  + "<span class='row'><span class='k'>Amount: </span><span>REPLACE_AMOUNT</span></span>"
   + "</div>";
 function onLoad(){
   var data = '';
   try{ data = localStorage.getItem('voucherData') || ''; }catch(e){ data=''; }
-  if(!data){
-    document.getElementById('theBody').innerHTML = '<p class="empty">No vouchers loaded. Generate vouchers from the admin panel.</p>';
-    return;
-  }
-  var localData = data.split('~');
-  var html = '';
+  if(!data){ document.getElementById('theBody').innerHTML = '<p class="empty">No vouchers loaded. Generate vouchers from the admin panel.</p>'; return; }
+  var localData = data.split('~'), html = '';
   for(var k=0;k<localData.length;k++){
     if(!localData[k]) continue;
     var voucherData = localData[k].split('|');
@@ -75,12 +64,9 @@ function onLoad(){
   document.getElementById('theBody').innerHTML = html || '<p class="empty">No voucher codes found in the saved data.</p>';
 }
 function escapeHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function secondsToDhms(seconds) {
+function secondsToDhms(seconds){
   seconds = Number(seconds) || 0;
-  var d = Math.floor(seconds / 86400);
-  var h = Math.floor((seconds % 86400) / 3600);
-  var m = Math.floor((seconds % 3600) / 60);
-  var parts = [];
+  var d = Math.floor(seconds / 86400), h = Math.floor((seconds % 86400) / 3600), m = Math.floor((seconds % 3600) / 60), parts = [];
   if (d) parts.push(d + (d == 1 ? ' day' : ' days'));
   if (h) parts.push(h + (h == 1 ? ' hour' : ' hours'));
   if (m) parts.push(m + (m == 1 ? ' min' : ' mins'));
@@ -89,8 +75,8 @@ function secondsToDhms(seconds) {
 </script>
 </head>
 <body onload="onLoad()">
-  <div class="toolbar">
-    <div><h1>Generated vouchers</h1><p class="sub">Printable codes from <span translate="no">JuanFi</span></p></div>
+  <div class="bar">
+    <div><h1>Generated vouchers</h1><p>Printable codes from <span translate="no">JuanFi</span></p></div>
     <div class="actions"><button type="button" class="btn primary" onclick="printMe()">Print</button><button type="button" class="btn" onclick="clearAll()">Clear</button></div>
   </div>
   <div class="wrap"><div id="theBody"></div></div>

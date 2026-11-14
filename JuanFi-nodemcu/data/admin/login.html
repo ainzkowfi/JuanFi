@@ -4,131 +4,54 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#111417">
-<title>JuanFi Admin Sign In</title>
+<title>Sign in · JuanFi</title>
 <style>
-  :root {
-    --bg: #111417;
-    --surface: #181d22;
-    --surface-2: #1f262d;
-    --border: #2c353f;
-    --text: #e8edf2;
-    --muted: #9aa7b4;
-    --accent: #d4a843;
-    --accent-ink: #14110a;
-    --danger: #e35d5b;
-    --focus: #f0c96a;
+  :root{
+    --background:#111315; --foreground:#eceef0; --card:#181b1f; --card-foreground:#eceef0;
+    --muted:#1f2328; --muted-foreground:#9aa4ad; --border:#2a3036; --input:#23282e;
+    --primary:#c89b3c; --primary-foreground:#16130b; --ring:#ddb45a; --danger:#c45c5a;
+    --radius:8px;
   }
-  *, *::before, *::after { box-sizing: border-box; }
-  html, body { height: 100%; }
-  body {
-    margin: 0;
-    font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-    font-size: 16px;
-    line-height: 1.5;
-    color: var(--text);
-    background:
-      radial-gradient(1200px 600px at 10% -10%, #1d232a 0%, transparent 60%),
-      radial-gradient(800px 400px at 110% 110%, #1a2026 0%, transparent 55%),
-      var(--bg);
-    display: grid;
-    place-items: center;
-    padding: 24px;
-  }
-  .wrap { width: 100%; max-width: 420px; }
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    margin-bottom: 18px;
-  }
-  .mark {
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    background: conic-gradient(from 210deg, #f2d27a, #b8831e, #f0c96a, #8f6414, #f2d27a);
-    box-shadow: inset 0 0 0 3px rgba(17,20,23,.55), 0 8px 24px rgba(0,0,0,.35);
-    flex: none;
-  }
-  .brand h1 {
-    font-size: 1.35rem;
-    line-height: 1.2;
-    margin: 0;
-    font-weight: 700;
-    letter-spacing: 0.01em;
-  }
-  .brand p { margin: 2px 0 0; color: var(--muted); font-size: 0.95rem; }
-  .card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 22px 20px 20px;
-    box-shadow: 0 18px 50px rgba(0,0,0,.35);
-  }
-  form { display: grid; gap: 14px; }
-  .field { display: grid; gap: 6px; }
-  label { font-size: 0.95rem; font-weight: 600; color: var(--text); }
-  input[type="text"], input[type="password"] {
-    width: 100%;
-    min-height: 48px;
-    padding: 12px 14px;
-    font: inherit;
-    font-size: 16px;
-    color: var(--text);
-    background: var(--surface-2);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    outline: none;
-  }
-  input::placeholder { color: #6f7c89; }
-  input:focus-visible {
-    border-color: var(--focus);
-    box-shadow: 0 0 0 3px rgba(240, 201, 106, 0.25);
-  }
-  .actions { margin-top: 4px; display: grid; gap: 10px; }
-  button {
-    min-height: 48px;
-    padding: 12px 16px;
-    font: inherit;
-    font-size: 1rem;
-    font-weight: 700;
-    border: 0;
-    border-radius: 10px;
-    cursor: pointer;
-    color: var(--accent-ink);
-    background: linear-gradient(180deg, #e7c464, #c9982e);
-    touch-action: manipulation;
-  }
-  button:hover { filter: brightness(1.05); }
-  button:active { filter: brightness(0.98); }
-  button:focus-visible {
-    outline: 3px solid rgba(240, 201, 106, 0.45);
-    outline-offset: 2px;
-  }
-  button[disabled] { opacity: 0.7; cursor: progress; }
-  .status {
-    min-height: 1.5em;
-    font-size: 0.95rem;
-    color: var(--danger);
-  }
-  .status[aria-live] { margin: 0; }
-  .hint { margin: 14px 2px 0; color: var(--muted); font-size: 0.9rem; }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
-  }
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:16px;line-height:1.5;color:var(--foreground);background:var(--background);-webkit-font-smoothing:antialiased}
+  .wrap{min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px 16px}
+  .card{width:100%;max-width:400px;background:var(--card);color:var(--card-foreground);border:1px solid var(--border);border-radius:12px;padding:24px}
+  .brand{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+  .mark{width:36px;height:36px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--border);background:var(--muted);color:var(--primary);flex:none}
+  .mark svg{width:20px;height:20px}
+  h1{margin:0;font-size:1.25rem;line-height:1.2;font-weight:500;letter-spacing:0}
+  .sub{margin:4px 0 0;color:var(--muted-foreground);font-size:0.9375rem}
+  form{display:grid;gap:16px}
+  .field{display:grid;gap:8px}
+  label{font-size:0.875rem;font-weight:500;color:var(--foreground)}
+  input{width:100%;height:44px;padding:8px 12px;font:inherit;font-size:16px;color:var(--foreground);background:var(--input);border:1px solid var(--border);border-radius:var(--radius);outline:none}
+  input::placeholder{color:#727d87}
+  input:focus{border-color:var(--ring);box-shadow:0 0 0 3px rgba(221,180,90,.18)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 16px;width:100%;border-radius:var(--radius);border:1px solid transparent;background:var(--primary);color:var(--primary-foreground);font:inherit;font-size:0.9375rem;font-weight:500;cursor:pointer;touch-action:manipulation}
+  .btn:hover{filter:brightness(1.05)}
+  .btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(221,180,90,.28)}
+  .btn[disabled]{opacity:.6;cursor:not-allowed}
+  .error{display:none;padding:10px 12px;border-radius:var(--radius);border:1px solid rgba(196,92,90,.35);background:rgba(196,92,90,.1);color:#e6a3a1;font-size:0.875rem}
+  .error.show{display:block}
+  .foot{margin-top:16px;color:var(--muted-foreground);font-size:0.8125rem}
+  @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important}}
 </style>
 </head>
 <body>
-  <main class="wrap">
-    <div class="brand">
-      <div class="mark" aria-hidden="true"></div>
-      <div>
-        <h1><span translate="no">JuanFi</span> Admin</h1>
-        <p>Sign in to manage this vendo</p>
+  <div class="wrap">
+    <main class="card">
+      <div class="brand">
+        <div class="mark" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l2 2"/></svg>
+        </div>
+        <div>
+          <h1><span translate="no">JuanFi</span> admin</h1>
+          <p class="sub">Sign in to manage this vendo</p>
+        </div>
       </div>
-    </div>
-    <section class="card" aria-label="Sign in">
-      <form id="loginForm" novalidate>
+      <div id="error" class="error" role="alert"></div>
+      <form id="loginForm" method="post" action="/admin/api/login" novalidate>
         <div class="field">
           <label for="username">Username</label>
           <input id="username" name="username" type="text" autocomplete="username" spellcheck="false" autocapitalize="none" required>
@@ -137,51 +60,33 @@
           <label for="password">Password</label>
           <input id="password" name="password" type="password" autocomplete="current-password" required>
         </div>
-        <div class="actions">
-          <button id="submitBtn" type="submit">Sign in</button>
-          <p id="status" class="status" aria-live="polite"></p>
-        </div>
+        <button id="submitBtn" class="btn" type="submit">Sign in</button>
       </form>
-      <p class="hint">Default sign-in is <strong>admin</strong> / <strong>admin</strong> until you change it.</p>
-    </section>
-  </main>
+      <p class="foot">Use the admin credentials configured on this device.</p>
+    </main>
+  </div>
 <script>
-(function () {
+(function(){
   var form = document.getElementById('loginForm');
-  var status = document.getElementById('status');
+  var err = document.getElementById('error');
   var btn = document.getElementById('submitBtn');
-  function show(msg) { status.textContent = msg || ''; }
-  form.addEventListener('submit', function (e) {
+  function showError(msg){ err.textContent = msg || 'Sign-in failed.'; err.className = 'error show'; }
+  function clearError(){ err.textContent=''; err.className='error'; }
+  form.addEventListener('submit', function(e){
     e.preventDefault();
+    clearError();
     var u = document.getElementById('username').value;
     var p = document.getElementById('password').value;
-    if (!u || !p) { show('Enter your username and password.'); return; }
-    btn.disabled = true;
-    var label = btn.textContent;
-    btn.textContent = 'Signing in…';
-    show('');
+    if(!u || !p){ showError('Enter your username and password.'); return; }
+    btn.disabled = true; btn.textContent = 'Signing in';
     var body = 'username=' + encodeURIComponent(u) + '&password=' + encodeURIComponent(p);
-    fetch('/admin/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: body,
-      credentials: 'same-origin'
-    }).then(function (res) {
-      if (res.ok) {
-        window.location.href = '/admin';
-        return null;
-      }
-      return res.text().then(function (t) {
-        show(t || 'Sign-in failed. Check your username and password.');
-      });
-    }).catch(function () {
-      show('Could not reach the device. Check your Wi-Fi connection and try again.');
-    }).then(function () {
-      if (btn.disabled && btn.textContent !== label) {
-        btn.disabled = false;
-        btn.textContent = label;
-      }
-    });
+    fetch('/admin/api/login', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body, credentials: 'same-origin'})
+      .then(function(r){
+        if(r.ok){ window.location.href = '/admin'; return null; }
+        return r.text().then(function(t){ throw new Error(t || 'Invalid username or password'); });
+      })
+      .catch(function(ex){ showError(ex && ex.message ? ex.message : 'Could not sign in.'); })
+      .then(function(){ btn.disabled = false; btn.textContent = 'Sign in'; });
   });
 })();
 </script>

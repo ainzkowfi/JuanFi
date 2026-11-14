@@ -1687,9 +1687,15 @@ void setup() {
     dnsServer.start(DNS_PORT, "*", apIP);
     currentIpAddress = apIP.toString();
     currentMacAddress = WiFi.softAPmacAddress();
+    // Serve login directly for captive portal compatibility (no redirect/auth challenge).
+    server.on("/", HTTP_GET, handleAdminLoginPage);
     server.onNotFound([]() {
-      server.sendHeader("Location", String("/admin/login"), true);
-      server.send(302, "text/plain", "");
+      if (server.method() == HTTP_OPTIONS) {
+        setupCORSPolicy();
+        server.send(204);
+        return;
+      }
+      handleAdminLoginPage();
     });
   }
 

@@ -4,226 +4,270 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="dark">
-<meta name="theme-color" content="#111417">
-<title>JuanFi Admin</title>
+<title>Admin · JuanFi</title>
 <style>
-  :root { --bg:#0f1215; --bg-elev:#151a1f; --surface:#181e24; --surface-2:#1e252d; --surface-3:#242c36; --border:#2b3440; --border-strong:#394554; --text:#e7edf3; --muted:#97a4b2; --faint:#6f7d8a; --accent:#d7a93d; --accent-ink:#171309; --teal:#3fb9a4; --danger:#e35d5b; --ok:#4caf82; --focus:#f0c96a; --radius:14px; --shadow:0 16px 40px rgba(0,0,0,.32); }
-  *,*::before,*::after{box-sizing:border-box} html{scroll-behavior:smooth}
-  body{margin:0;font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;font-size:16px;line-height:1.5;color:var(--text);background:radial-gradient(900px 380px at 0% -5%,#1a2027 0%,transparent 60%),radial-gradient(700px 320px at 100% 0%,#171d23 0%,transparent 55%),var(--bg)}
-  a{color:var(--accent)} a:hover{color:#e9c56a}
-  .skip-link{position:absolute;left:12px;top:-48px;z-index:100;background:var(--accent);color:var(--accent-ink);padding:10px 14px;border-radius:8px;font-weight:700;text-decoration:none}
-  .skip-link:focus{top:12px}
-  .shell{max-width:1100px;margin:0 auto;padding:16px 14px 40px}
-  header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
-  .brand{display:flex;align-items:center;gap:12px;min-width:0}
-  .mark{width:40px;height:40px;border-radius:50%;flex:none;background:conic-gradient(from 210deg,#f2d27a,#b8831e,#f0c96a,#8f6414,#f2d27a);box-shadow:inset 0 0 0 3px rgba(15,18,21,.55)}
-  .brand h1{margin:0;font-size:1.25rem;line-height:1.15;font-weight:700}.brand .sub{margin:1px 0 0;color:var(--muted);font-size:.9rem}
-  .status-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:.9rem}
-  .dot{width:9px;height:9px;border-radius:50%;background:var(--faint);flex:none}.dot.ok{background:var(--ok);box-shadow:0 0 0 4px rgba(76,175,130,.15)}.dot.bad{background:var(--danger);box-shadow:0 0 0 4px rgba(227,93,91,.15)}
-  nav.tabs{position:sticky;top:0;z-index:20;display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:8px;margin:0 -4px 16px;background:rgba(15,18,21,.85);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:12px}
-  nav.tabs button{flex:0 0 auto;min-height:44px;padding:10px 14px;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--muted);font:inherit;font-size:.95rem;font-weight:600;cursor:pointer;touch-action:manipulation;white-space:nowrap}
-  nav.tabs button:hover{color:var(--text);background:var(--surface-2)} nav.tabs button.active{color:var(--accent-ink);background:var(--accent)}
-  nav.tabs button:focus-visible{outline:3px solid rgba(240,201,106,.45);outline-offset:1px}
-  .tabcontent{display:none}.grid{display:grid;gap:14px}.grid.stats{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}.grid.two{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
-  .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
-  .panel h2,.panel h3{margin:0 0 4px;font-size:1.05rem;line-height:1.25}.panel .desc{margin:0 0 14px;color:var(--muted);font-size:.93rem}
-  .section-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:12px}.section-head h2{margin:0;font-size:1.15rem}
-  .kpi .label{color:var(--muted);font-size:.9rem;margin:0 0 4px}.kpi .value{font-size:1.7rem;font-weight:700;line-height:1.1;margin:0;font-variant-numeric:tabular-nums}
-  .kpi .value.small{font-size:1.1rem;font-weight:600;word-break:break-word;overflow-wrap:anywhere}
-  .row-actions{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}.stack{display:grid;gap:12px}.field{display:grid;gap:6px;min-width:0}
-  label{font-size:.93rem;font-weight:600;color:var(--text)}.help{margin:0;color:var(--muted);font-size:.88rem}
-  input[type="text"],input[type="password"],input[type="number"],select{width:100%;min-height:46px;padding:11px 13px;font:inherit;font-size:16px;color:var(--text);background:var(--surface-2);border:1px solid var(--border);border-radius:10px;outline:none}
-  input::placeholder{color:#6f7c89}
-  input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid rgba(240,201,106,.4);outline-offset:1px;border-color:var(--focus)}
-  input[type="file"]{padding:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;color:var(--text);width:100%;font-size:.95rem}
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:10px 16px;border-radius:10px;border:1px solid var(--border-strong);background:var(--surface-3);color:var(--text);font:inherit;font-size:.95rem;font-weight:700;cursor:pointer;touch-action:manipulation;text-decoration:none}
-  .btn:hover{background:#2b3541}.btn.primary{background:linear-gradient(180deg,#e7c464,#c9982e);color:var(--accent-ink);border-color:transparent}.btn.primary:hover{filter:brightness(1.05)}
-  .btn.danger{background:rgba(227,93,91,.12);color:#ff9a98;border-color:rgba(227,93,91,.35)}.btn[disabled]{opacity:.6;cursor:progress}.btn-sm{min-height:38px;padding:7px 12px;font-size:.88rem;border-radius:8px}
-  .actions-bar{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
-  .notice{padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface-2);color:var(--muted);font-size:.92rem}.notice.warn{border-color:rgba(215,169,61,.35);background:rgba(215,169,61,.08);color:#ead39a}
-  .rate-card{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px}.rate-card h3{margin:0 0 10px;font-size:1rem}
-  .time-group{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.time-group label{font-size:.85rem;color:var(--muted);font-weight:600;display:grid;gap:4px}.time-group input{min-height:42px}
-  .rate-preview{margin-top:10px;padding:10px 12px;border-radius:8px;background:rgba(63,185,164,.08);color:#aee9dd;font-size:.92rem;overflow-wrap:anywhere}
-  .hidden{display:none!important}
-  #loading{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgba(15,18,21,.72)}#loading.hidden{display:none!important}
-  .loader-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 22px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow)}
-  .spin{width:22px;height:22px;border-radius:50%;border:3px solid var(--border-strong);border-top-color:var(--accent)}
-  @media (prefers-reduced-motion:no-preference){.spin{animation:sp .9s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}}
-  .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-  @media (max-width:640px){.shell{padding:12px 10px 32px}.panel{padding:14px}}
-  @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+:root{
+  --background:#111315; --foreground:#eceef0;
+  --card:#181b1f; --card-foreground:#eceef0;
+  --muted:#1f2328; --muted-foreground:#9aa4ad;
+  --border:#2a3036; --input:#23282e;
+  --primary:#c89b3c; --primary-foreground:#16130b;
+  --secondary:#23282e; --secondary-foreground:#eceef0;
+  --ring:#ddb45a; --danger:#c45c5a; --success:#4d9b72;
+  --radius:8px;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:16px;line-height:1.5;color:var(--foreground);background:var(--background);-webkit-font-smoothing:antialiased}
+.skip{position:absolute;left:12px;top:-44px;z-index:50;background:var(--primary);color:var(--primary-foreground);padding:8px 12px;border-radius:6px;font-weight:500;text-decoration:none}
+.skip:focus{top:12px}
+.app{max-width:1120px;margin:0 auto;padding:16px}
+.topbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:4px 0 16px}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:36px;height:36px;border-radius:8px;border:1px solid var(--border);background:var(--muted);display:flex;align-items:center;justify-content:center;color:var(--primary);flex:none}
+.logo svg{width:18px;height:18px}
+.brand h1{margin:0;font-size:1.125rem;font-weight:500;line-height:1.2}
+.brand p{margin:2px 0 0;color:var(--muted-foreground);font-size:0.875rem}
+.chip{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:var(--card);color:var(--muted-foreground);font-size:0.8125rem}
+.chip-dot{width:8px;height:8px;border-radius:50%;background:#58626d}
+.chip-dot.ok{background:var(--success)} .chip-dot.bad{background:var(--danger)}
+.layout{display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:start}
+@media (max-width:860px){.layout{grid-template-columns:1fr}}
+.nav{position:sticky;top:12px;display:flex;flex-direction:column;gap:4px;padding:8px;background:var(--card);border:1px solid var(--border);border-radius:12px}
+@media (max-width:860px){.nav{position:static;flex-direction:row;overflow-x:auto;-webkit-overflow-scrolling:touch}}
+.nav button{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:8px 10px;border:0;border-radius:6px;background:transparent;color:var(--muted-foreground);font:inherit;font-size:0.875rem;font-weight:500;text-align:left;cursor:pointer;white-space:nowrap}
+.nav button:hover{background:var(--muted);color:var(--foreground)}
+.nav button.active{background:var(--secondary);color:var(--foreground)}
+.nav button svg{width:16px;height:16px;flex:none;opacity:.9}
+.nav .sep{height:1px;background:var(--border);margin:4px 4px}
+@media (max-width:860px){.nav .sep{display:none}}
+.tabcontent{display:none}
+.page-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin:0 0 12px}
+.page-head h2{margin:0;font-size:1.25rem;font-weight:500;line-height:1.2}
+.page-head p{margin:4px 0 0;color:var(--muted-foreground);font-size:0.9375rem}
+.card{background:var(--card);color:var(--card-foreground);border:1px solid var(--border);border-radius:12px;padding:20px}
+.card + .card{margin-top:12px}
+.card h3{margin:0 0 4px;font-size:1rem;font-weight:500;line-height:1.3}
+.card .desc{margin:0 0 16px;color:var(--muted-foreground);font-size:0.875rem}
+.grid{display:grid;gap:12px}
+.grid.stats{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-bottom:12px}
+.grid.two{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:520px){.grid.three{grid-template-columns:1fr 1fr 1fr}}
+.stat .label{margin:0 0 4px;color:var(--muted-foreground);font-size:0.8125rem}
+.stat .value{margin:0;font-size:1.5rem;font-weight:500;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .value.sm{font-size:1rem;overflow-wrap:anywhere}
+.field{display:grid;gap:6px;min-width:0}
+label,.label-text{font-size:0.875rem;font-weight:500;color:var(--foreground)}
+.hint{margin:0;color:var(--muted-foreground);font-size:0.8125rem}
+input[type="text"],input[type="password"],input[type="number"],select{width:100%;height:40px;padding:8px 12px;font:inherit;font-size:16px;color:var(--foreground);background:var(--input);border:1px solid var(--border);border-radius:var(--radius);outline:none}
+input::placeholder{color:#727d87}
+input:focus,select:focus{border-color:var(--ring);box-shadow:0 0 0 3px rgba(221,180,90,.16)}
+select{padding-right:32px}
+input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foreground);background:var(--input);border:1px solid var(--border);border-radius:var(--radius)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--secondary);color:var(--secondary-foreground);font:inherit;font-size:0.875rem;font-weight:500;cursor:pointer;touch-action:manipulation}
+.btn:hover{background:#2a3038}
+.btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(221,180,90,.22)}
+.btn.primary{background:var(--primary);color:var(--primary-foreground);border-color:transparent}
+.btn.primary:hover{filter:brightness(1.05)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted-foreground)}
+.btn.ghost:hover{background:var(--muted);color:var(--foreground)}
+.btn.danger{color:#e6a3a1;border-color:rgba(196,92,90,.35);background:rgba(196,92,90,.08)}
+.btn.sm{height:32px;padding:0 10px;font-size:0.8125rem}
+.btn[disabled]{opacity:.6;cursor:not-allowed}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.note{padding:12px;border:1px solid var(--border);border-radius:var(--radius);background:var(--muted);color:var(--muted-foreground);font-size:0.875rem}
+.note.warn{border-color:rgba(200,155,60,.35);color:#d8c08a;background:rgba(200,155,60,.08)}
+.rate{padding:16px;border:1px solid var(--border);border-radius:10px;background:var(--muted);margin-bottom:12px}
+.rate-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.rate-head h4{margin:0;font-size:0.9375rem;font-weight:500}
+.preview{margin-top:12px;padding:10px 12px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--muted-foreground);font-size:0.875rem;overflow-wrap:anywhere}
+.hidden{display:none!important}
+#loading{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(17,19,21,.65)}
+#loading.hidden{display:none!important}
+.loader{display:flex;align-items:center;gap:10px;padding:14px 16px;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--foreground);font-size:0.875rem}
+.spinner{width:18px;height:18px;border-radius:50%;border:2px solid var(--border);border-top-color:var(--primary)}
+@media (prefers-reduced-motion:no-preference){.spinner{animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
 </style>
 </head>
 <body>
-<a class="skip-link" href="#main">Skip to content</a>
-<div id="loading" class="hidden" aria-live="polite" aria-busy="true"><div class="loader-card"><div class="spin" aria-hidden="true"></div><div id="loadingText">Working…</div></div></div>
-<div class="shell">
-  <header class="top">
-    <div class="brand"><div class="mark" aria-hidden="true"></div><div><h1><span translate="no">JuanFi</span> Admin</h1><p class="sub">Vendo control panel</p></div></div>
-    <div class="status-pill" title="MikroTik connection status"><span id="mkDot" class="dot" aria-hidden="true"></span><span id="mkLabel">MikroTik: checking…</span></div>
+<a class="skip" href="#main">Skip to content</a>
+<div id="loading" class="hidden" aria-live="polite"><div class="loader"><div class="spinner" aria-hidden="true"></div><span id="loadingText">Working</span></div></div>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M7 20h10"/><path d="M9 8h6"/></svg></div>
+      <div><h1><span translate="no">JuanFi</span> admin</h1><p>Vendo control panel</p></div>
+    </div>
+    <div class="chip" title="MikroTik connection status"><span id="mkDot" class="chip-dot" aria-hidden="true"></span><span id="mkLabel">MikroTik: checking</span></div>
   </header>
-  <nav class="tabs" aria-label="Admin sections">
-    <button type="button" class="tablinks active" data-tab="Dashboard">Dashboard</button>
-    <button type="button" class="tablinks" data-tab="SystemConfigration">System Config</button>
-    <button type="button" class="tablinks" data-tab="PromoRate">Promo Rates</button>
-    <button type="button" class="tablinks" data-tab="VoucherGenerate">Vouchers</button>
-    <button type="button" class="tablinks" data-tab="FirmwareUpdate">Firmware</button>
-    <button type="button" class="tablinks" data-tab="About">About</button>
-    <button type="button" class="tablinks" id="logoutBtn">Sign out</button>
-  </nav>
-  <main id="main">
+  <div class="layout">
+    <nav class="nav" aria-label="Sections">
+      <button type="button" class="tablinks active" data-tab="Dashboard"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg><span>Dashboard</span></button>
+      <button type="button" class="tablinks" data-tab="SystemConfigration"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg><span>System config</span></button>
+      <button type="button" class="tablinks" data-tab="PromoRate"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span>Promo rates</span></button>
+      <button type="button" class="tablinks" data-tab="VoucherGenerate"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg><span>Vouchers</span></button>
+      <button type="button" class="tablinks" data-tab="FirmwareUpdate"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg><span>Firmware</span></button>
+      <button type="button" class="tablinks" data-tab="About"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span>About</span></button>
+      <div class="sep" aria-hidden="true"></div>
+      <button type="button" id="logoutBtn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg><span>Sign out</span></button>
+    </nav>
+    <main id="main">
 
-    <section id="Dashboard" class="tabcontent" aria-labelledby="dash-heading">
-      <h2 id="dash-heading" class="visually-hidden">Dashboard</h2>
-      <div class="grid stats">
-        <div class="panel kpi"><p class="label">Total sales (all time)</p><p class="value" id="lifeCoinCount">0</p><div class="row-actions"><button type="button" class="btn btn-sm" data-reset="lifeTimeCount">Reset</button></div></div>
-        <div class="panel kpi"><p class="label">Current sales</p><p class="value" id="coinCount">0</p><div class="row-actions"><button type="button" class="btn btn-sm" data-reset="coinCount">Reset</button></div></div>
-        <div class="panel kpi"><p class="label">Customers served</p><p class="value" id="customerCount">0</p><div class="row-actions"><button type="button" class="btn btn-sm" data-reset="customerCount">Reset</button></div></div>
-        <div class="panel kpi"><p class="label">Uptime</p><p class="value small" id="upTime">0 sec</p></div>
-      </div>
-      <div class="grid two" style="margin-top:14px">
-        <div class="panel kpi"><p class="label">Internet</p><p class="value small" id="internetStatus">Checking…</p></div>
-        <div class="panel kpi"><p class="label">MikroTik</p><p class="value small" id="mikrotikStatus">Checking…</p></div>
-        <div class="panel kpi"><p class="label">Device MAC</p><p class="value small" id="macAddress">—</p></div>
-        <div class="panel kpi"><p class="label">Device IP</p><p class="value small" id="ipAddress">—</p></div>
-        <div class="panel kpi"><p class="label">Hardware</p><p class="value small" id="hardwareType">—</p></div>
-      </div>
-    </section>
+      <section id="Dashboard" class="tabcontent" aria-labelledby="dash-h">
+        <div class="page-head"><div><h2 id="dash-h">Dashboard</h2><p>Device status and sales counters</p></div></div>
+        <div class="grid stats">
+          <div class="card stat"><p class="label">Total sales</p><p class="value" id="lifeCoinCount">0</p><div class="actions" style="margin-top:12px"><button type="button" class="btn sm" data-reset="lifeTimeCount">Reset</button></div></div>
+          <div class="card stat"><p class="label">Current sales</p><p class="value" id="coinCount">0</p><div class="actions" style="margin-top:12px"><button type="button" class="btn sm" data-reset="coinCount">Reset</button></div></div>
+          <div class="card stat"><p class="label">Customers served</p><p class="value" id="customerCount">0</p><div class="actions" style="margin-top:12px"><button type="button" class="btn sm" data-reset="customerCount">Reset</button></div></div>
+          <div class="card stat"><p class="label">Uptime</p><p class="value sm" id="upTime">0 sec</p></div>
+        </div>
+        <div class="grid two">
+          <div class="card stat"><p class="label">Internet</p><p class="value sm" id="internetStatus">Checking</p></div>
+          <div class="card stat"><p class="label">MikroTik</p><p class="value sm" id="mikrotikStatus">Checking</p></div>
+          <div class="card stat"><p class="label">Device MAC</p><p class="value sm" id="macAddress">—</p></div>
+          <div class="card stat"><p class="label">Device IP</p><p class="value sm" id="ipAddress">—</p></div>
+          <div class="card stat"><p class="label">Hardware</p><p class="value sm" id="hardwareType">—</p></div>
+        </div>
+      </section>
 
-    <section id="SystemConfigration" class="tabcontent" aria-labelledby="sys-heading">
-      <div class="section-head"><h2 id="sys-heading">System configuration</h2></div>
-      <div class="stack">
-        <div class="panel"><h3>Vendo identity</h3><p class="desc">Name shown to customers and on printed vouchers.</p>
-          <div class="field"><label for="vendoName">Vendo name</label><input type="text" id="vendoName" name="vendoName" autocomplete="organization" placeholder="e.g. JuanFi Vendo"></div></div>
+      <section id="SystemConfigration" class="tabcontent" aria-labelledby="sys-h">
+        <div class="page-head"><div><h2 id="sys-h">System configuration</h2><p>Network, router, access, and device settings</p></div></div>
 
-        <div class="panel" id="apSettingDiv"><h3>Wi-Fi (station)</h3><p class="desc">The network this device connects to for internet and MikroTik access.</p>
+        <div class="card"><h3>Vendo identity</h3><p class="desc">Name shown to customers and on printed vouchers.</p>
+          <div class="field"><label for="vendoName">Vendo name</label><input type="text" id="vendoName" autocomplete="organization" placeholder="JuanFi Vendo"></div></div>
+
+        <div class="card"><h3>Wi-Fi connection</h3><p class="desc">The network this device uses for internet and MikroTik access.</p>
           <div class="grid two">
-            <div class="field"><label for="wifiSSID">Wi-Fi SSID</label><input type="text" id="wifiSSID" name="wifiSSID" autocomplete="off" spellcheck="false" placeholder="Network name"></div>
-            <div class="field"><label for="wifiPW">Wi-Fi password</label><input type="password" id="wifiPW" name="wifiPW" autocomplete="off" placeholder="Leave blank if open"></div>
+            <div class="field"><label for="wifiSSID">Wi-Fi SSID</label><input type="text" id="wifiSSID" autocomplete="off" spellcheck="false" placeholder="Network name"></div>
+            <div class="field"><label for="wifiPW">Wi-Fi password</label><input type="password" id="wifiPW" autocomplete="off" placeholder="Leave blank if open"></div>
           </div></div>
 
-        <div class="panel"><h3>Device IP address</h3><p class="desc">Use DHCP unless you need a fixed address on your network.</p>
-          <div class="field"><label for="ipAddressMode">Address mode</label><select id="ipAddressMode" name="ipAddressMode"><option value="0">DHCP (automatic)</option><option value="1">Static IP</option></select></div>
+        <div class="card"><h3>Device IP address</h3><p class="desc">Use DHCP unless this device needs a fixed address.</p>
+          <div class="field"><label for="ipAddressMode">Address mode</label><select id="ipAddressMode"><option value="0">DHCP (automatic)</option><option value="1">Static IP</option></select></div>
           <div id="staticIpDiv" class="grid two hidden" style="margin-top:12px">
-            <div class="field"><label for="localIpAddress">Local IP address</label><input type="text" id="localIpAddress" name="localIpAddress" inputmode="decimal" autocomplete="off" placeholder="192.168.1.50"></div>
-            <div class="field"><label for="subnetMask">Subnet mask</label><input type="text" id="subnetMask" name="subnetMask" inputmode="decimal" autocomplete="off" placeholder="255.255.255.0"></div>
-            <div class="field"><label for="gatewayIp">Gateway</label><input type="text" id="gatewayIp" name="gatewayIp" inputmode="decimal" autocomplete="off" placeholder="192.168.1.1"></div>
-            <div class="field"><label for="dnsServer">DNS server</label><input type="text" id="dnsServer" name="dnsServer" inputmode="decimal" autocomplete="off" placeholder="8.8.8.8"></div>
+            <div class="field"><label for="localIpAddress">Local IP address</label><input type="text" id="localIpAddress" inputmode="decimal" autocomplete="off" placeholder="192.168.1.50"></div>
+            <div class="field"><label for="subnetMask">Subnet mask</label><input type="text" id="subnetMask" inputmode="decimal" autocomplete="off" placeholder="255.255.255.0"></div>
+            <div class="field"><label for="gatewayIp">Gateway</label><input type="text" id="gatewayIp" inputmode="decimal" autocomplete="off" placeholder="192.168.1.1"></div>
+            <div class="field"><label for="dnsServer">DNS server</label><input type="text" id="dnsServer" inputmode="decimal" autocomplete="off" placeholder="8.8.8.8"></div>
           </div></div>
 
-        <div class="panel"><h3>MikroTik router</h3><p class="desc">API access the vendo uses to create and manage hotspot vouchers. On RouterOS v6 enable the API service (IP → Services → api).</p>
+        <div class="card"><h3>MikroTik router</h3><p class="desc">RouterOS API credentials used to create and manage hotspot vouchers. On RouterOS v6, enable the API service (IP → Services → api).</p>
           <div class="grid two">
-            <div class="field"><label for="mikrotikIp">Router IP address</label><input type="text" id="mikrotikIp" name="mikrotikIp" inputmode="decimal" autocomplete="off" placeholder="10.0.0.1"></div>
-            <div class="field"><label for="mikrotikApiPort">RouterOS API port</label><input type="number" id="mikrotikApiPort" name="mikrotikApiPort" min="1" max="65535" value="8728" inputmode="numeric"></div>
-            <div class="field"><label for="mikrotikUser">API username</label><input type="text" id="mikrotikUser" name="mikrotikUser" autocomplete="off" spellcheck="false" placeholder="api user"></div>
-            <div class="field"><label for="mikrotikPw">API password</label><input type="password" id="mikrotikPw" name="mikrotikPw" autocomplete="off" placeholder="Password"></div>
-            <div class="field"><label for="confirmMikrotikPw">Confirm API password</label><input type="password" id="confirmMikrotikPw" name="confirmMikrotikPw" autocomplete="off" placeholder="Confirm password"></div>
+            <div class="field"><label for="mikrotikIp">Router IP address</label><input type="text" id="mikrotikIp" inputmode="decimal" autocomplete="off" placeholder="10.0.0.1"></div>
+            <div class="field"><label for="mikrotikApiPort">API port</label><input type="number" id="mikrotikApiPort" min="1" max="65535" value="8728" inputmode="numeric"></div>
+            <div class="field"><label for="mikrotikUser">API username</label><input type="text" id="mikrotikUser" autocomplete="off" spellcheck="false" placeholder="api"></div>
+            <div class="field"><label for="mikrotikPw">API password</label><input type="password" id="mikrotikPw" autocomplete="off"></div>
+            <div class="field"><label for="confirmMikrotikPw">Confirm API password</label><input type="password" id="confirmMikrotikPw" autocomplete="off"></div>
           </div></div>
 
-        <div class="panel"><h3>Admin sign-in</h3><p class="desc">Credentials for this admin panel.</p>
+        <div class="card"><h3>Admin sign-in</h3><p class="desc">Credentials for this admin panel.</p>
           <div class="grid two">
-            <div class="field"><label for="adminUser">Admin username</label><input type="text" id="adminUser" name="adminUser" autocomplete="username" spellcheck="false" placeholder="admin"></div>
-            <div class="field"><label for="adminPw">Admin password</label><input type="password" id="adminPw" name="adminPw" autocomplete="new-password" placeholder="Password"></div>
-            <div class="field"><label for="confirmAdminPw">Confirm admin password</label><input type="password" id="confirmAdminPw" name="confirmAdminPw" autocomplete="new-password" placeholder="Confirm password"></div>
+            <div class="field"><label for="adminUser">Admin username</label><input type="text" id="adminUser" autocomplete="username" spellcheck="false" placeholder="admin"></div>
+            <div class="field"><label for="adminPw">Admin password</label><input type="password" id="adminPw" autocomplete="new-password"></div>
+            <div class="field"><label for="confirmAdminPw">Confirm admin password</label><input type="password" id="confirmAdminPw" autocomplete="new-password"></div>
           </div></div>
 
-        <div class="panel"><h3>Notifications</h3>
-          <p class="desc">Get a message when a customer finishes inserting coins or abandons a session. Settings are stored on this device; actual delivery depends on network access and supported providers in this firmware build.</p>
-          <div class="stack">
-            <div class="field"><label for="notifyProvider">Provider</label>
-              <select id="notifyProvider" name="notifyProvider"><option value="0">Off</option><option value="1">Telegram</option><option value="2">ntfy</option><option value="3">Telegram and ntfy</option></select></div>
-            <div class="notice warn" role="note">Telegram and public ntfy (HTTPS) need outbound internet from the device and a compatible build. A self-hosted ntfy server on your LAN can use plain HTTP (e.g. <code>http://192.168.1.10</code>). On public ntfy, topic names are guessable — use an unguessable topic and/or an access token.</div>
+        <div class="card"><h3>Notifications</h3>
+          <p class="desc">Settings for sending a message when a customer finishes inserting coins or abandons a session. Values are stored on this device. Actual delivery depends on network access and the providers supported by this firmware build.</p>
+          <div class="grid" style="gap:12px">
+            <div class="field"><label for="notifyProvider">Provider</label><select id="notifyProvider"><option value="0">Off</option><option value="1">Telegram</option><option value="2">ntfy</option><option value="3">Telegram and ntfy</option></select></div>
+            <div class="note warn">Telegram and public ntfy (HTTPS) require outbound internet and compatible delivery support in firmware. A self-hosted ntfy server on your LAN can use plain HTTP (for example <code>http://192.168.1.10</code>). On public ntfy, topics are guessable; use an unguessable topic and, if needed, an access token.</div>
             <div class="grid two">
-              <div class="field"><label for="telegramBotToken">Telegram bot token</label><input type="password" id="telegramBotToken" name="telegramBotToken" autocomplete="off" spellcheck="false" placeholder="123456:ABC-DEF…"><p class="help">From <span translate="no">@BotFather</span>.</p></div>
-              <div class="field"><label for="telegramChatId">Telegram chat ID</label><input type="text" id="telegramChatId" name="telegramChatId" autocomplete="off" spellcheck="false" placeholder="e.g. 123456789 or -100…"></div>
-              <div class="field"><label for="ntfyServer">ntfy server</label><input type="text" id="ntfyServer" name="ntfyServer" autocomplete="off" spellcheck="false" placeholder="https://ntfy.sh or http://192.168.1.10"><p class="help">Leave blank for the public ntfy service when delivery is available; for LAN use a full URL.</p></div>
-              <div class="field"><label for="ntfyTopic">ntfy topic</label><input type="text" id="ntfyTopic" name="ntfyTopic" autocomplete="off" spellcheck="false" placeholder="your-secret-topic"></div>
-              <div class="field"><label for="ntfyAccessToken">ntfy access token (optional)</label><input type="password" id="ntfyAccessToken" name="ntfyAccessToken" autocomplete="off" spellcheck="false" placeholder="tk_…"><p class="help">For protected topics (write-only recommended).</p></div>
+              <div class="field"><label for="telegramBotToken">Telegram bot token</label><input type="password" id="telegramBotToken" autocomplete="off" spellcheck="false" placeholder="123456:ABC…"><p class="hint">From <span translate="no">@BotFather</span>.</p></div>
+              <div class="field"><label for="telegramChatId">Telegram chat ID</label><input type="text" id="telegramChatId" autocomplete="off" spellcheck="false" placeholder="123456789 or -100…"></div>
+              <div class="field"><label for="ntfyServer">ntfy server</label><input type="text" id="ntfyServer" autocomplete="off" spellcheck="false" placeholder="https://ntfy.sh or http://192.168.1.10"><p class="hint">Leave blank for the public ntfy service when available; for LAN enter the full URL.</p></div>
+              <div class="field"><label for="ntfyTopic">ntfy topic</label><input type="text" id="ntfyTopic" autocomplete="off" spellcheck="false" placeholder="your-secret-topic"></div>
+              <div class="field"><label for="ntfyAccessToken">ntfy access token</label><input type="password" id="ntfyAccessToken" autocomplete="off" spellcheck="false" placeholder="Optional"><p class="hint">For protected topics (write-only recommended).</p></div>
             </div>
           </div></div>
 
-        <div class="panel"><h3>Coin slot and timing</h3>
-          <div class="field"><label for="coinSlotWaitTime">Insert-wait time (seconds)</label><input type="number" id="coinSlotWaitTime" name="coinSlotWaitTime" min="5" max="600" inputmode="numeric" placeholder="30"><p class="help">How long the vendo waits for more coins before a session times out.</p></div></div>
+        <div class="card"><h3>Coin slot and timing</h3>
+          <div class="field"><label for="coinSlotWaitTime">Insert-wait time (seconds)</label><input type="number" id="coinSlotWaitTime" min="5" max="600" inputmode="numeric" placeholder="30"><p class="hint">How long the vendo waits for more coins before the session times out.</p></div></div>
 
-        <div class="panel"><h3>Pin mapping</h3><p class="desc">Match these to your wiring. Each pin must be unique.</p>
+        <div class="card"><h3>Pin mapping</h3><p class="desc">Match these to your wiring. Each pin must be unique.</p>
           <div class="grid two">
             <div class="field"><label for="coinSlotPin">Coinslot pin</label><select id="coinSlotPin"><option value="16">D0</option><option value="0">D3</option><option value="2">D4</option><option value="14">D5</option><option value="12" selected>D6</option><option value="13">D7</option><option value="15">D8</option><option value="3">RX</option></select></div>
             <div class="field"><label for="coinSlotSetPin">Coinslot set pin</label><select id="coinSlotSetPin"><option value="16">D0</option><option value="2">D3</option><option value="0">D4</option><option value="14">D5</option><option value="12">D6</option><option value="13" selected>D7</option><option value="15">D8</option><option value="3">RX</option></select></div>
             <div class="field"><label for="systemReadyLEDPin">System ready LED pin</label><select id="systemReadyLEDPin"><option value="16">D0</option><option value="0" selected>D3</option><option value="2">D4</option><option value="14">D5</option><option value="12">D6</option><option value="13">D7</option><option value="15">D8</option><option value="3">RX</option></select></div>
             <div class="field"><label for="insertCoinLEDPin">Insert coin LED pin</label><select id="insertCoinLEDPin"><option value="16">D0</option><option value="0">D3</option><option value="2" selected>D4</option><option value="14">D5</option><option value="12">D6</option><option value="13">D7</option><option value="15">D8</option><option value="3">RX</option></select></div>
-            <div class="field"><label for="ledTriggerType">LED/relay trigger level</label><select id="ledTriggerType"><option value="0">LOW</option><option value="1" selected>HIGH</option></select></div>
+            <div class="field"><label for="ledTriggerType">LED/relay trigger level</label><select id="ledTriggerType"><option value="0">Low</option><option value="1" selected>High</option></select></div>
           </div></div>
 
-        <div class="panel"><h3>Voucher defaults</h3>
+        <div class="card"><h3>Voucher defaults</h3>
           <div class="grid two">
-            <div class="field"><label for="voucherPrefix">Voucher prefix</label><input type="text" id="voucherPrefix" value="P" maxlength="2" autocomplete="off" spellcheck="false" placeholder="P"><p class="help">Up to 2 characters, starting with a letter.</p></div>
-            <div class="field"><label for="voucherProfile">Hotspot profile</label><input type="text" id="voucherProfile" value="default" autocomplete="off" spellcheck="false" placeholder="default"></div>
-            <div class="field"><label for="voucherLoginOption">Login mode</label><select id="voucherLoginOption"><option value="0">Username only</option><option value="1">Username + password</option></select></div>
+            <div class="field"><label for="voucherPrefix">Voucher prefix</label><input type="text" id="voucherPrefix" value="P" maxlength="2" autocomplete="off" spellcheck="false"><p class="hint">Up to 2 characters, starting with a letter.</p></div>
+            <div class="field"><label for="voucherProfile">Hotspot profile</label><input type="text" id="voucherProfile" value="default" autocomplete="off" spellcheck="false"></div>
+            <div class="field"><label for="voucherLoginOption">Login mode</label><select id="voucherLoginOption"><option value="0">Username only</option><option value="1">Username and password</option></select></div>
             <div class="field"><label for="voucherValidity">Validity behavior</label><select id="voucherValidity"><option value="0">Stack validity when extending time</option><option value="1">Use first validity plus extend time</option></select></div>
           </div></div>
 
-        <div class="panel"><h3>Internet check</h3>
+        <div class="card"><h3>Internet check</h3>
           <div class="field"><label for="checkInternetStatus">Check internet before accepting coins</label><select id="checkInternetStatus"><option value="1">Yes</option><option value="0">No</option></select></div></div>
 
         <input type="hidden" value="1" id="setupDoneFlag">
         <input id="importSystemConfigFile" type="file" accept=".data,text/plain" class="hidden">
-        <div class="panel"><h3>Save or transfer settings</h3><p class="desc">Saving restarts the device to apply changes.</p>
-          <div class="actions-bar">
+        <div class="card"><h3>Save or transfer settings</h3><p class="desc">Saving restarts the device to apply changes.</p>
+          <div class="actions">
             <button type="button" class="btn primary" id="saveSystemBtn">Save settings</button>
             <button type="button" class="btn" id="exportSystemBtn">Backup</button>
             <button type="button" class="btn" id="importSystemBtn">Restore</button>
           </div></div>
-      </div>
-    </section>
+      </section>
 
-    <section id="PromoRate" class="tabcontent" aria-labelledby="rates-heading">
-      <div class="section-head"><h2 id="rates-heading">Promo rates</h2><button type="button" class="btn" id="addRateButton">Add rate</button></div>
-      <div class="panel"><p class="desc">Set time in hours, minutes, and seconds (seconds round up to the next minute when saved). The price and limits shown are what the portal charges and displays.</p>
-        <div id="promoRateBody"></div>
-        <input id="importRateConfigFile" type="file" accept=".data,text/plain" class="hidden">
-        <div class="actions-bar"><button type="button" class="btn primary" id="saveRatesBtn">Save rates</button><button type="button" class="btn" id="exportRatesBtn">Backup</button><button type="button" class="btn" id="importRatesBtn">Restore</button></div>
-      </div>
-    </section>
-
-    <section id="VoucherGenerate" class="tabcontent" aria-labelledby="gen-heading">
-      <div class="section-head"><h2 id="gen-heading">Voucher generation</h2></div>
-      <div class="panel"><p class="desc">Generate vouchers on the router and open a printable sheet. Avoid large quantities at once.</p>
-        <div class="grid two">
-          <div class="field"><label for="voucherGeneratePrefix">Prefix</label><input type="text" id="voucherGeneratePrefix" value="VC" maxlength="2" autocomplete="off" spellcheck="false"></div>
-          <div class="field"><label for="voucherAmount">Amount (₱)</label><input type="number" id="voucherAmount" value="50" min="1" inputmode="numeric"></div>
-          <div class="field"><label for="voucherQty">Quantity</label><input type="number" id="voucherQty" value="1" min="1" max="50" inputmode="numeric"></div>
-          <div class="field"><label for="addToSales">Add to sales totals</label><select id="addToSales"><option value="1">Yes</option><option value="0">No</option></select></div>
-          <div class="field"><label for="appendToPrevious">Append to previous print sheet</label><select id="appendToPrevious"><option value="0">No</option><option value="1">Yes</option></select></div>
+      <section id="PromoRate" class="tabcontent" aria-labelledby="rates-h">
+        <div class="page-head"><div><h2 id="rates-h">Promo rates</h2><p>Time and price options shown in the portal</p></div><button type="button" class="btn" id="addRateButton">Add rate</button></div>
+        <div class="card">
+          <p class="desc">Set time in hours, minutes, and seconds. Seconds round up to the next minute when saved. The price and limits here are what customers see and pay.</p>
+          <div id="promoRateBody"></div>
+          <input id="importRateConfigFile" type="file" accept=".data,text/plain" class="hidden">
+          <div class="actions"><button type="button" class="btn primary" id="saveRatesBtn">Save rates</button><button type="button" class="btn" id="exportRatesBtn">Backup</button><button type="button" class="btn" id="importRatesBtn">Restore</button></div>
         </div>
-        <div class="actions-bar"><button type="button" class="btn primary" id="generateVoucherBtn">Generate vouchers</button></div>
-        <p class="help" style="margin-top:10px">A popup window opens after generation; allow popups for this page.</p>
-      </div>
-    </section>
+      </section>
 
-    <section id="FirmwareUpdate" class="tabcontent" aria-labelledby="fw-heading">
-      <div class="section-head"><h2 id="fw-heading">Firmware update</h2></div>
-      <div class="panel">
-        <p class="desc">Current version: <strong id="currentVersion">—</strong></p>
-        <div class="grid two">
-          <div class="field"><label for="binFileType">Binary type</label><select id="binFileType"><option value="sketch">Bin 1 — sketch (.bin)</option><option value="filesystem">Bin 2 — filesystem (.bin)</option></select></div>
-          <div class="field"><label for="mainBin">Firmware file</label><input type="file" id="mainBin" accept=".bin"></div>
+      <section id="VoucherGenerate" class="tabcontent" aria-labelledby="gen-h">
+        <div class="page-head"><div><h2 id="gen-h">Voucher generation</h2><p>Create vouchers on the router and print them</p></div></div>
+        <div class="card">
+          <p class="desc">Generates voucher codes on the router and opens a printable sheet. Keep quantities reasonable to avoid overloading the device or router.</p>
+          <div class="grid two">
+            <div class="field"><label for="voucherGeneratePrefix">Prefix</label><input type="text" id="voucherGeneratePrefix" value="VC" maxlength="2" autocomplete="off" spellcheck="false"></div>
+            <div class="field"><label for="voucherAmount">Amount (₱)</label><input type="number" id="voucherAmount" value="50" min="1" inputmode="numeric"></div>
+            <div class="field"><label for="voucherQty">Quantity</label><input type="number" id="voucherQty" value="1" min="1" max="50" inputmode="numeric"></div>
+            <div class="field"><label for="addToSales">Add to sales totals</label><select id="addToSales"><option value="1">Yes</option><option value="0">No</option></select></div>
+            <div class="field"><label for="appendToPrevious">Append to previous sheet</label><select id="appendToPrevious"><option value="0">No</option><option value="1">Yes</option></select></div>
+          </div>
+          <div class="actions"><button type="button" class="btn primary" id="generateVoucherBtn">Generate vouchers</button></div>
+          <p class="hint" style="margin-top:12px">A popup window opens after generation. Allow popups for this page if needed.</p>
         </div>
-        <div class="notice warn" style="margin-top:12px">Upload one file at a time. If both are provided, flash filesystem (Bin 2) first, then sketch (Bin 1). A filesystem update resets promo rates — back them up first.</div>
-        <div class="actions-bar"><button type="button" class="btn primary" id="uploadFwBtn">Upload firmware</button></div>
-      </div>
-    </section>
+      </section>
 
-    <section id="About" class="tabcontent" aria-labelledby="about-heading">
-      <div class="section-head"><h2 id="about-heading">About</h2></div>
-      <div class="panel"><div class="stack">
-        <p><strong>System version:</strong> <span id="appVersionAbout">—</span></p>
-        <p><strong>Developer:</strong> <span translate="no">Ivan Julius Alayan</span></p>
-        <p><strong>Contributors:</strong> <span translate="no">Kristoffer D. Samole</span></p>
-        <p><strong>Community:</strong> <a href="https://www.facebook.com/groups/1172413279934139" target="_blank" rel="noopener noreferrer"><span translate="no">JuanFi</span> Group</a></p>
-        <p><strong>Source:</strong> <a href="https://github.com/ivanalayan15/JuanFi" target="_blank" rel="noopener noreferrer">GitHub repository</a></p>
-      </div></div>
-    </section>
-  </main>
+      <section id="FirmwareUpdate" class="tabcontent" aria-labelledby="fw-h">
+        <div class="page-head"><div><h2 id="fw-h">Firmware update</h2><p>Upload sketch or filesystem binaries</p></div></div>
+        <div class="card">
+          <p class="desc">Current version: <strong id="currentVersion">—</strong></p>
+          <div class="grid two">
+            <div class="field"><label for="binFileType">Binary type</label><select id="binFileType"><option value="sketch">Bin 1 — sketch (.bin)</option><option value="filesystem">Bin 2 — filesystem (.bin)</option></select></div>
+            <div class="field"><label for="mainBin">Firmware file</label><input type="file" id="mainBin" accept=".bin"></div>
+          </div>
+          <div class="note warn" style="margin-top:12px">Upload one file at a time. If updating both, flash filesystem (Bin 2) first, then sketch (Bin 1). A filesystem update resets promo rates; back them up first.</div>
+          <div class="actions"><button type="button" class="btn primary" id="uploadFwBtn">Upload firmware</button></div>
+        </div>
+      </section>
+
+      <section id="About" class="tabcontent" aria-labelledby="about-h">
+        <div class="page-head"><div><h2 id="about-h">About</h2><p>Version and project information</p></div></div>
+        <div class="card"><div class="grid" style="gap:8px">
+          <p style="margin:0"><span class="hint">System version</span><br><strong id="appVersionAbout">—</strong></p>
+          <p style="margin:0"><span class="hint">Developer</span><br><span translate="no">Ivan Julius Alayan</span></p>
+          <p style="margin:0"><span class="hint">Contributors</span><br><span translate="no">Kristoffer D. Samole</span></p>
+          <p style="margin:0"><span class="hint">Community</span><br><a href="https://www.facebook.com/groups/1172413279934139" target="_blank" rel="noopener noreferrer"><span translate="no">JuanFi</span> Group</a></p>
+          <p style="margin:0"><span class="hint">Source</span><br><a href="https://github.com/ivanalayan15/JuanFi" target="_blank" rel="noopener noreferrer">GitHub repository</a></p>
+        </div></div>
+      </section>
+    </main>
+  </div>
 </div>
 <script src="/admin/js/jquery.min.js"></script>
 <script>
@@ -231,19 +275,16 @@
 (function () {
   'use strict';
   var timer = null, upTimeSeconds = 0, separator = '|', rateCount = 0;
-
-  function showLoading(text) { $('#loadingText').text(text || 'Working…'); $('#loading').removeClass('hidden'); }
+  function showLoading(text) { $('#loadingText').text(text || 'Working'); $('#loading').removeClass('hidden'); }
   function hideLoading() { $('#loading').addClass('hidden'); }
-  $(document).ajaxStart(function () { showLoading('Working…'); });
+  $(document).ajaxStart(function () { showLoading('Working'); });
   $(document).ajaxStop(function () { hideLoading(); });
-
   function openTab(tabName) {
     $('.tabcontent').hide();
     $('.tablinks').removeClass('active').attr('aria-current', null);
     $('#' + tabName).show();
     $('.tablinks[data-tab="' + tabName + '"]').addClass('active').attr('aria-current', 'page');
   }
-
   function secondsToDhms(seconds) {
     seconds = Number(seconds) || 0;
     var d = Math.floor(seconds / 86400), h = Math.floor((seconds % 86400) / 3600), m = Math.floor((seconds % 3600) / 60), s = Math.floor(seconds % 60), parts = [];
@@ -253,8 +294,7 @@
     parts.push(s + (s === 1 ? ' sec' : ' secs'));
     return parts.join(' ');
   }
-  function setStatus(sel, ok, okText, badText) { $(sel).text(ok ? okText : badText).css('color', ok ? 'var(--ok)' : 'var(--danger)'); }
-
+  function setStatus(sel, ok, okText, badText) { $(sel).text(ok ? okText : badText).css('color', ok ? 'var(--success)' : 'var(--danger)'); }
   function openDashboard() {
     $.get('admin/api/dashboard?query=' + new Date().getTime(), function (data) {
       if (timer) { clearInterval(timer); timer = null; }
@@ -274,14 +314,12 @@
     openTab('Dashboard');
   }
   function resetStats(type) { if (!confirm('Reset this statistic?')) return; $.get('admin/api/resetStatistic?type=' + encodeURIComponent(type), function () { openDashboard(); }); }
-
   function createParam(params) { return encodeURI(params.join(separator)); }
   function validateIPaddress(ip) { return /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(ip); }
   function validateIpAddressFields(fields) { for (var k in fields) { var v = fields[k]; if (!v || !validateIPaddress(v)) { alert(k + ' is not a valid IPv4 address.'); return false; } } return true; }
   function validateCoinSlotPin(pinMap) { var keys = Object.keys(pinMap); for (var i = 0; i < keys.length; i++) for (var j = i + 1; j < keys.length; j++) if (pinMap[keys[i]] === pinMap[keys[j]]) { alert(keys[j] + ' is already used by ' + keys[i] + '.'); return false; } return true; }
   function ipAddressModeChange() { if ($('#ipAddressMode').val() === '1') $('#staticIpDiv').removeClass('hidden'); else $('#staticIpDiv').addClass('hidden'); }
   function setNotifyDefaults() { $('#notifyProvider').val('0'); $('#telegramBotToken').val(''); $('#telegramChatId').val(''); $('#ntfyServer').val(''); $('#ntfyTopic').val(''); $('#ntfyAccessToken').val(''); }
-
   function populateSystemConfigFields(data) {
     var c = String(data || '').split(separator);
     if (c.length >= 30) {
@@ -332,7 +370,6 @@
     $('#mikrotikApiPort').val('8728'); setNotifyDefaults();
   }
   function openSystemConfig() { $.get('admin/api/getSystemConfig?query=' + new Date().getTime(), function (data) { populateSystemConfigFields(data); }); openTab('SystemConfigration'); }
-
   function saveSystemConfig() {
     var pinMap = { 'Coinslot pin': $('#coinSlotPin').val(), 'Coinslot set pin': $('#coinSlotSetPin').val(), 'System ready LED pin': $('#systemReadyLEDPin').val(), 'Insert coin LED pin': $('#insertCoinLEDPin').val() };
     if ($('#mikrotikPw').val() !== $('#confirmMikrotikPw').val()) { alert('MikroTik password does not match the confirmation.'); return; }
@@ -353,12 +390,9 @@
       $('#mikrotikApiPort').val(),
       $('#notifyProvider').val(), $('#telegramBotToken').val(), $('#telegramChatId').val(), $('#ntfyServer').val(), $('#ntfyTopic').val(), $('#ntfyAccessToken').val()
     ]);
-    $.post('admin/api/saveSystemConfig', 'data=' + postData)
-      .done(function () { alert('Settings saved. The device will restart to apply them.'); })
-      .fail(function (xhr) { alert('Save failed: ' + (xhr.responseText || xhr.statusText || 'unknown error')); });
+    $.post('admin/api/saveSystemConfig', 'data=' + postData).done(function () { alert('Settings saved. The device will restart to apply them.'); }).fail(function (xhr) { alert('Save failed: ' + (xhr.responseText || xhr.statusText || 'unknown error')); });
   }
 
-  // Rates
   var rateCurrencySym = '\u20b1';
   function humanDuration(mins) { mins = parseInt(mins || 0, 10); if (isNaN(mins) || mins <= 0) return '—'; if (mins < 60) return mins + (mins === 1 ? ' min' : ' mins'); var d = Math.floor(mins / 1440), h = Math.floor((mins % 1440) / 60), m = mins % 60, parts = []; if (d) parts.push(d + (d === 1 ? ' day' : ' days')); if (h) parts.push(h + (h === 1 ? ' hour' : ' hours')); if (m) parts.push(m + (m === 1 ? ' min' : ' mins')); return parts.join(' '); }
   function pesoLabel(v) { try { return rateCurrencySym + new Intl.NumberFormat('en-PH', { maximumFractionDigits: 2 }).format(v); } catch (e) { return rateCurrencySym + v; } }
@@ -368,25 +402,26 @@
   function getValidityMinutes(i) { return totalMinutesFromHMS($('#validityHoursText'+i).val(), $('#validityMinutesText'+i).val(), $('#validitySecondsText'+i).val()); }
   function ratePriceLabel(name, price) { var hint = String(price==null?'':price).trim(), p=parseFloat(hint); if (hint!==''&&isFinite(p)) return pesoLabel(p); var m=String(name==null?'':name).trim().match(/(\d+(?:\.\d+)?)/); if(m) return pesoLabel(parseFloat(m[1])); return String(name==null?'':name).trim(); }
   function ratePreviewText(name, price, minutes, validity) { var t=humanDuration(minutes), e=humanDuration(validity); return ratePriceLabel(name,price)+' · '+(t==='—'?'no time set':t)+' · '+(e==='—'?'no expiry':e); }
-  function updateRatePreview(i) { var box=$('#ratePreview'+i); if(!box.length) return; var name=$('#rateNameText'+i).val()||'', price=$('#priceText'+i).val()||'', minutes=getTimeMinutes(i), validity=getValidityMinutes(i); if(String(name).trim()===''&&String(price).trim()===''&&minutes<=0&&validity<=0){ box.text('Blank row — not saved'); return; } box.text('Customers see: '+ratePreviewText(name,price,minutes,validity)); }
+  function updateRatePreview(i) { var box=$('#ratePreview'+i); if(!box.length) return; var name=$('#rateNameText'+i).val()||'', price=$('#priceText'+i).val()||'', minutes=getTimeMinutes(i), validity=getValidityMinutes(i); if(String(name).trim()===''&&String(price).trim()===''&&minutes<=0&&validity<=0){ box.text('Blank row — not saved'); return; } box.text(ratePreviewText(name,price,minutes,validity)); }
   function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function generateRowScript(i, rowData) {
     rowData = rowData || []; var time = splitMinutesToHMS(rowData[2]), validity = splitMinutesToHMS(rowData[3]);
-    return '<div id="rateRow'+i+'" class="rate-card"><h3>Rate '+(i+1)+'</h3>'
-      + '<div class="grid two"><div class="field"><label for="rateNameText'+i+'">Rate name</label><input type="text" id="rateNameText'+i+'" value="'+esc(rowData[0])+'" placeholder="e.g. 1 hour promo"></div>'
+    return '<div id="rateRow'+i+'" class="rate"><div class="rate-head"><h4>Rate '+(i+1)+'</h4><button type="button" class="btn sm danger" data-del-rate="'+i+'">Remove</button></div>'
+      + '<div class="grid two"><div class="field"><label for="rateNameText'+i+'">Rate name</label><input type="text" id="rateNameText'+i+'" value="'+esc(rowData[0])+'" placeholder="1 hour promo"></div>'
       + '<div class="field"><label for="priceText'+i+'">Price (₱)</label><input type="number" min="0" step="any" id="priceText'+i+'" value="'+esc(rowData[1])+'" placeholder="0"></div></div>'
-      + '<div class="field" style="margin-top:10px"><span class="help" style="color:var(--text);font-weight:600">Time limit (internet time)</span><div class="time-group">'
-      + '<label>Hours <input type="number" min="0" id="timeHoursText'+i+'" value="'+esc(time.h)+'"></label>'
-      + '<label>Minutes <input type="number" min="0" id="timeMinutesText'+i+'" value="'+esc(time.m)+'"></label>'
-      + '<label>Seconds <input type="number" min="0" id="timeSecondsText'+i+'" value="'+esc(time.s)+'"></label></div><p class="help">Saved as total minutes. Any seconds round up to the next minute.</p></div>'
-      + '<div class="field" style="margin-top:10px"><span class="help" style="color:var(--text);font-weight:600">Validity / expiry (time to use it)</span><div class="time-group">'
-      + '<label>Hours <input type="number" min="0" id="validityHoursText'+i+'" value="'+esc(validity.h)+'"></label>'
-      + '<label>Minutes <input type="number" min="0" id="validityMinutesText'+i+'" value="'+esc(validity.m)+'"></label>'
-      + '<label>Seconds <input type="number" min="0" id="validitySecondsText'+i+'" value="'+esc(validity.s)+'"></label></div><p class="help">Leave all at 0 for no expiry. Saved as total minutes.</p></div>'
-      + '<div class="grid two" style="margin-top:10px"><div class="field"><label for="dataLimitText'+i+'">Data limit (MB, optional)</label><input type="number" min="0" id="dataLimitText'+i+'" value="'+esc(rowData[4])+'" placeholder="0"></div>'
-      + '<div class="field"><label for="profileNameText'+i+'">Hotspot profile (optional)</label><input type="text" id="profileNameText'+i+'" value="'+esc(rowData[5])+'" placeholder="Overrides default profile"></div></div>'
-      + '<div class="rate-preview" id="ratePreview'+i+'"></div>'
-      + '<div class="row-actions"><button type="button" class="btn btn-sm danger" data-del-rate="'+i+'">Remove rate</button></div></div>';
+      + '<div class="field" style="margin-top:12px"><span class="label-text">Time limit</span><div class="grid three" style="margin-top:6px">'
+      + '<div class="field"><label for="timeHoursText'+i+'" class="hint">Hours</label><input type="number" min="0" id="timeHoursText'+i+'" value="'+esc(time.h)+'"></div>'
+      + '<div class="field"><label for="timeMinutesText'+i+'" class="hint">Minutes</label><input type="number" min="0" id="timeMinutesText'+i+'" value="'+esc(time.m)+'"></div>'
+      + '<div class="field"><label for="timeSecondsText'+i+'" class="hint">Seconds</label><input type="number" min="0" id="timeSecondsText'+i+'" value="'+esc(time.s)+'"></div></div>'
+      + '<p class="hint" style="margin-top:6px">Saved as total minutes. Any seconds round up to the next minute.</p></div>'
+      + '<div class="field" style="margin-top:12px"><span class="label-text">Validity</span><div class="grid three" style="margin-top:6px">'
+      + '<div class="field"><label for="validityHoursText'+i+'" class="hint">Hours</label><input type="number" min="0" id="validityHoursText'+i+'" value="'+esc(validity.h)+'"></div>'
+      + '<div class="field"><label for="validityMinutesText'+i+'" class="hint">Minutes</label><input type="number" min="0" id="validityMinutesText'+i+'" value="'+esc(validity.m)+'"></div>'
+      + '<div class="field"><label for="validitySecondsText'+i+'" class="hint">Seconds</label><input type="number" min="0" id="validitySecondsText'+i+'" value="'+esc(validity.s)+'"></div></div>'
+      + '<p class="hint" style="margin-top:6px">Leave at 0 for no expiry. Saved as total minutes.</p></div>'
+      + '<div class="grid two" style="margin-top:12px"><div class="field"><label for="dataLimitText'+i+'">Data limit (MB, optional)</label><input type="number" min="0" id="dataLimitText'+i+'" value="'+esc(rowData[4])+'" placeholder="0"></div>'
+      + '<div class="field"><label for="profileNameText'+i+'">Hotspot profile (optional)</label><input type="text" id="profileNameText'+i+'" value="'+esc(rowData[5])+'" placeholder="Overrides default"></div></div>'
+      + '<div class="preview" id="ratePreview'+i+'"></div></div>';
   }
   function addRate() { $('#promoRateBody').append(generateRowScript(rateCount, ['','','0','0','',''])); updateRatePreview(rateCount); rateCount++; }
   function populateRateFields(data) { var rows = String(data==null?'':data).split('|'), html=''; rateCount=0; for (var i=0;i<rows.length;i++){ if(String(rows[i]).trim()==='') continue; html += generateRowScript(rateCount, rows[i].split('#')); rateCount++; } $('#promoRateBody').html(html); for (var r=0;r<rateCount;r++) updateRatePreview(r); }
@@ -410,7 +445,6 @@
     }
     $.post('admin/api/saveRates', 'data=' + createParam(params)).done(function(){ alert('Rates saved.'); }).fail(function(xhr){ alert('Save failed: ' + (xhr.responseText || xhr.statusText || 'unknown error')); });
   }
-
   function generateVoucher() {
     var postData = 'amt=' + $('#voucherAmount').val() + '&pfx=' + $('#voucherGeneratePrefix').val() + '&qty=' + $('#voucherQty').val() + '&sales=' + $('#addToSales').val();
     $.post('admin/api/generateVouchers', postData).done(function (data) {
@@ -429,7 +463,6 @@
     $.ajax({url:'/admin/updateMainBin', type:'POST', data:fd, contentType:false, processData:false}).done(function(r){ alert(r?('Upload complete: '+r):'File was not uploaded.'); }).fail(function(xhr){ alert('Upload failed: '+(xhr.responseText||xhr.statusText||'unknown error')); });
   }
   function logout() { if(!confirm('Sign out of the admin panel?')) return; $.get('/admin/api/logout').always(function(){ window.location.href='/admin/login'; }); }
-
   $(function () {
     $('.tablinks').on('click', function () { var tab=$(this).data('tab'); if(tab==='Dashboard') openDashboard(); else if(tab==='SystemConfigration') openSystemConfig(); else if(tab==='PromoRate') openPromoRates(); else openTab(tab); });
     $('#logoutBtn').on('click', logout);
@@ -451,3 +484,6 @@
     openDashboard();
   });
 })();
+</script>
+</body>
+</html>
