@@ -52,6 +52,13 @@ body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Robot
 .grid{display:grid;gap:12px;align-items:stretch}
 .grid > .card{margin-top:0;height:100%}
 .grid.stats{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-bottom:12px}
+@media (max-width:520px){
+  .grid.stats{grid-template-columns:1fr;gap:8px}
+  .grid.stats .card{padding:14px 16px}
+  .grid.stats .stat .label{margin-bottom:2px}
+  .grid.stats .stat .value{font-size:1.25rem;min-height:0}
+  .sales-stats .stat .actions{margin-top:8px;padding-top:0}
+}
 .grid.two{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
 .grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media (max-width:520px){.grid.three{grid-template-columns:1fr 1fr 1fr}}
@@ -120,8 +127,8 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
 <div class="app">
   <header class="topbar">
     <div class="brand">
-      <div class="logo" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M7 20h10"/><path d="M9 8h6"/></svg></div>
-      <div><h1><span translate="no">JuanFi</span> admin</h1><p>Vendo control panel</p></div>
+      <div class="logo" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" x2="12.01" y1="20" y2="20"/></svg></div>
+      <div><h1>Vendo control panel</h1></div>
     </div>
   </header>
   <div class="layout">
