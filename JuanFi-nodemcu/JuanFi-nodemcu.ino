@@ -92,6 +92,16 @@ String pwd = "abc123";
 String ssid = "";
 String password = "";
 String adminAuth = "";
+String adminSessionToken = "";
+
+// Sale notifier settings (system.data fields 26-31, appended)
+// notifyProvider: 0=off, 1=telegram, 2=ntfy, 3=both
+int NOTIFY_PROVIDER = 0;
+String TELEGRAM_BOT_TOKEN = "";
+String TELEGRAM_CHAT_ID = "";
+String NTFY_SERVER = "";
+String NTFY_TOPIC = "";
+String NTFY_ACCESS_TOKEN = "";
 String vendorName = "";
 
 IPAddress local_IP(192, 168, 10, 15);
@@ -488,6 +498,19 @@ void populateSystemConfiguration() {
     }
   }
 
+  // Notifier fields appended as 26-31 (32 fields total). Read when present
+  // so older configs keep parsing with notifications off.
+  NOTIFY_PROVIDER = 0; TELEGRAM_BOT_TOKEN = ""; TELEGRAM_CHAT_ID = "";
+  NTFY_SERVER = ""; NTFY_TOPIC = ""; NTFY_ACCESS_TOKEN = "";
+  if (count >= 32) {
+    NOTIFY_PROVIDER = clampInt(get(26).toInt(), 0, 3);
+    TELEGRAM_BOT_TOKEN = safeField(get(27), 80);
+    TELEGRAM_CHAT_ID = sanitizeCommandToken(get(28), 32, "");
+    NTFY_SERVER = safeField(get(29), 120);
+    NTFY_TOPIC = sanitizeCommandToken(get(30), 64, "");
+    NTFY_ACCESS_TOKEN = safeField(get(31), 120);
+  }
+
   if (MIKROTIK_API_PORT < 1 || MIKROTIK_API_PORT > 65535) MIKROTIK_API_PORT = 8728;
   if (ADMIN_USER.length() == 0) ADMIN_USER = "admin";
   if (ADMIN_PW.length() == 0) ADMIN_PW = "admin";
@@ -502,15 +525,54 @@ void backupSystemConfig() {
   eeWriteString(BACKUP_CONFIG_LENGTH_INDEX + 5, data);
 }
 
+String generateSessionToken() {
+  String t = "";
+  const char *hex = "0123456789abcdef";
+  for (int i = 0; i < 32; i++) {
+    t += hex[ESP.random() & 0x0F];
+  }
+  return t;
+}
+
+bool hasValidAdminSession() {
+  if (adminSessionToken.length() == 0) return false;
+  String cookie = server.header("Cookie");
+  if (cookie.length() == 0) return false;
+  String needle = "jf_admin=" + adminSessionToken;
+  int p = cookie.indexOf(needle);
+  if (p < 0) return false;
+  int end = p + needle.length();
+  return (end == (int)cookie.length() || cookie.charAt(end) == ';');
+}
+
 bool isAuthorized() {
+  if (hasValidAdminSession()) return true;
   String auth = server.header("Authorization");
+  if (auth.length() == 0) return false;
   String expectedAuth = "Basic " + adminAuth;
   return auth == expectedAuth;
 }
 
 void handleNotAuthorize() {
-  server.sendHeader("WWW-Authenticate", "Basic realm=\"Secure\"");
-  server.send(401, "text/html", "Authentication failed");
+  // No WWW-Authenticate challenge: that breaks phone captive mini-browsers
+  // when setup mode redirects them here. The login page handles auth.
+  server.send(401, "text/plain", "Authentication failed");
+}
+
+void handleAdminLoginPage() {
+  handleFileRead("/admin/login.html");
+}
+
+void handleAdminLogin() {
+  String u = server.arg("username");
+  String p = server.arg("password");
+  if (u == ADMIN_USER && p == ADMIN_PW) {
+    if (adminSessionToken.length() == 0) adminSessionToken = generateSessionToken();
+    server.sendHeader("Set-Cookie", "jf_admin=" + adminSessionToken + "; Path=/; HttpOnly; SameSite=Lax");
+    server.send(200, "text/plain", "ok");
+    return;
+  }
+  server.send(401, "text/plain", "Invalid username or password");
 }
 
 void handleNotFound() {
@@ -1026,8 +1088,9 @@ bool addTimeToVoucher(const String &voucher, int secondsToAdd) {
 void handleHealth() { setupCORSPolicy(); server.send(200, "text/plain", "ok"); }
 
 void handleLogout() {
-  server.sendHeader("WWW-Authenticate", "Basic realm=\"Secure\"");
-  server.send(401, "text/html", "Authentication failed");
+  adminSessionToken = "";
+  server.sendHeader("Set-Cookie", "jf_admin=; Path=/; Max-Age=0; HttpOnly; SameSite=Lax");
+  server.send(200, "text/plain", "ok");
 }
 
 bool checkIfSystemIsAvailable() {
@@ -1154,8 +1217,8 @@ void updateStatistic() {
   eeWriteInt(CUSTOMER_COUNT_ADDRESS, eeGetInt(CUSTOMER_COUNT_ADDRESS) + 1);
 }
 
-void handleAdminPage() { if (!isAuthorized()) { handleNotAuthorize(); return; } handleFileRead("/admin/system-config.html"); }
-void handleAdminGeneratedVoucherPage() { if (!isAuthorized()) { handleNotAuthorize(); return; } handleFileRead("/admin/voucher-generate.html"); }
+void handleAdminPage() { if (!isAuthorized()) { server.sendHeader("Location", "/admin/login", true); server.send(302, "text/plain", ""); return; } handleFileRead("/admin/system-config.html"); }
+void handleAdminGeneratedVoucherPage() { if (!isAuthorized()) { server.sendHeader("Location", "/admin/login", true); server.send(302, "text/plain", ""); return; } handleFileRead("/admin/voucher-generate.html"); }
 void handleJquerySript() { handleFileRead("/admin/js/jquery.min.js"); }
 void handleUserGetRates() { setupCORSPolicy(); handleFileRead("/admin/config/rates.data"); }
 void handleAdminGetRates() { if (!isAuthorized()) { handleNotAuthorize(); return; } handleFileRead("/admin/config/rates.data"); }
@@ -1172,7 +1235,7 @@ void handleAdminSaveRates() {
 void handleAdminSaveSystemConfig() {
   if (!isAuthorized()) { handleNotAuthorize(); return; }
   String data = server.arg("data");
-  if (data.length() > 2048) { server.send(413, "text/plain", "too large"); return; }
+  if (data.length() > 4096) { server.send(413, "text/plain", "too large"); return; }
   if (!handleFileWrite("/admin/config/system.data", data)) { server.send(500, "text/plain", "write failed"); return; }
   server.send(200, "text/plain", "ok");
   delay(1000);
@@ -1625,7 +1688,7 @@ void setup() {
     currentIpAddress = apIP.toString();
     currentMacAddress = WiFi.softAPmacAddress();
     server.onNotFound([]() {
-      server.sendHeader("Location", String("/admin"), true);
+      server.sendHeader("Location", String("/admin/login"), true);
       server.send(302, "text/plain", "");
     });
   }
@@ -1637,13 +1700,16 @@ void setup() {
   server.on("/admin/api/getSystemConfig", handleAdminGetSystemConfig);
   server.on("/admin/api/getRates", handleAdminGetRates);
   server.on("/admin/api/saveRates", handleAdminSaveRates);
+  server.on("/admin/api/login", HTTP_POST, handleAdminLogin);
+  server.on("/admin/login", HTTP_GET, handleAdminLoginPage);
   server.on("/admin/api/logout", handleLogout);
   server.on("/admin/api/generateVouchers", handleGenerateVouchers);
-  server.on("/admin", handleAdminPage);
+  server.on("/admin", HTTP_GET, handleAdminPage);
   server.on("/admin/viewGeneratedVouchers", handleAdminGeneratedVoucherPage);
   server.on("/admin/updateMainBin", HTTP_POST, handleFileUploadRequest, handleFileUploadStream);
 
   populateRates();
+  server.collectHeaders("Cookie");
   server.begin();
 
   if (mikrotikConnectionSuccess) {

@@ -1,1397 +1,453 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#111417">
+<title>JuanFi Admin</title>
 <style>
-body {
-  font-family: Arial, Helvetica, sans-serif;
-  background-color: #4b4b4b;
-  padding: 10px
-}
-
-.topnav {
-  overflow: hidden;
-  background-color: #2f3542;
-}
-
-.topnav button {
-  float: left;
-  display: block;
-  color: #f2f2f2;
-  text-align: center;
-  padding: 14px 16px;
-  text-decoration: none;
-  font-size: 17px;
-  background-color: #353b48;
-  border: none
-}
-
-.topnav button:hover {
-  background-color: #ddd;
-  color: black;
-}
-
-.topnav button.active {
-  background-color: #04AA6D;
-  color: white;
-}
-
-.topnav .icon {
-  display: none;
-}
-
-@media screen and (max-width: 600px) {
-  .topnav button:not(:first-child) {display: none;}
-  .topnav button.icon {
-    float: right;
-    display: block;
-	width: 20%;
-	color: #ff7f50
-  }
-}
-
-@media screen and (max-width: 600px) {
-  .topnav.responsive {position: relative;}
-  .topnav.responsive .icon {
-    position: absolute;
-    right: 0;
-    top: 0;
-	width: 20%;
-	color: orange
-  }
-  .topnav.responsive button {
-    float: none;
-    display: block;
-    text-align: left;
-	width: 100%
-  }
-}
-
-.main-container {
-	border: 2px solid #485460;
-	max-width: 800px;
-	margin: auto;
-	padding: 20px;
-	background-color: #3d3d3d
-}
-
-.panel {
-	background-color: #2f3542;
-	margin-top: 30px;
-	padding: 10px;
-	border-radius: 5px;
-	border: 1px solid #485460
-}
-
-.panel p {
-	font-size: 20px;
-	font-weight: bold;
-	color: #fff
-}
-
-.title {
-	background-color: #2f3542;
-	display: block;
-	text-align: center;
-	padding: 5px;
-	color: #ff7f50;
-	border-bottom: 1px solid #485460
-}
-
-.accordion {
-	border: none;
-	padding: 5px;
-	background-color: #05c46b;
-	border-radius: 3px;
-	color: #fff
-}
-
-.registerbtn {
-	border: none;
-	padding: 5px;
-	background-color: #05c46b;
-	border-radius: 3px;
-	margin-top: 10px;
-	width: 70px;
-	color: #fff
-}
-
-.uploadBtn {
-	border: none;
-	padding: 5px;
-	background-color: #05c46b;
-	border-radius: 3px;
-	margin-top: 10px;
-	width: 120px;
-	color: #fff
-}
-
-#addRateButton {
-	border: none;
-	padding: 5px;
-	border-radius: 3px;
-	background-color: #00a8ff;
-	color: #fff;
-	margin: 10px 0 15px 0;
-}
-
-
-input {
-	display: block;
-	padding: 5px;
-	width: 70%;
-	border: 2px solid #57606f;
-	border-radius: 3px;
-	background-color: #2f3640;
-	color: #fff
-}
-
-input placeholder {
-	color: #fff
-}
-
-.container label {
-	color: #fff;
-	display: block;
-	padding: 5px;
-	text-align: left
-}
-
-.container select {
-	width: 70%;
-	padding: 5px;
-	margin-top: -20px;
-	margin-bottom: 20px;
-	border: 2px solid #57606f;
-	background-color: #2f3640;
-	color: #fff;
-	border-radius: 3px;
-}
-
-h2 {
-	color: #ff7f50;
-}
-
-.rateholder {
-	border: 2px solid #57606f;
-	margin-bottom: 30px;
-	padding: 10px;
-	border-radius: 3px
-}
-
-.rateholder input {
-	width: 90%;
-	margin-bottom: 10px
-}
-
-.rate-title {
-	color: #fff;
-	margin-top: 10px;
-	text-align: left
-}
-
-.delratebtn {
-	border: none;
-	padding: 5px;
-	background-color: #eb2f06;
-	border-radius: 3px;
-	margin-top: 10px;
-	width: 70px;
-	color: #fff
-}
-
-.rate-preview {
-	color: #05c46b;
-	font-size: 14px;
-	text-align: center;
-	margin: 2px 0 8px;
-	min-height: 18px
-}
-
-.time-group {
-	display: flex;
-	gap: 6px;
-	align-items: center;
-	flex-wrap: wrap;
-	margin-bottom: 4px;
-}
-
-.time-group label {
-	color: #ddd;
-	font-size: 12px;
-	margin: 0;
-	white-space: nowrap;
-	text-align: left;
-}
-
-.time-group input {
-	width: 72px !important;
-	min-width: 0;
-	padding: 6px 8px !important;
-	margin: 2px 0 0 4px !important;
-	display: inline-block;
-}
-
-.rateholder small {
-	color: #aaa;
-	font-size: 11px;
-	display: block;
-	margin-top: 2px;
-	margin-bottom: 6px;
-	text-align: left;
-}
-
-.spinner { 
-    position: fixed; 
-    z-index: 99; 
-    opacity: 80%; display: flex; 
-    justify-content: center; 
-    align-items: center; 
-    height: 100%; 
-    background: white; 
-    top: 0; 
-    left: 0; 
-    width: 100%; 
-} 
-
-.spinner.hidden {
-     display: none
-}
-
+  :root { --bg:#0f1215; --bg-elev:#151a1f; --surface:#181e24; --surface-2:#1e252d; --surface-3:#242c36; --border:#2b3440; --border-strong:#394554; --text:#e7edf3; --muted:#97a4b2; --faint:#6f7d8a; --accent:#d7a93d; --accent-ink:#171309; --teal:#3fb9a4; --danger:#e35d5b; --ok:#4caf82; --focus:#f0c96a; --radius:14px; --shadow:0 16px 40px rgba(0,0,0,.32); }
+  *,*::before,*::after{box-sizing:border-box} html{scroll-behavior:smooth}
+  body{margin:0;font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;font-size:16px;line-height:1.5;color:var(--text);background:radial-gradient(900px 380px at 0% -5%,#1a2027 0%,transparent 60%),radial-gradient(700px 320px at 100% 0%,#171d23 0%,transparent 55%),var(--bg)}
+  a{color:var(--accent)} a:hover{color:#e9c56a}
+  .skip-link{position:absolute;left:12px;top:-48px;z-index:100;background:var(--accent);color:var(--accent-ink);padding:10px 14px;border-radius:8px;font-weight:700;text-decoration:none}
+  .skip-link:focus{top:12px}
+  .shell{max-width:1100px;margin:0 auto;padding:16px 14px 40px}
+  header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .brand{display:flex;align-items:center;gap:12px;min-width:0}
+  .mark{width:40px;height:40px;border-radius:50%;flex:none;background:conic-gradient(from 210deg,#f2d27a,#b8831e,#f0c96a,#8f6414,#f2d27a);box-shadow:inset 0 0 0 3px rgba(15,18,21,.55)}
+  .brand h1{margin:0;font-size:1.25rem;line-height:1.15;font-weight:700}.brand .sub{margin:1px 0 0;color:var(--muted);font-size:.9rem}
+  .status-pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:.9rem}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--faint);flex:none}.dot.ok{background:var(--ok);box-shadow:0 0 0 4px rgba(76,175,130,.15)}.dot.bad{background:var(--danger);box-shadow:0 0 0 4px rgba(227,93,91,.15)}
+  nav.tabs{position:sticky;top:0;z-index:20;display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:8px;margin:0 -4px 16px;background:rgba(15,18,21,.85);backdrop-filter:blur(8px);border:1px solid var(--border);border-radius:12px}
+  nav.tabs button{flex:0 0 auto;min-height:44px;padding:10px 14px;border:1px solid transparent;border-radius:10px;background:transparent;color:var(--muted);font:inherit;font-size:.95rem;font-weight:600;cursor:pointer;touch-action:manipulation;white-space:nowrap}
+  nav.tabs button:hover{color:var(--text);background:var(--surface-2)} nav.tabs button.active{color:var(--accent-ink);background:var(--accent)}
+  nav.tabs button:focus-visible{outline:3px solid rgba(240,201,106,.45);outline-offset:1px}
+  .tabcontent{display:none}.grid{display:grid;gap:14px}.grid.stats{grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}.grid.two{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+  .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+  .panel h2,.panel h3{margin:0 0 4px;font-size:1.05rem;line-height:1.25}.panel .desc{margin:0 0 14px;color:var(--muted);font-size:.93rem}
+  .section-head{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:12px}.section-head h2{margin:0;font-size:1.15rem}
+  .kpi .label{color:var(--muted);font-size:.9rem;margin:0 0 4px}.kpi .value{font-size:1.7rem;font-weight:700;line-height:1.1;margin:0;font-variant-numeric:tabular-nums}
+  .kpi .value.small{font-size:1.1rem;font-weight:600;word-break:break-word;overflow-wrap:anywhere}
+  .row-actions{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}.stack{display:grid;gap:12px}.field{display:grid;gap:6px;min-width:0}
+  label{font-size:.93rem;font-weight:600;color:var(--text)}.help{margin:0;color:var(--muted);font-size:.88rem}
+  input[type="text"],input[type="password"],input[type="number"],select{width:100%;min-height:46px;padding:11px 13px;font:inherit;font-size:16px;color:var(--text);background:var(--surface-2);border:1px solid var(--border);border-radius:10px;outline:none}
+  input::placeholder{color:#6f7c89}
+  input:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid rgba(240,201,106,.4);outline-offset:1px;border-color:var(--focus)}
+  input[type="file"]{padding:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;color:var(--text);width:100%;font-size:.95rem}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:10px 16px;border-radius:10px;border:1px solid var(--border-strong);background:var(--surface-3);color:var(--text);font:inherit;font-size:.95rem;font-weight:700;cursor:pointer;touch-action:manipulation;text-decoration:none}
+  .btn:hover{background:#2b3541}.btn.primary{background:linear-gradient(180deg,#e7c464,#c9982e);color:var(--accent-ink);border-color:transparent}.btn.primary:hover{filter:brightness(1.05)}
+  .btn.danger{background:rgba(227,93,91,.12);color:#ff9a98;border-color:rgba(227,93,91,.35)}.btn[disabled]{opacity:.6;cursor:progress}.btn-sm{min-height:38px;padding:7px 12px;font-size:.88rem;border-radius:8px}
+  .actions-bar{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+  .notice{padding:12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--surface-2);color:var(--muted);font-size:.92rem}.notice.warn{border-color:rgba(215,169,61,.35);background:rgba(215,169,61,.08);color:#ead39a}
+  .rate-card{background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px}.rate-card h3{margin:0 0 10px;font-size:1rem}
+  .time-group{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.time-group label{font-size:.85rem;color:var(--muted);font-weight:600;display:grid;gap:4px}.time-group input{min-height:42px}
+  .rate-preview{margin-top:10px;padding:10px 12px;border-radius:8px;background:rgba(63,185,164,.08);color:#aee9dd;font-size:.92rem;overflow-wrap:anywhere}
+  .hidden{display:none!important}
+  #loading{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgba(15,18,21,.72)}#loading.hidden{display:none!important}
+  .loader-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 22px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow)}
+  .spin{width:22px;height:22px;border-radius:50%;border:3px solid var(--border-strong);border-top-color:var(--accent)}
+  @media (prefers-reduced-motion:no-preference){.spin{animation:sp .9s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}}
+  .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  @media (max-width:640px){.shell{padding:12px 10px 32px}.panel{padding:14px}}
+  @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
 </style>
-
-
 </head>
-<body onload="openDashboard(this)">
-<div class="main-container">
-<h2>JuanFi Admin Console</h2>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="loading" class="hidden" aria-live="polite" aria-busy="true"><div class="loader-card"><div class="spin" aria-hidden="true"></div><div id="loadingText">Working…</div></div></div>
+<div class="shell">
+  <header class="top">
+    <div class="brand"><div class="mark" aria-hidden="true"></div><div><h1><span translate="no">JuanFi</span> Admin</h1><p class="sub">Vendo control panel</p></div></div>
+    <div class="status-pill" title="MikroTik connection status"><span id="mkDot" class="dot" aria-hidden="true"></span><span id="mkLabel">MikroTik: checking…</span></div>
+  </header>
+  <nav class="tabs" aria-label="Admin sections">
+    <button type="button" class="tablinks active" data-tab="Dashboard">Dashboard</button>
+    <button type="button" class="tablinks" data-tab="SystemConfigration">System Config</button>
+    <button type="button" class="tablinks" data-tab="PromoRate">Promo Rates</button>
+    <button type="button" class="tablinks" data-tab="VoucherGenerate">Vouchers</button>
+    <button type="button" class="tablinks" data-tab="FirmwareUpdate">Firmware</button>
+    <button type="button" class="tablinks" data-tab="About">About</button>
+    <button type="button" class="tablinks" id="logoutBtn">Sign out</button>
+  </nav>
+  <main id="main">
 
-<div class="topnav" id="myTopnav">
+    <section id="Dashboard" class="tabcontent" aria-labelledby="dash-heading">
+      <h2 id="dash-heading" class="visually-hidden">Dashboard</h2>
+      <div class="grid stats">
+        <div class="panel kpi"><p class="label">Total sales (all time)</p><p class="value" id="lifeCoinCount">0</p><div class="row-actions"><button type="button" class="btn btn-sm" data-reset="lifeTimeCount">Reset</button></div></div>
+        <div class="panel kpi"><p class="label">Current sales</p><p class="value" id="coinCount">0</p><div class="row-actions"><button type="button" class="btn btn-sm" data-reset="coinCount">Reset</button></div></div>
+        <div class="panel kpi"><p class="label">Customers served</p><p class="value" id="customerCount">0</p><div class="row-actions"><button type="button" class="btn btn-sm" data-reset="customerCount">Reset</button></div></div>
+        <div class="panel kpi"><p class="label">Uptime</p><p class="value small" id="upTime">0 sec</p></div>
+      </div>
+      <div class="grid two" style="margin-top:14px">
+        <div class="panel kpi"><p class="label">Internet</p><p class="value small" id="internetStatus">Checking…</p></div>
+        <div class="panel kpi"><p class="label">MikroTik</p><p class="value small" id="mikrotikStatus">Checking…</p></div>
+        <div class="panel kpi"><p class="label">Device MAC</p><p class="value small" id="macAddress">—</p></div>
+        <div class="panel kpi"><p class="label">Device IP</p><p class="value small" id="ipAddress">—</p></div>
+        <div class="panel kpi"><p class="label">Hardware</p><p class="value small" id="hardwareType">—</p></div>
+      </div>
+    </section>
 
-	<button class="tablinks active" onclick="openDashboard(event)">Dashboard</button>
-	<button class="tablinks" onclick="openSystemConfig(event)">System Configuration</button>
-	<button class="tablinks" onclick="openPromoRates(event)">Promo Rates</button>
-	<button class="tablinks" onclick="openVoucherGenerate(event)">Voucher Generation</button>
-	<button class="tablinks" onclick="openTab(event, 'FirmwareUpdate')">Firmware Update</button>
-	<button class="tablinks" onclick="openTab(event, 'About')">About</button>
-	<button class="tablinks" onclick="logout()">Logout</button>
-	<button href="javascript:void(0);" class="icon" onclick="myFunction()">///</button>
+    <section id="SystemConfigration" class="tabcontent" aria-labelledby="sys-heading">
+      <div class="section-head"><h2 id="sys-heading">System configuration</h2></div>
+      <div class="stack">
+        <div class="panel"><h3>Vendo identity</h3><p class="desc">Name shown to customers and on printed vouchers.</p>
+          <div class="field"><label for="vendoName">Vendo name</label><input type="text" id="vendoName" name="vendoName" autocomplete="organization" placeholder="e.g. JuanFi Vendo"></div></div>
+
+        <div class="panel" id="apSettingDiv"><h3>Wi-Fi (station)</h3><p class="desc">The network this device connects to for internet and MikroTik access.</p>
+          <div class="grid two">
+            <div class="field"><label for="wifiSSID">Wi-Fi SSID</label><input type="text" id="wifiSSID" name="wifiSSID" autocomplete="off" spellcheck="false" placeholder="Network name"></div>
+            <div class="field"><label for="wifiPW">Wi-Fi password</label><input type="password" id="wifiPW" name="wifiPW" autocomplete="off" placeholder="Leave blank if open"></div>
+          </div></div>
+
+        <div class="panel"><h3>Device IP address</h3><p class="desc">Use DHCP unless you need a fixed address on your network.</p>
+          <div class="field"><label for="ipAddressMode">Address mode</label><select id="ipAddressMode" name="ipAddressMode"><option value="0">DHCP (automatic)</option><option value="1">Static IP</option></select></div>
+          <div id="staticIpDiv" class="grid two hidden" style="margin-top:12px">
+            <div class="field"><label for="localIpAddress">Local IP address</label><input type="text" id="localIpAddress" name="localIpAddress" inputmode="decimal" autocomplete="off" placeholder="192.168.1.50"></div>
+            <div class="field"><label for="subnetMask">Subnet mask</label><input type="text" id="subnetMask" name="subnetMask" inputmode="decimal" autocomplete="off" placeholder="255.255.255.0"></div>
+            <div class="field"><label for="gatewayIp">Gateway</label><input type="text" id="gatewayIp" name="gatewayIp" inputmode="decimal" autocomplete="off" placeholder="192.168.1.1"></div>
+            <div class="field"><label for="dnsServer">DNS server</label><input type="text" id="dnsServer" name="dnsServer" inputmode="decimal" autocomplete="off" placeholder="8.8.8.8"></div>
+          </div></div>
+
+        <div class="panel"><h3>MikroTik router</h3><p class="desc">API access the vendo uses to create and manage hotspot vouchers. On RouterOS v6 enable the API service (IP → Services → api).</p>
+          <div class="grid two">
+            <div class="field"><label for="mikrotikIp">Router IP address</label><input type="text" id="mikrotikIp" name="mikrotikIp" inputmode="decimal" autocomplete="off" placeholder="10.0.0.1"></div>
+            <div class="field"><label for="mikrotikApiPort">RouterOS API port</label><input type="number" id="mikrotikApiPort" name="mikrotikApiPort" min="1" max="65535" value="8728" inputmode="numeric"></div>
+            <div class="field"><label for="mikrotikUser">API username</label><input type="text" id="mikrotikUser" name="mikrotikUser" autocomplete="off" spellcheck="false" placeholder="api user"></div>
+            <div class="field"><label for="mikrotikPw">API password</label><input type="password" id="mikrotikPw" name="mikrotikPw" autocomplete="off" placeholder="Password"></div>
+            <div class="field"><label for="confirmMikrotikPw">Confirm API password</label><input type="password" id="confirmMikrotikPw" name="confirmMikrotikPw" autocomplete="off" placeholder="Confirm password"></div>
+          </div></div>
+
+        <div class="panel"><h3>Admin sign-in</h3><p class="desc">Credentials for this admin panel.</p>
+          <div class="grid two">
+            <div class="field"><label for="adminUser">Admin username</label><input type="text" id="adminUser" name="adminUser" autocomplete="username" spellcheck="false" placeholder="admin"></div>
+            <div class="field"><label for="adminPw">Admin password</label><input type="password" id="adminPw" name="adminPw" autocomplete="new-password" placeholder="Password"></div>
+            <div class="field"><label for="confirmAdminPw">Confirm admin password</label><input type="password" id="confirmAdminPw" name="confirmAdminPw" autocomplete="new-password" placeholder="Confirm password"></div>
+          </div></div>
+
+        <div class="panel"><h3>Notifications</h3>
+          <p class="desc">Get a message when a customer finishes inserting coins or abandons a session. Settings are stored on this device; actual delivery depends on network access and supported providers in this firmware build.</p>
+          <div class="stack">
+            <div class="field"><label for="notifyProvider">Provider</label>
+              <select id="notifyProvider" name="notifyProvider"><option value="0">Off</option><option value="1">Telegram</option><option value="2">ntfy</option><option value="3">Telegram and ntfy</option></select></div>
+            <div class="notice warn" role="note">Telegram and public ntfy (HTTPS) need outbound internet from the device and a compatible build. A self-hosted ntfy server on your LAN can use plain HTTP (e.g. <code>http://192.168.1.10</code>). On public ntfy, topic names are guessable — use an unguessable topic and/or an access token.</div>
+            <div class="grid two">
+              <div class="field"><label for="telegramBotToken">Telegram bot token</label><input type="password" id="telegramBotToken" name="telegramBotToken" autocomplete="off" spellcheck="false" placeholder="123456:ABC-DEF…"><p class="help">From <span translate="no">@BotFather</span>.</p></div>
+              <div class="field"><label for="telegramChatId">Telegram chat ID</label><input type="text" id="telegramChatId" name="telegramChatId" autocomplete="off" spellcheck="false" placeholder="e.g. 123456789 or -100…"></div>
+              <div class="field"><label for="ntfyServer">ntfy server</label><input type="text" id="ntfyServer" name="ntfyServer" autocomplete="off" spellcheck="false" placeholder="https://ntfy.sh or http://192.168.1.10"><p class="help">Leave blank for the public ntfy service when delivery is available; for LAN use a full URL.</p></div>
+              <div class="field"><label for="ntfyTopic">ntfy topic</label><input type="text" id="ntfyTopic" name="ntfyTopic" autocomplete="off" spellcheck="false" placeholder="your-secret-topic"></div>
+              <div class="field"><label for="ntfyAccessToken">ntfy access token (optional)</label><input type="password" id="ntfyAccessToken" name="ntfyAccessToken" autocomplete="off" spellcheck="false" placeholder="tk_…"><p class="help">For protected topics (write-only recommended).</p></div>
+            </div>
+          </div></div>
+
+        <div class="panel"><h3>Coin slot and timing</h3>
+          <div class="field"><label for="coinSlotWaitTime">Insert-wait time (seconds)</label><input type="number" id="coinSlotWaitTime" name="coinSlotWaitTime" min="5" max="600" inputmode="numeric" placeholder="30"><p class="help">How long the vendo waits for more coins before a session times out.</p></div></div>
+
+        <div class="panel"><h3>Pin mapping</h3><p class="desc">Match these to your wiring. Each pin must be unique.</p>
+          <div class="grid two">
+            <div class="field"><label for="coinSlotPin">Coinslot pin</label><select id="coinSlotPin"><option value="16">D0</option><option value="0">D3</option><option value="2">D4</option><option value="14">D5</option><option value="12" selected>D6</option><option value="13">D7</option><option value="15">D8</option><option value="3">RX</option></select></div>
+            <div class="field"><label for="coinSlotSetPin">Coinslot set pin</label><select id="coinSlotSetPin"><option value="16">D0</option><option value="2">D3</option><option value="0">D4</option><option value="14">D5</option><option value="12">D6</option><option value="13" selected>D7</option><option value="15">D8</option><option value="3">RX</option></select></div>
+            <div class="field"><label for="systemReadyLEDPin">System ready LED pin</label><select id="systemReadyLEDPin"><option value="16">D0</option><option value="0" selected>D3</option><option value="2">D4</option><option value="14">D5</option><option value="12">D6</option><option value="13">D7</option><option value="15">D8</option><option value="3">RX</option></select></div>
+            <div class="field"><label for="insertCoinLEDPin">Insert coin LED pin</label><select id="insertCoinLEDPin"><option value="16">D0</option><option value="0">D3</option><option value="2" selected>D4</option><option value="14">D5</option><option value="12">D6</option><option value="13">D7</option><option value="15">D8</option><option value="3">RX</option></select></div>
+            <div class="field"><label for="ledTriggerType">LED/relay trigger level</label><select id="ledTriggerType"><option value="0">LOW</option><option value="1" selected>HIGH</option></select></div>
+          </div></div>
+
+        <div class="panel"><h3>Voucher defaults</h3>
+          <div class="grid two">
+            <div class="field"><label for="voucherPrefix">Voucher prefix</label><input type="text" id="voucherPrefix" value="P" maxlength="2" autocomplete="off" spellcheck="false" placeholder="P"><p class="help">Up to 2 characters, starting with a letter.</p></div>
+            <div class="field"><label for="voucherProfile">Hotspot profile</label><input type="text" id="voucherProfile" value="default" autocomplete="off" spellcheck="false" placeholder="default"></div>
+            <div class="field"><label for="voucherLoginOption">Login mode</label><select id="voucherLoginOption"><option value="0">Username only</option><option value="1">Username + password</option></select></div>
+            <div class="field"><label for="voucherValidity">Validity behavior</label><select id="voucherValidity"><option value="0">Stack validity when extending time</option><option value="1">Use first validity plus extend time</option></select></div>
+          </div></div>
+
+        <div class="panel"><h3>Internet check</h3>
+          <div class="field"><label for="checkInternetStatus">Check internet before accepting coins</label><select id="checkInternetStatus"><option value="1">Yes</option><option value="0">No</option></select></div></div>
+
+        <input type="hidden" value="1" id="setupDoneFlag">
+        <input id="importSystemConfigFile" type="file" accept=".data,text/plain" class="hidden">
+        <div class="panel"><h3>Save or transfer settings</h3><p class="desc">Saving restarts the device to apply changes.</p>
+          <div class="actions-bar">
+            <button type="button" class="btn primary" id="saveSystemBtn">Save settings</button>
+            <button type="button" class="btn" id="exportSystemBtn">Backup</button>
+            <button type="button" class="btn" id="importSystemBtn">Restore</button>
+          </div></div>
+      </div>
+    </section>
+
+    <section id="PromoRate" class="tabcontent" aria-labelledby="rates-heading">
+      <div class="section-head"><h2 id="rates-heading">Promo rates</h2><button type="button" class="btn" id="addRateButton">Add rate</button></div>
+      <div class="panel"><p class="desc">Set time in hours, minutes, and seconds (seconds round up to the next minute when saved). The price and limits shown are what the portal charges and displays.</p>
+        <div id="promoRateBody"></div>
+        <input id="importRateConfigFile" type="file" accept=".data,text/plain" class="hidden">
+        <div class="actions-bar"><button type="button" class="btn primary" id="saveRatesBtn">Save rates</button><button type="button" class="btn" id="exportRatesBtn">Backup</button><button type="button" class="btn" id="importRatesBtn">Restore</button></div>
+      </div>
+    </section>
+
+    <section id="VoucherGenerate" class="tabcontent" aria-labelledby="gen-heading">
+      <div class="section-head"><h2 id="gen-heading">Voucher generation</h2></div>
+      <div class="panel"><p class="desc">Generate vouchers on the router and open a printable sheet. Avoid large quantities at once.</p>
+        <div class="grid two">
+          <div class="field"><label for="voucherGeneratePrefix">Prefix</label><input type="text" id="voucherGeneratePrefix" value="VC" maxlength="2" autocomplete="off" spellcheck="false"></div>
+          <div class="field"><label for="voucherAmount">Amount (₱)</label><input type="number" id="voucherAmount" value="50" min="1" inputmode="numeric"></div>
+          <div class="field"><label for="voucherQty">Quantity</label><input type="number" id="voucherQty" value="1" min="1" max="50" inputmode="numeric"></div>
+          <div class="field"><label for="addToSales">Add to sales totals</label><select id="addToSales"><option value="1">Yes</option><option value="0">No</option></select></div>
+          <div class="field"><label for="appendToPrevious">Append to previous print sheet</label><select id="appendToPrevious"><option value="0">No</option><option value="1">Yes</option></select></div>
+        </div>
+        <div class="actions-bar"><button type="button" class="btn primary" id="generateVoucherBtn">Generate vouchers</button></div>
+        <p class="help" style="margin-top:10px">A popup window opens after generation; allow popups for this page.</p>
+      </div>
+    </section>
+
+    <section id="FirmwareUpdate" class="tabcontent" aria-labelledby="fw-heading">
+      <div class="section-head"><h2 id="fw-heading">Firmware update</h2></div>
+      <div class="panel">
+        <p class="desc">Current version: <strong id="currentVersion">—</strong></p>
+        <div class="grid two">
+          <div class="field"><label for="binFileType">Binary type</label><select id="binFileType"><option value="sketch">Bin 1 — sketch (.bin)</option><option value="filesystem">Bin 2 — filesystem (.bin)</option></select></div>
+          <div class="field"><label for="mainBin">Firmware file</label><input type="file" id="mainBin" accept=".bin"></div>
+        </div>
+        <div class="notice warn" style="margin-top:12px">Upload one file at a time. If both are provided, flash filesystem (Bin 2) first, then sketch (Bin 1). A filesystem update resets promo rates — back them up first.</div>
+        <div class="actions-bar"><button type="button" class="btn primary" id="uploadFwBtn">Upload firmware</button></div>
+      </div>
+    </section>
+
+    <section id="About" class="tabcontent" aria-labelledby="about-heading">
+      <div class="section-head"><h2 id="about-heading">About</h2></div>
+      <div class="panel"><div class="stack">
+        <p><strong>System version:</strong> <span id="appVersionAbout">—</span></p>
+        <p><strong>Developer:</strong> <span translate="no">Ivan Julius Alayan</span></p>
+        <p><strong>Contributors:</strong> <span translate="no">Kristoffer D. Samole</span></p>
+        <p><strong>Community:</strong> <a href="https://www.facebook.com/groups/1172413279934139" target="_blank" rel="noopener noreferrer"><span translate="no">JuanFi</span> Group</a></p>
+        <p><strong>Source:</strong> <a href="https://github.com/ivanalayan15/JuanFi" target="_blank" rel="noopener noreferrer">GitHub repository</a></p>
+      </div></div>
+    </section>
+  </main>
 </div>
-
-
-<script>
-function myFunction() {
-  var x = document.getElementById("myTopnav");
-  if (x.className === "topnav") {
-    x.className += " responsive";
-  } else {
-    x.className = "topnav";
-  }
-}
-</script>
-
-<div id="loading" class="spinner hidden">
-		<center>
-			<h3 id="loadingText">Loading...</h3>
-		</center>
-</div>
-
-<div id="Dashboard" class="tabcontent">
-	<center>
-	<div class="panel">
-		<span class="title">Total Sales</span>
-		<p id="lifeCoinCount">0</p>
-		<button onClick="resetStats('lifeTimeCount')" class="accordion">RESET</button>
-	</div>
-	
-	<div class="panel">
-		<span class="title">Current Sales</span>
-		<p id="coinCount">0</p>
-		<button onClick="resetStats('coinCount')" class="accordion">RESET</button>
-	</div>
-	
-	<div class="panel">
-		<span class="title">Customer Served</span>
-		<p id="customerCount">0</p>
-		<button onClick="resetStats('customerCount')"  class="accordion">RESET</button>
-	</div>
-	
-	<div class="panel">
-		<span class="title">System Uptime</span>
-		<p id="upTime">0 Day 0 hour 0 Min 0 Sec</p>
-	</div>
-	
-	<div class="panel">
-		<span class="title">Device MAC Address</span>
-		<p id="macAddress">00:00:00:00:00:00</p>
-	</div>
-	
-	<div class="panel">
-		<span class="title">Device IP Address</span>
-		<p id="ipAddress">0.0.0.0</p>
-	</div>
-	
-	<div class="panel">
-		<span class="title">Hardware Type</span>
-		<p id="hardwareType">Loading...</p>
-	</div>
-
-	<div class="panel">
-		<span class="title">Internet Status</span>
-		<p id="internetStatus">Checking...</p>
-	</div>
-
-	<div class="panel">
-		<span class="title">Mikrotik Status</span>
-		<p id="mikrotikStatus">Checking...</p>
-	</div>
-	</center>
-</div>
-
-
-
-<div id="SystemConfigration" class="tabcontent">
-  <div class="container">
-  
-	<div class="panel">
-	<span class="title">Vendo Name</span>
-	<label for="email"><b>Vendo Name</b></label><br>
-    <input type="text" placeholder="Vendo Name" id="vendoName" required>
-	</div>
-	
-	<div class="panel" id="apSettingDiv">
-	<span class="title">AP Setting</span>
-    <label for="email"><b>WIFI SSID</b></label><br>
-    <input type="text" placeholder="WIFI SSID"  id="wifiSSID" required><br>
-
-    <label for="psw"><b>WIFI Password</b></label><br>
-    <input type="password" placeholder="WIFI Password" id="wifiPW">
-	</div>
-	
-	<div class="panel" >
-	<span class="title">IP Address Setting</span>
-    <label for="email"><b>Mode</b></label><br>
-    <select name="ipAddressMode" id="ipAddressMode" onChange="ipAddressModeChange(this)">
-	  <option value="0">DHCP</option>
-	  <option value="1">Static</option>
-	</select><br>
-	<div id="staticIpDiv" style="display: none">
-	<label for="email"><b>Local IP Address</b></label><br>
-    <input type="text" placeholder="Local IP Address" id="localIpAddress" required><br>
-	<label for="email"><b>Subnet Mask</b></label><br>
-	<input type="text" placeholder="Subnet Mask" id="subnetMask" required><br>
-	<label for="email"><b>Gateway IP</b></label><br>
-    <input type="text" placeholder="Gateway IP" id="gatewayIp" required><br>
-	<label for="email"><b>DNS Server</b></label><br>
-    <input type="text" placeholder="DNS Server IP" id="dnsServer" required><br>
-	</div>
-	</div>
-	
-	<div class="panel">
-	<span class="title">MikroTik Setting</span>
-	<label for="email"><b>Mikrotik Router IP</b></label><br>
-    <input type="text" placeholder="Mikrotik Router IP" id="mikrotikIp" required><br>
-
-	<label for="email"><b>Mikrotik Username</b></label><br>
-    <input type="text" placeholder="Mikrotik Router Username" id="mikrotikUser" required><br>
-
-	<label for="email"><b>Mikrotik Password</b></label><br>
-    <input type="password" placeholder="Mikrotik Router Password" id="mikrotikPw" required><br>
-	
-	<label for="email"><b>Confirm Mikrotik Password</b></label><br>
-    <input type="password" placeholder="Confirm Mikrotik Router Password" id="confirmMikrotikPw" required><br>
-
-	<label for="mikrotikApiPort"><b>RouterOS API Port</b></label><br>
-    <input type="number" value="8728" placeholder="RouterOS API Port" id="mikrotikApiPort" required><br>
-	<label>Enable the API service in RouterOS (IP &gt; Services &gt; api, default port 8728) and allow it from this device.</label>
-	</div>
-	
-	<div class="panel">
-	<span class="title">Admin panel Setting</span>
-	<label for="email"><b>Admin Username</b></label><br>
-    <input type="text" placeholder="Admin Username" id="adminUser" required><br>
-
-	<label for="email"><b>Admin Password</b></label><br>
-    <input type="password" placeholder="Admin Password" id="adminPw" required>
-	
-	<label for="email"><b>Confirm Admin Password</b></label><br>
-    <input type="password" placeholder="Confirm Admin Password" id="confirmAdminPw" required>
-	
-	</div>
-	
-	<div class="panel">
-	<span class="title">Coin slot Setting</span>
-	<label for="email"><b>Coin slot insert wait time(Seconds)</b></label><br>
-    <input type="text" placeholder="Coin slot insert wait time" id="coinSlotWaitTime" required><br>
-
-	</div>
-	
-	<div class="panel">
-	<span class="title">Pin Setting</span>
-	<label for="coinSlotPin"><b>Coinslot Pin</b></label><br>
-    <select name="coinSlotPin" id="coinSlotPin">
-	  <option value="16">D0</option>
-	  <option value="0">D3</option>
-	  <option value="2">D4</option>
-	  <option value="14">D5</option>
-	  <option value="12" selected>D6</option>
-	  <option value="13">D7</option>
-	  <option value="15">D8</option>
-	  <option value="3">RX</option>
-	</select><br>
-	
-	<label for="coinSlotSetPin"><b>Coinslot Set Pin</b></label><br>
-    <select name="coinSlotSetPin" id="coinSlotSetPin">
-	  <option value="16">D0</option>
-	  <option value="2">D3</option>
-	  <option value="0">D4</option>
-	  <option value="14">D5</option>
-	  <option value="12">D6</option>
-	  <option value="13" selected>D7</option>
-	  <option value="15">D8</option>
-	  <option value="3">RX</option>
-	</select><br>
-	
-	<label for="systemReadyLEDPin"><b>System Ready LED Pin</b></label><br>
-    <select name="systemReadyLEDPin" id="systemReadyLEDPin">
-      <option value="16">D0</option>		
-	  <option value="0" selected>D3</option>
-	  <option value="2">D4</option>
-	  <option value="14">D5</option>
-	  <option value="12">D6</option>
-	  <option value="13">D7</option>
-	  <option value="15">D8</option>
-	  <option value="3">RX</option>
-	</select><br>
-	
-	<label for="insertCoinLEDPin"><b>Insert Coin LED Pin</b></label><br>
-    <select name="insertCoinLEDPin" id="insertCoinLEDPin">
-	  <option value="16">D0</option>	
-	  <option value="0">D3</option>
-	  <option value="2" selected>D4</option>
-	  <option value="14">D5</option>
-	  <option value="12">D6</option>
-	  <option value="13">D7</option>
-	  <option value="15">D8</option>
-	  <option value="3">RX</option>
-	</select><br>
-	
-	
-	<label for="ledTriggerType"><b>LED Trigger Output(Relay Trigger Type)</b></label><br>
-    <select name="ledTriggerType" id="ledTriggerType">
-	  <option value="0">LOW</option>
-	  <option value="1" selected>HIGH</option>
-	</select>
-	</div>
-	
-	
-	<div class="panel">
-	<span class="title">Voucher Setting</span>
-	<label for="voucherPrefix"><b>Voucher Prefix(max 2, should start with Letters)</b></label><br>
-    <input type="text" value="P" placeholder="Voucher Prefix, e.g. P, S" id="voucherPrefix" maxlength="2" required>
-	<label for="voucherLoginOption"><b>Voucher Login Option</b></label><br>
-	<select name="voucherLoginOption" id="voucherLoginOption">
-	  <option value="0">Username only</option>
-	  <option value="1">Username + Password</option>
-	</select>
-	<label for="voucherProfile"><b>Voucher Profile</b></label><br>
-	<input type="text" value="default" placeholder="default" id="voucherProfile" required>
-	<label for="voucherValidity"><b>Voucher Validity</b></label><br>
-	<select name="voucherValidity" id="voucherValidity">
-	  <option value="0">Stack up validity when extend time</option>
-	  <option value="1">First Validity + extend time</option>
-	</select>
-	</div>
-		
-	<div class="panel">
-	<span class="title">Internet Check</span>	
-	<label for="checkInternetStatus"><b>Check Internet Status when insert coin</b></label><br>
-    <select name="checkInternetStatus" id="checkInternetStatus">
-	  <option value="1">Yes</option>
-	  <option value="0">No</option>
-	</select>
-	</div>
-	
-	<input type="hidden" value="1" id="setupDoneFlag" />
-	<input id='importSystemConfigFile' type='file' accept=".data" onchange="systemConfigFileImportChange(this)" style="display: none"/>
-	<center>
-
-    <button onClick="saveSystemConfig()" type="button" class="registerbtn">SAVE</button>
-	<button onClick="exportSystemConfig()" type="button" class="registerbtn">BACKUP</button>
-	<button onClick="importSystemConfig()" type="button" class="registerbtn">RESTORE</button>
-	</center>
-  </div>
-</div>
-
-<div id="PromoRate" class="tabcontent">
-	<div class="panel">
-	<span class="title">Rates Setting</span>	
-	<button onClick="addRate()" class="btn default" id="addRateButton">ADD NEW RATE</button></h3>
-
-	  <div id="promoRateBody">
-			
-	  </div>
-	<input id='importRateConfigFile' type='file' accept=".data" onchange="rateConfigFileImportChange(this)" style="display: none"/>
-	<center>
-    <button onClick="savePromoRates()" type="submit" class="registerbtn">SAVE</button>
-	<button onClick="exportRateConfig()" type="button" class="registerbtn">BACKUP</button>
-	<button onClick="importRateConfig()" type="button" class="registerbtn">RESTORE</button>
-	</center>
-</div>
-</div>
-
-<div id="VoucherGenerate" class="tabcontent">
-	<div class="container">
-	<div class="panel">
-	<span class="title">Voucher Generation</span>
-	<label for="voucherGeneratePrefix"><b>Voucher Prefix(max 2, should start with Letters)</b></label><br>
-    <input type="text" value="VC" placeholder="Voucher Prefix, e.g. P, S" id="voucherGeneratePrefix" maxlength="2" required>
-	<label for="voucherAmount"><b>Voucher Amount</b></label><br>
-    <input type="number" value="50" placeholder="Voucher amount" id="voucherAmount" required>
-	<label for="voucherQty"><b>Quantity(PC)</b></label><br>
-    <input type="number" value="1" placeholder="Voucher Qty" id="voucherQty"  required>
-	<label for="addToSales"><b>Add to Sales</b></label><br>
-    <select name="addToSales" id="addToSales">
-	  <option value="1">Yes</option>
-	  <option value="0">No</option>
-	</select>
-	<label for="appendToPrevious"><b>Append to Previous(For printing purpose)</b></label><br>
-    <select name="appendToPrevious" id="appendToPrevious">
-	  <option value="0">No</option>
-	  <option value="1">Yes</option>
-	</select>
-	<label>After you click the generate voucher, a popup window will appear after the generation, please check if you have popup blocker! Please avoid also qty to be more than 15 since it will take time to generate.</label><br>
-	</div>
-
-	<center>
-		<button onClick="generateVoucher()" type="submit" class="registerbtn">Generate Voucher</button>
-	</center>
-	
-	  <div id="voucherGenerateBody">
-			
-	  </div>
-	</div>
-</div>
-
-<div id="About" class="tabcontent">
-	<div class="panel">
-	<p>System Version: <span id="appVersionAbout">2.3</span></p>
-	<p>Developer: Ivan Julius Alayan</p>
-	<p>Contributors: Kristoffer D. Samole</p>
-	<p>FB Group: <a href="https://www.facebook.com/groups/1172413279934139"/>Juanfi Group</a> </p>
-	<p>Github: <a href="https://github.com/ivanalayan15/JuanFi"> For issues / request</a> </p>
-	</div>
-</div>
-
-<div id="FirmwareUpdate" class="tabcontent">
-	<div class="container">
-	<div class="panel">
-		<span class="title">Firmware Update</span>
-		<label for="currentVersion"><b>Current Firmware Version: <span id="currentVersion">2.3</span></b></label>
-		<label for="mainBin"><b>Bin Type:</b></label><br>
-		<select name="binFileType" id="binFileType">
-		  <option value="sketch">Bin 1 (Sketch .bin)</option>
-		  <option value="filesystem">Bin 2 (Filesystem .bin)</option>
-		</select>
-		<label for="mainBin"><b>Bin File:</b></label><br>
-		<input type="file" name="mainBin" id="mainBin" accept=".bin" required>
-		<center>
-		<button onClick="uploadMainBin()" type="button" class="uploadBtn">Update Firmware</button>
-		</center>
-		<br/>
-		<label>Updating of BIN is 1 at a time, if the release have both bin file update, update the bin2 first before the bin1</label><br>
-		<label>If have BIN 2 update, Promo rates configuration will be reset, make sure to backup it first and restore after, ONLY system configuration will be backup automatically</label><br>
-	</div>
-	</div>
-</div>
-
-<script src="admin/js/jquery.min.js"></script>
-
+<script src="/admin/js/jquery.min.js"></script>
 <script>
 
-var timer = null;
-var upTimeSeconds = 0;
-var separator = "|";
-var rowSeparator = "#";
-var hardwareType = "ESP8266";
-var version = "";  // filled from admin/api/dashboard
+(function () {
+  'use strict';
+  var timer = null, upTimeSeconds = 0, separator = '|', rateCount = 0;
 
-function saveSystemConfig(){
+  function showLoading(text) { $('#loadingText').text(text || 'Working…'); $('#loading').removeClass('hidden'); }
+  function hideLoading() { $('#loading').addClass('hidden'); }
+  $(document).ajaxStart(function () { showLoading('Working…'); });
+  $(document).ajaxStop(function () { hideLoading(); });
 
-	var coinSlotPin = $('#coinSlotPin').val();
-	var coinSlotSetPin = $('#coinSlotSetPin').val();
-	var systemReadyLEDPin = $('#systemReadyLEDPin').val();
-	var insertCoinLEDPin = $('#insertCoinLEDPin').val();
-	var pinMap = [];
-	pinMap['Coinslot Pin'] = coinSlotPin;
-	pinMap['Coinslot Set Pin'] = coinSlotSetPin;
-	pinMap['System Ready Pin'] = systemReadyLEDPin;
-	pinMap['Insert Coin LED Pin'] = insertCoinLEDPin;
-	
-	if($('#mikrotikPw').val() != $('#confirmMikrotikPw').val()){
-		alert('Mikrotik password is not equal to confirm mikrotik password');
-		return;
-	}
-	
-	if($('#adminPw').val() != $('#confirmAdminPw').val()){
-		alert('Admin password is not equal to confirm admin password');
-		return;
-	}
-	
-	if(!validateCoinSlotPin(pinMap)){
-		return;
-	}
-	
-	var ipAddressMode = $("#ipAddressMode").val();
-	
-	var localIpAddress = $("#localIpAddress").val();
-	var gatewayIp = $("#gatewayIp").val();
-	var subnetMask = $("#subnetMask").val();
-	var dnsServer = $("#dnsServer").val();
-	
-	var ipAddressFields = [];
-	ipAddressFields['Local IP Address'] = localIpAddress;
-	ipAddressFields['Gateway IP Address'] = gatewayIp;
-	ipAddressFields['Subnet Mask Address'] = subnetMask;
-	ipAddressFields['DNS Server Address'] = dnsServer;
-	
-	if(ipAddressMode == 1 && (!validateIpAddressFields(ipAddressFields))){
-		return;
-	}
-	
-	//if done first time setup set value to 1
-	$('#setupDoneFlag').val("1");
-
-	var postData = createParam([
-				$('#vendoName').val(),
-				$('#wifiSSID').val(),
-				$('#wifiPW').val(),
-				$('#mikrotikIp').val(),
-				$('#mikrotikUser').val(),
-				$('#mikrotikPw').val(),
-				$('#coinSlotWaitTime').val(),
-				$('#adminUser').val(),
-				$('#adminPw').val(),
-				coinSlotPin,
-				coinSlotSetPin,
-				systemReadyLEDPin,
-				insertCoinLEDPin,
-				$('#checkInternetStatus').val(),
-				$('#voucherPrefix').val(),
-				$('#setupDoneFlag').val(),
-				$('#voucherLoginOption').val(),
-				$('#voucherProfile').val(),
-				$('#voucherValidity').val(),
-				$('#ledTriggerType').val(),
-				ipAddressMode,
-				localIpAddress,
-				gatewayIp,
-				subnetMask,
-				dnsServer,
-				$('#mikrotikApiPort').val()
-			 ]);
-				 
-	$.ajax({
-	  type: "POST",
-	  url: "admin/api/saveSystemConfig",
-	  data: "data="+postData,
-	  success: function(data){
-		alert('Configuration save succesfully!, System will restart now to take effect....');
-	  },
-	  error: function(XMLHttpRequest, textStatus, errorThrown) { 
-		alert("Error: " + errorThrown); 
-	  } 
-	});
-}
-
-function validateCoinSlotPin(pinMap){
-	for(var i in pinMap){
-		for(var j in pinMap){
-			if(i != j){
-				if(pinMap[i] == pinMap[j]){
-					alert(j + ' is already used by ' + i);
-					return false;
-				}
-			}
-		}
-	}
-	return true;
-}
-
-
-function savePromoRates(){
-	var params = [];
-	for(var i=0;i<100;i++){
-		if($("#rateNameText"+i).length == 0){ continue; }
-		var rateNameText = String($("#rateNameText"+i).val() || "").trim();
-		var priceText = String($("#priceText"+i).val() || "").trim();
-		var dataLimitText = String($("#dataLimitText"+i).val() || "").trim();
-		var profileNameText = String($("#profileNameText"+i).val() || "").trim();
-		var minutes = getTimeMinutes(i);
-		var validity = getValidityMinutes(i);
-		// A row the operator cleared is a row they deleted: it must not be saved as "####".
-		var rowEmpty = (rateNameText == "" && priceText == "" && minutes <= 0 && validity <= 0 && dataLimitText == "" && profileNameText == "");
-		if(rowEmpty){ continue; }
-		var rowNum = params.length + 1;
-		if(rateNameText == ""){ alert("Rate " + rowNum + ": enter a name, or clear the row to remove it."); return; }
-		var price = parseFloat(priceText);
-		if(priceText == "" || !isFinite(price) || price <= 0){ alert("Rate " + rowNum + ": price must be greater than 0."); return; }
-		if(minutes <= 0){ alert("Rate " + rowNum + ": set a time limit greater than 0 (hours, minutes, or seconds)."); return; }
-		// "#" and "|" separate fields and rates on the vendo; a value holding one
-		// would swallow every rate after it.
-		if(rateNameText.indexOf("#") >= 0 || rateNameText.indexOf("|") >= 0 || profileNameText.indexOf("#") >= 0 || profileNameText.indexOf("|") >= 0){
-			alert("Rate " + rowNum + ": '#' and '|' cannot be used in the name or profile because they separate saved fields.");
-			return;
-		}
-		params.push(rateNameText+"#"+priceText+"#"+minutes+"#"+validity+"#"+dataLimitText+"#"+profileNameText);
-	}
-	var postData = createParam(params);
-	$.ajax({
-	  type: "POST",
-	  url: "admin/api/saveRates",
-	  data: "data="+postData,
-	  success: function(data){
-		alert('Configuration save succesfully!');
-	  },
-	  error: function(XMLHttpRequest, textStatus, errorThrown) { 
-		alert("Error: " + errorThrown); 
-	  } 
-	});
-}
-
-$(document).on("input change", "#promoRateBody input", function(){
-	var m = String(this.id).match(/(\d+)$/);
-	if(m){ updateRatePreview(m[1]); }
-});
-
-function createParam(params){
-	var data = "";
-	for(var i=0;i<params.length;i++){
-		if(i>0){
-			data += separator;
-		}
-		data += params[i];
-	}
-	return encodeURI(data);
-}
-
-function resetStats(type){
-	var r = confirm("Are you sure you want to reset statistic?");
-	if (r == true) {
-		$.ajax({
-		  type: "GET",
-		  //url: "admin/dashboard.data",
-		  url: "admin/api/resetStatistic?type="+type,
-		  success: function(data){
-			openDashboard(null);
-		  }
-		});
-	}
-}
-
-function openDashboard(evt){
-
-	$.ajax({
-	  type: "GET",
-	  url: "admin/api/dashboard?query="+new Date().getTime(),
-	  success: function(data){
-		if(timer != null){
-			clearInterval(timer);
-			timer = null;
-		}
-		var dashboardData = data.split(separator);
-		upTimeSeconds = (parseInt(dashboardData[0])/1000);
-		timer = setInterval(function(){
-			upTimeSeconds++;
-			$('#upTime').html(secondsToDhms(upTimeSeconds));
-		}, 1000);
-		
-		$('#lifeCoinCount').html(dashboardData[1]);
-		$('#coinCount').html(dashboardData[2]);
-		$('#customerCount').html(dashboardData[3]);
-		if(dashboardData[4] == "1"){
-			$('#internetStatus').html("Online").css("color","green");	
-		}else{
-			$('#internetStatus').html("Offline").css("color","red");
-		}
-		if(dashboardData[5] == "1"){
-			$('#mikrotikStatus').html("Online").css("color","green");	
-		}else{
-			$('#mikrotikStatus').html("Offline").css("color","red");
-		}
-		$('#macAddress').html(dashboardData[6]);
-		$('#ipAddress').html(dashboardData[7]);
-		hardwareType = dashboardData[8] || "ESP8266";
-		$('#hardwareType').html(hardwareType);
-		version = dashboardData[9] || "";
-		$('#appVersionAbout').html(version);
-		$('#currentVersion').html(version);
-	  }
-	});
-	openTab(evt, 'Dashboard');
-}
-
-function openSystemConfig(evt){
-	$.ajax({
-	  type: "GET",
-	  url: "admin/api/getSystemConfig?query="+new Date().getTime(),
-	  success: function(data){
-		populateSystemConfigFields(data);
-	  }
-	});
-	openTab(evt, 'SystemConfigration');
-}
-
-function populateSystemConfigFields(data){
-	var configData = data.split(separator);
-	// legacy 30-field
-	if(configData.length >= 30){
-		$('#vendoName').val(configData[0]);
-		$('#wifiSSID').val(configData[1]);
-		$('#wifiPW').val(configData[2]);
-		$('#mikrotikIp').val(configData[3]);
-		$('#mikrotikUser').val(configData[4]);
-		$('#mikrotikPw').val(configData[5]);
-		$('#confirmMikrotikPw').val(configData[5]);
-		$('#coinSlotWaitTime').val(configData[6]);
-		$('#adminUser').val(configData[7]);
-		$('#adminPw').val(configData[8]);
-		$('#confirmAdminPw').val(configData[8]);
-		$('#coinSlotPin').val(configData[11]);
-		$('#coinSlotSetPin').val(configData[12]);
-		$('#systemReadyLEDPin').val(configData[13]);
-		$('#insertCoinLEDPin').val(configData[14]);
-		$('#checkInternetStatus').val(configData[17] || '0');
-		$('#voucherPrefix').val(configData[18] || 'P');
-		$('#setupDoneFlag').val(configData[20] || '0');
-		$('#voucherLoginOption').val(configData[21] || '0');
-		$('#voucherProfile').val(configData[22] || 'default');
-		$('#voucherValidity').val(configData[23] || '0');
-		$('#ledTriggerType').val(configData[24] || '1');
-		$("#ipAddressMode").val(configData[25] || '0');
-		$("#ipAddressMode").change();
-		$("#localIpAddress").val(configData[26] || '');
-		$("#gatewayIp").val(configData[27] || '');
-		$("#subnetMask").val(configData[28] || '');
-		$("#dnsServer").val(configData[29] || '');
-		$('#mikrotikApiPort').val('8728');
-		return;
-	}
-	// previous 27-field (had abuse/ban at 9,10)
-	if(configData.length >= 27){
-		$('#vendoName').val(configData[0]);
-		$('#wifiSSID').val(configData[1]);
-		$('#wifiPW').val(configData[2]);
-		$('#mikrotikIp').val(configData[3]);
-		$('#mikrotikUser').val(configData[4]);
-		$('#mikrotikPw').val(configData[5]);
-		$('#confirmMikrotikPw').val(configData[5]);
-		$('#coinSlotWaitTime').val(configData[6]);
-		$('#adminUser').val(configData[7]);
-		$('#adminPw').val(configData[8]);
-		$('#confirmAdminPw').val(configData[8]);
-		$('#coinSlotPin').val(configData[11]);
-		$('#coinSlotSetPin').val(configData[12]);
-		$('#systemReadyLEDPin').val(configData[13]);
-		$('#insertCoinLEDPin').val(configData[14]);
-		$('#checkInternetStatus').val(configData[15] || '0');
-		$('#voucherPrefix').val(configData[16] || 'P');
-		$('#setupDoneFlag').val(configData[17] || '0');
-		$('#voucherLoginOption').val(configData[18] || '0');
-		$('#voucherProfile').val(configData[19] || 'default');
-		$('#voucherValidity').val(configData[20] || '0');
-		$('#ledTriggerType').val(configData[21] || '1');
-		$("#ipAddressMode").val(configData[22] || '0');
-		$("#ipAddressMode").change();
-		$("#localIpAddress").val(configData[23] || '');
-		$("#gatewayIp").val(configData[24] || '');
-		$("#subnetMask").val(configData[25] || '');
-		$("#dnsServer").val(configData[26] || '');
-		$('#mikrotikApiPort').val('8728');
-		return;
-	}
-	// 26-field (25 fields + RouterOS API port)
-	if(configData.length >= 26){
-		$('#vendoName').val(configData[0] || '');
-		$('#wifiSSID').val(configData[1] || '');
-		$('#wifiPW').val(configData[2] || '');
-		$('#mikrotikIp').val(configData[3] || '');
-		$('#mikrotikUser').val(configData[4] || '');
-		$('#mikrotikPw').val(configData[5] || '');
-		$('#confirmMikrotikPw').val(configData[5] || '');
-		$('#coinSlotWaitTime').val(configData[6] || '30');
-		$('#adminUser').val(configData[7] || '');
-		$('#adminPw').val(configData[8] || '');
-		$('#confirmAdminPw').val(configData[8] || '');
-		$('#coinSlotPin').val(configData[9] || '');
-		$('#coinSlotSetPin').val(configData[10] || '');
-		$('#systemReadyLEDPin').val(configData[11] || '');
-		$('#insertCoinLEDPin').val(configData[12] || '');
-		$('#checkInternetStatus').val(configData[13] || '0');
-		$('#voucherPrefix').val(configData[14] || 'P');
-		$('#setupDoneFlag').val(configData[15] || '0');
-		$('#voucherLoginOption').val(configData[16] || '0');
-		$('#voucherProfile').val(configData[17] || 'default');
-		$('#voucherValidity').val(configData[18] || '0');
-		$('#ledTriggerType').val(configData[19] || '1');
-		$("#ipAddressMode").val(configData[20] || '0');
-		$("#ipAddressMode").change();
-		$("#localIpAddress").val(configData[21] || '');
-		$("#gatewayIp").val(configData[22] || '');
-		$("#subnetMask").val(configData[23] || '');
-		$("#dnsServer").val(configData[24] || '');
-		$('#mikrotikApiPort').val(configData[25] || '8728');
-		return;
-	}
-	// new 25-field
-	$('#vendoName').val(configData[0] || '');
-	$('#wifiSSID').val(configData[1] || '');
-	$('#wifiPW').val(configData[2] || '');
-	$('#mikrotikIp').val(configData[3] || '');
-	$('#mikrotikUser').val(configData[4] || '');
-	$('#mikrotikPw').val(configData[5] || '');
-	$('#confirmMikrotikPw').val(configData[5] || '');
-	$('#coinSlotWaitTime').val(configData[6] || '30');
-	$('#adminUser').val(configData[7] || '');
-	$('#adminPw').val(configData[8] || '');
-	$('#confirmAdminPw').val(configData[8] || '');
-	$('#coinSlotPin').val(configData[9] || '');
-	$('#coinSlotSetPin').val(configData[10] || '');
-	$('#systemReadyLEDPin').val(configData[11] || '');
-	$('#insertCoinLEDPin').val(configData[12] || '');
-	$('#checkInternetStatus').val(configData[13] || '0');
-	$('#voucherPrefix').val(configData[14] || 'P');
-	$('#setupDoneFlag').val(configData[15] || '0');
-	$('#voucherLoginOption').val(configData[16] || '0');
-	$('#voucherProfile').val(configData[17] || 'default');
-	$('#voucherValidity').val(configData[18] || '0');
-	$('#ledTriggerType').val(configData[19] || '1');
-	$("#ipAddressMode").val(configData[20] || '0');
-	$("#ipAddressMode").change();
-	$("#localIpAddress").val(configData[21] || '');
-	$("#gatewayIp").val(configData[22] || '');
-	$("#subnetMask").val(configData[23] || '');
-	$("#dnsServer").val(configData[24] || '');
-	$('#mikrotikApiPort').val('8728');
-}
-
-var rateCount = 0;
-
-// --- Rate readability helpers ---------------------------------------------
-// The portal (assets/js/core.js) already shows buyers a formatted price and a
-// human duration ("3 days", not "4320"). These mirror that wording so the
-// operator sees the same thing the customer will, instead of raw minute counts.
-
-var rateCurrencySym = "\u20b1";
-
-function humanDuration(mins) {
-	mins = parseInt(mins || 0, 10);
-	if (isNaN(mins) || mins <= 0) { return "-"; }
-	if (mins < 60) { return mins + (mins == 1 ? " min" : " mins"); }
-	var d = Math.floor(mins / 1440);
-	var h = Math.floor(mins % 1440 / 60);
-	var m = mins % 60;
-	var parts = [];
-	if (d) { parts.push(d + (d == 1 ? " day" : " days")); }
-	if (h) { parts.push(h + (h == 1 ? " hour" : " hours")); }
-	if (m) { parts.push(m + (m == 1 ? " min" : " mins")); }
-	return parts.join(" ");
-}
-
-function pesoLabel(v) {
-	try { return rateCurrencySym + new Intl.NumberFormat("en-PH", { maximumFractionDigits: 2 }).format(v); } catch (e) { return rateCurrencySym + v; }
-}
-
-
-// Convert stored minutes <-> hours/minutes/seconds inputs. Storage stays in
-// whole minutes because the firmware and rates.data parse it that way; any
-// seconds entered are rounded up so a non-zero time is never saved as 0.
-function splitMinutesToHMS(mins) {
-	mins = parseInt(mins || 0, 10);
-	if (isNaN(mins) || mins < 0) { mins = 0; }
-	return { h: Math.floor(mins / 60), m: mins % 60, s: 0 };
-}
-
-function totalMinutesFromHMS(h, m, s) {
-	h = parseInt(h || 0, 10);
-	m = parseInt(m || 0, 10);
-	s = parseInt(s || 0, 10);
-	if (isNaN(h) || h < 0) h = 0;
-	if (isNaN(m) || m < 0) m = 0;
-	if (isNaN(s) || s < 0) s = 0;
-	return (h * 60) + m + (s > 0 ? Math.ceil(s / 60) : 0);
-}
-
-function getTimeMinutes(i) {
-	return totalMinutesFromHMS($("#timeHoursText" + i).val(), $("#timeMinutesText" + i).val(), $("#timeSecondsText" + i).val());
-}
-
-function getValidityMinutes(i) {
-	return totalMinutesFromHMS($("#validityHoursText" + i).val(), $("#validityMinutesText" + i).val(), $("#validitySecondsText" + i).val());
-}
-
-// Price column first (the firmware charges from it), name scrape as fallback -
-// the same rule the portal uses after this change.
-function ratePriceLabel(name, price) {
-	var hint = String(price == null ? "" : price).trim();
-	var p = parseFloat(hint);
-	if (hint != "" && isFinite(p)) { return pesoLabel(p); }
-	var m = String(name == null ? "" : name).trim().match(/(\d+(?:\.\d+)?)/);
-	if (m) { return pesoLabel(parseFloat(m[1])); }
-	return String(name == null ? "" : name).trim();
-}
-
-function ratePreviewText(name, price, minutes, validity) {
-	var time = humanDuration(minutes);
-	var expiry = humanDuration(validity);
-	return ratePriceLabel(name, price) + " \u00b7 " + (time == "-" ? "no time set" : time) + " \u00b7 " + (expiry == "-" ? "no expiry" : expiry);
-}
-
-function updateRatePreview(i) {
-	var box = $("#ratePreview" + i);
-	if (box.length == 0) { return; }
-	var name = $("#rateNameText" + i).val() || "";
-	var price = $("#priceText" + i).val() || "";
-	var minutes = getTimeMinutes(i);
-	var validity = getValidityMinutes(i);
-	if (String(name).trim() == "" && String(price).trim() == "" && minutes <= 0 && validity <= 0) {
-		box.text("Customers see: (blank row, not saved)");
-		return;
-	}
-	box.text("Customers see: " + ratePreviewText(name, price, minutes, validity));
-}
-
-var script = " <div id='rateRow' class='rateholder'>";
-			script += "<div><span class='rate-title'>Rate Name</span><input type='text' value='rateNameValue' placeholder='e.g. 1 hour promo' id='rateNameText'></div>";
-			script += "<div><span class='rate-title'>Price</span><input type='number' min='0' step='any' value='priceValue' placeholder='Price' id='priceText'></div>";
-			script += "<div><span class='rate-title'>Time limit (internet time)</span><div class='time-group'><label>Hours <input type='number' min='0' value='timeHoursValue' id='timeHoursText'></label><label>Minutes <input type='number' min='0' value='timeMinutesValue' id='timeMinutesText'></label><label>Seconds <input type='number' min='0' value='timeSecondsValue' id='timeSecondsText'></label></div><small>Saved as total minutes. Any seconds are rounded up to the next minute.</small></div>";
-			script += "<div><span class='rate-title'>Validity / expiry (time to use it)</span><div class='time-group'><label>Hours <input type='number' min='0' value='validityHoursValue' id='validityHoursText'></label><label>Minutes <input type='number' min='0' value='validityMinutesValue' id='validityMinutesText'></label><label>Seconds <input type='number' min='0' value='validitySecondsValue' id='validitySecondsText'></label></div><small>Leave all at 0 for no expiry. Saved as total minutes.</small></div>";
-			script += "<div><span class='rate-title'>Data(MB) Limit Usage(Optional)</span><input type='number' min='0' value='dataLimitValue' placeholder='Data Limit Usage' id='dataLimitText'></div>";
-			script += "<div><span class='rate-title'>User Profile(Optional, it overrides the default profile set in system config)</span><input type='text' value='profileNameValue' placeholder='User Profile' id='profileNameText'></div>";
-			script += "<div class='rate-preview' id='ratePreview'></div>";
-			script += "<center><div><button class='delratebtn' onClick='deleteRate(rateIndex)'>Delete</button></div></center>";
-			script += "</div>";
-
-function addRate(){
-	var rowData = ["","","","","",""];
-	$("#promoRateBody").append(generateRowScript(rateCount, rowData));
-	updateRatePreview(rateCount);
-	rateCount++;
-}
-
-function deleteRate(index){
-	$("#rateRow"+index).remove();
-}
-
-function openPromoRates(evt){
-	$.ajax({
-	  type: "GET",
-	  url: "admin/api/getRates?query="+new Date().getTime(),
-	  //url: "config/rates.data",
-	  success: function(data){
-		populateRateFields(data);
-	  }
-	});
-	openTab(evt, 'PromoRate');
-}
-
-function populateRateFields(data){
-	var rateData = String(data == null ? "" : data).split('|');
-	var html = "";
-	rateCount = 0;
-	for(var i=0;i<rateData.length;i++){
-		// rates.data ends with the field separator, so the last split is always
-		// empty. It used to become a real row filled with the string "undefined",
-		// which then got saved back as a junk rate.
-		if(String(rateData[i]).trim() == ""){ continue; }
-		var rowData = rateData[i].split('#');
-		html += generateRowScript(rateCount, rowData);
-		rateCount++;
-	}
-	$("#promoRateBody").html(html);
-	for(var r=0;r<rateCount;r++){ updateRatePreview(r); }
-}
-
-function openVoucherGenerate(evt){
-	openTab(evt, 'VoucherGenerate');
-}
-
-function rateValue(v){
-	return String(v == null ? "" : v).replace(/&/g, "&amp;").replace(/'/g, "&#39;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-function generateRowScript(i , rowData){
-	rowData = rowData || [];
-	var time = splitMinutesToHMS(rowData[2]);
-	var validity = splitMinutesToHMS(rowData[3]);
-	var rowScript = script.replace("rateNameText", "rateNameText"+i);
-	rowScript = rowScript.replace("rateNameValue", rateValue(rowData[0]));
-	rowScript = rowScript.replace("priceText", "priceText"+i);
-	rowScript = rowScript.replace("priceValue", rateValue(rowData[1]));
-	rowScript = rowScript.replace("timeHoursText", "timeHoursText"+i);
-	rowScript = rowScript.replace("timeHoursValue", rateValue(time.h));
-	rowScript = rowScript.replace("timeMinutesText", "timeMinutesText"+i);
-	rowScript = rowScript.replace("timeMinutesValue", rateValue(time.m));
-	rowScript = rowScript.replace("timeSecondsText", "timeSecondsText"+i);
-	rowScript = rowScript.replace("timeSecondsValue", rateValue(time.s));
-	rowScript = rowScript.replace("validityHoursText", "validityHoursText"+i);
-	rowScript = rowScript.replace("validityHoursValue", rateValue(validity.h));
-	rowScript = rowScript.replace("validityMinutesText", "validityMinutesText"+i);
-	rowScript = rowScript.replace("validityMinutesValue", rateValue(validity.m));
-	rowScript = rowScript.replace("validitySecondsText", "validitySecondsText"+i);
-	rowScript = rowScript.replace("validitySecondsValue", rateValue(validity.s));
-	rowScript = rowScript.replace("dataLimitText", "dataLimitText"+i);
-	rowScript = rowScript.replace("dataLimitValue", rateValue(rowData[4]));
-	rowScript = rowScript.replace("profileNameText", "profileNameText"+i);
-	rowScript = rowScript.replace("profileNameValue", rateValue(rowData[5]));
-
-	rowScript = rowScript.replace("rateIndex", i);
-	rowScript = rowScript.replace("rateRow", "rateRow"+i);
-	rowScript = rowScript.replace("ratePreview", "ratePreview"+i);
-	return rowScript;
-}
-
-
-function openTab(evt, tabName) {
-  var i, tabcontent, tablinks;
-  tabcontent = document.getElementsByClassName("tabcontent");
-  for (i = 0; i < tabcontent.length; i++) {
-    tabcontent[i].style.display = "none";
+  function openTab(tabName) {
+    $('.tabcontent').hide();
+    $('.tablinks').removeClass('active').attr('aria-current', null);
+    $('#' + tabName).show();
+    $('.tablinks[data-tab="' + tabName + '"]').addClass('active').attr('aria-current', 'page');
   }
-  tablinks = document.getElementsByClassName("tablinks");
-  for (i = 0; i < tablinks.length; i++) {
-    tablinks[i].className = tablinks[i].className.replace(" active", "");
+
+  function secondsToDhms(seconds) {
+    seconds = Number(seconds) || 0;
+    var d = Math.floor(seconds / 86400), h = Math.floor((seconds % 86400) / 3600), m = Math.floor((seconds % 3600) / 60), s = Math.floor(seconds % 60), parts = [];
+    if (d) parts.push(d + (d === 1 ? ' day' : ' days'));
+    if (h) parts.push(h + (h === 1 ? ' hour' : ' hours'));
+    if (m) parts.push(m + (m === 1 ? ' min' : ' mins'));
+    parts.push(s + (s === 1 ? ' sec' : ' secs'));
+    return parts.join(' ');
   }
-  document.getElementById(tabName).style.display = "block";
-  if(evt != null && evt.currentTarget != null){
-	evt.currentTarget.className += " active";
+  function setStatus(sel, ok, okText, badText) { $(sel).text(ok ? okText : badText).css('color', ok ? 'var(--ok)' : 'var(--danger)'); }
+
+  function openDashboard() {
+    $.get('admin/api/dashboard?query=' + new Date().getTime(), function (data) {
+      if (timer) { clearInterval(timer); timer = null; }
+      var d = String(data || '').split(separator);
+      upTimeSeconds = (parseInt(d[0], 10) || 0) / 1000;
+      timer = setInterval(function () { upTimeSeconds++; $('#upTime').text(secondsToDhms(upTimeSeconds)); }, 1000);
+      $('#upTime').text(secondsToDhms(upTimeSeconds));
+      $('#lifeCoinCount').text(d[1] || '0'); $('#coinCount').text(d[2] || '0'); $('#customerCount').text(d[3] || '0');
+      setStatus('#internetStatus', d[4] === '1', 'Online', 'Offline');
+      var mkOk = d[5] === '1';
+      setStatus('#mikrotikStatus', mkOk, 'Online', 'Offline');
+      $('#mkLabel').text('MikroTik: ' + (mkOk ? 'online' : 'offline'));
+      $('#mkDot').removeClass('ok bad').addClass(mkOk ? 'ok' : 'bad');
+      $('#macAddress').text(d[6] || '—'); $('#ipAddress').text(d[7] || '—'); $('#hardwareType').text(d[8] || 'ESP8266');
+      var ver = d[9] || '—'; $('#appVersionAbout').text(ver); $('#currentVersion').text(ver);
+    }).fail(function () { $('#mkLabel').text('MikroTik: unavailable'); $('#mkDot').removeClass('ok').addClass('bad'); });
+    openTab('Dashboard');
   }
-  
-}
+  function resetStats(type) { if (!confirm('Reset this statistic?')) return; $.get('admin/api/resetStatistic?type=' + encodeURIComponent(type), function () { openDashboard(); }); }
 
-function logout(){
-	var r = confirm("Are you sure you want to logout?");
-	if (r == true) {
-	  $.ajax({
-		  type: "GET",
-		  url: "admin/api/logout?query="+new Date().getTime(),
-		  success: function(data){
-			window.location.reload();
-	  }
-	});
-	}
-}
+  function createParam(params) { return encodeURI(params.join(separator)); }
+  function validateIPaddress(ip) { return /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(ip); }
+  function validateIpAddressFields(fields) { for (var k in fields) { var v = fields[k]; if (!v || !validateIPaddress(v)) { alert(k + ' is not a valid IPv4 address.'); return false; } } return true; }
+  function validateCoinSlotPin(pinMap) { var keys = Object.keys(pinMap); for (var i = 0; i < keys.length; i++) for (var j = i + 1; j < keys.length; j++) if (pinMap[keys[i]] === pinMap[keys[j]]) { alert(keys[j] + ' is already used by ' + keys[i] + '.'); return false; } return true; }
+  function ipAddressModeChange() { if ($('#ipAddressMode').val() === '1') $('#staticIpDiv').removeClass('hidden'); else $('#staticIpDiv').addClass('hidden'); }
+  function setNotifyDefaults() { $('#notifyProvider').val('0'); $('#telegramBotToken').val(''); $('#telegramChatId').val(''); $('#ntfyServer').val(''); $('#ntfyTopic').val(''); $('#ntfyAccessToken').val(''); }
 
-function generateVoucher(){
-	
-	var appendToPrevious = $("#appendToPrevious").val();
-	var addToSales = $("#addToSales").val();
-	var voucherQty = $("#voucherQty").val();
-	var voucherAmount = $("#voucherAmount").val();
-	var voucherGeneratePrefix = $("#voucherGeneratePrefix").val();
-	
-	var postData = "amt="+voucherAmount+"&pfx="+voucherGeneratePrefix+"&qty="+voucherQty+"&sales="+addToSales;
-	
-	$.ajax({
-	  type: "POST",
-	  url: "admin/api/generateVouchers",
-	  data: postData,
-	  success: function(data){
-	  
-		var voucherData = localStorage.getItem("voucherData");
-		
-		if(appendToPrevious == "1"){
-			if(voucherData != null){
-				voucherData += "~";
-				voucherData += data;
-			}else{
-				voucherData = data;
-			}
-			
-		}else{
-			voucherData = data;
-		}
-	  
-		localStorage.setItem("voucherData", voucherData);
-		window.open("admin/viewGeneratedVouchers?d="+new Date().getTime());
-	  },
-	  error: function(XMLHttpRequest, textStatus, errorThrown) { 
-		alert("Error: " + errorThrown); 
-	  } 
-	});
-}
-
-function secondsToDhms(seconds) {
-	seconds = Number(seconds);
-	var d = Math.floor(seconds / (3600*24));
-	var h = Math.floor(seconds % (3600*24) / 3600);
-	var m = Math.floor(seconds % 3600 / 60);
-	var s = Math.floor(seconds % 60);
-
-	var dDisplay = d > 0 ? d + (d == 1 ? " Day " : " Days ") : "0 Day ";
-	var hDisplay = h > 0 ? h + (h == 1 ? " Hour " : " Hours ") : "0 Hour ";
-	var mDisplay = m > 0 ? m + (m == 1 ? " Min " : " Mins ") : "0 Min ";
-	var sDisplay = s > 0 ? s + (s == 1 ? " Sec" : " Secs") : "0 Sec ";
-	return dDisplay + hDisplay + mDisplay + sDisplay;
-}
-
-$(document).ajaxStart(function(){
-   	$("#loading").attr("class","spinner");
-	$("#loadingText").attr("style","");
- });
-
-$(document).ajaxComplete(function(){
-	$("#loading").attr("class","hidden");
-	$("#loadingText").attr("style","display: none");
- });
- 
- function ipAddressModeChange(evt){
- 
-	var mode = $(evt).val();
-	
-	if(mode == 0){
-		$("#staticIpDiv").attr("style", "display: none");
-	}else{
-		$("#staticIpDiv").attr("style", "display: block");
-	}
- 
-}
-
-function validateIpAddressFields(ipAddressFields){
-	for(var i in ipAddressFields){
-		var fieldValue = ipAddressFields[i];
-		if(fieldValue == null || fieldValue == "" || (!validateIPaddress(fieldValue))){
-			alert(i+" is not valid, please check the ip format");
-			return false;
-		}
-	}
-	return true;
-
-}
-
-function validateIPaddress(ipaddress) {  
-  if (/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(ipaddress)) {  
-    return (true)  
+  function populateSystemConfigFields(data) {
+    var c = String(data || '').split(separator);
+    if (c.length >= 30) {
+      $('#vendoName').val(c[0]); $('#wifiSSID').val(c[1]); $('#wifiPW').val(c[2]); $('#mikrotikIp').val(c[3]); $('#mikrotikUser').val(c[4]); $('#mikrotikPw').val(c[5]); $('#confirmMikrotikPw').val(c[5]);
+      $('#coinSlotWaitTime').val(c[6]); $('#adminUser').val(c[7]); $('#adminPw').val(c[8]); $('#confirmAdminPw').val(c[8]);
+      $('#coinSlotPin').val(c[11]); $('#coinSlotSetPin').val(c[12]); $('#systemReadyLEDPin').val(c[13]); $('#insertCoinLEDPin').val(c[14]);
+      $('#checkInternetStatus').val(c[17] || '0'); $('#voucherPrefix').val(c[18] || 'P'); $('#setupDoneFlag').val(c[20] || '0');
+      $('#voucherLoginOption').val(c[21] || '0'); $('#voucherProfile').val(c[22] || 'default'); $('#voucherValidity').val(c[23] || '0');
+      $('#ledTriggerType').val(c[24] || '1'); $('#ipAddressMode').val(c[25] || '0'); ipAddressModeChange();
+      $('#localIpAddress').val(c[26] || ''); $('#gatewayIp').val(c[27] || ''); $('#subnetMask').val(c[28] || ''); $('#dnsServer').val(c[29] || '');
+      $('#mikrotikApiPort').val('8728'); setNotifyDefaults(); return;
+    }
+    if (c.length >= 27) {
+      $('#vendoName').val(c[0]); $('#wifiSSID').val(c[1]); $('#wifiPW').val(c[2]); $('#mikrotikIp').val(c[3]); $('#mikrotikUser').val(c[4]); $('#mikrotikPw').val(c[5]); $('#confirmMikrotikPw').val(c[5]);
+      $('#coinSlotWaitTime').val(c[6]); $('#adminUser').val(c[7]); $('#adminPw').val(c[8]); $('#confirmAdminPw').val(c[8]);
+      $('#coinSlotPin').val(c[11]); $('#coinSlotSetPin').val(c[12]); $('#systemReadyLEDPin').val(c[13]); $('#insertCoinLEDPin').val(c[14]);
+      $('#checkInternetStatus').val(c[15] || '0'); $('#voucherPrefix').val(c[16] || 'P'); $('#setupDoneFlag').val(c[17] || '0');
+      $('#voucherLoginOption').val(c[18] || '0'); $('#voucherProfile').val(c[19] || 'default'); $('#voucherValidity').val(c[20] || '0');
+      $('#ledTriggerType').val(c[21] || '1'); $('#ipAddressMode').val(c[22] || '0'); ipAddressModeChange();
+      $('#localIpAddress').val(c[23] || ''); $('#gatewayIp').val(c[24] || ''); $('#subnetMask').val(c[25] || ''); $('#dnsServer').val(c[26] || '');
+      $('#mikrotikApiPort').val('8728'); setNotifyDefaults(); return;
+    }
+    if (c.length >= 26) {
+      $('#vendoName').val(c[0] || ''); $('#wifiSSID').val(c[1] || ''); $('#wifiPW').val(c[2] || '');
+      $('#mikrotikIp').val(c[3] || ''); $('#mikrotikUser').val(c[4] || ''); $('#mikrotikPw').val(c[5] || ''); $('#confirmMikrotikPw').val(c[5] || '');
+      $('#coinSlotWaitTime').val(c[6] || '30'); $('#adminUser').val(c[7] || ''); $('#adminPw').val(c[8] || ''); $('#confirmAdminPw').val(c[8] || '');
+      $('#coinSlotPin').val(c[9] || '12'); $('#coinSlotSetPin').val(c[10] || '13'); $('#systemReadyLEDPin').val(c[11] || '0'); $('#insertCoinLEDPin').val(c[12] || '2');
+      $('#checkInternetStatus').val(c[13] || '0'); $('#voucherPrefix').val(c[14] || 'P'); $('#setupDoneFlag').val(c[15] || '0');
+      $('#voucherLoginOption').val(c[16] || '0'); $('#voucherProfile').val(c[17] || 'default'); $('#voucherValidity').val(c[18] || '0');
+      $('#ledTriggerType').val(c[19] || '1'); $('#ipAddressMode').val(c[20] || '0'); ipAddressModeChange();
+      $('#localIpAddress').val(c[21] || ''); $('#gatewayIp').val(c[22] || ''); $('#subnetMask').val(c[23] || ''); $('#dnsServer').val(c[24] || '');
+      $('#mikrotikApiPort').val(c[25] || '8728');
+      if (c.length >= 32) {
+        $('#notifyProvider').val(String(parseInt(c[26], 10) || 0));
+        $('#telegramBotToken').val(c[27] || ''); $('#telegramChatId').val(c[28] || '');
+        $('#ntfyServer').val(c[29] || ''); $('#ntfyTopic').val(c[30] || ''); $('#ntfyAccessToken').val(c[31] || '');
+      } else { setNotifyDefaults(); }
+      return;
+    }
+    $('#vendoName').val(c[0] || ''); $('#wifiSSID').val(c[1] || ''); $('#wifiPW').val(c[2] || '');
+    $('#mikrotikIp').val(c[3] || ''); $('#mikrotikUser').val(c[4] || ''); $('#mikrotikPw').val(c[5] || ''); $('#confirmMikrotikPw').val(c[5] || '');
+    $('#coinSlotWaitTime').val(c[6] || '30'); $('#adminUser').val(c[7] || ''); $('#adminPw').val(c[8] || ''); $('#confirmAdminPw').val(c[8] || '');
+    $('#coinSlotPin').val(c[9] || '12'); $('#coinSlotSetPin').val(c[10] || '13'); $('#systemReadyLEDPin').val(c[11] || '0'); $('#insertCoinLEDPin').val(c[12] || '2');
+    $('#checkInternetStatus').val(c[13] || '0'); $('#voucherPrefix').val(c[14] || 'P'); $('#setupDoneFlag').val(c[15] || '0');
+    $('#voucherLoginOption').val(c[16] || '0'); $('#voucherProfile').val(c[17] || 'default'); $('#voucherValidity').val(c[18] || '0');
+    $('#ledTriggerType').val(c[19] || '1'); $('#ipAddressMode').val(c[20] || '0'); ipAddressModeChange();
+    $('#localIpAddress').val(c[21] || ''); $('#gatewayIp').val(c[22] || ''); $('#subnetMask').val(c[23] || ''); $('#dnsServer').val(c[24] || '');
+    $('#mikrotikApiPort').val('8728'); setNotifyDefaults();
   }
-  return (false)  
-}   
+  function openSystemConfig() { $.get('admin/api/getSystemConfig?query=' + new Date().getTime(), function (data) { populateSystemConfigFields(data); }); openTab('SystemConfigration'); }
 
-function exportSystemConfig(){
-	$.ajax({
-	  type: "GET",
-	  url: "admin/api/getSystemConfig?query="+new Date().getTime(),
-	  success: function(data){
-		var blob = new Blob([data], {type: 'data'});
-		var href = window.URL.createObjectURL(blob);
-		var a = document.createElement("a");
-		a.download = "system.data";
-		a.href = href;
-		a.click();
-	  }
-	});
-}
+  function saveSystemConfig() {
+    var pinMap = { 'Coinslot pin': $('#coinSlotPin').val(), 'Coinslot set pin': $('#coinSlotSetPin').val(), 'System ready LED pin': $('#systemReadyLEDPin').val(), 'Insert coin LED pin': $('#insertCoinLEDPin').val() };
+    if ($('#mikrotikPw').val() !== $('#confirmMikrotikPw').val()) { alert('MikroTik password does not match the confirmation.'); return; }
+    if ($('#adminPw').val() !== $('#confirmAdminPw').val()) { alert('Admin password does not match the confirmation.'); return; }
+    if (!validateCoinSlotPin(pinMap)) return;
+    var ipAddressMode = $('#ipAddressMode').val();
+    if (ipAddressMode === '1' && !validateIpAddressFields({ 'Local IP address': $('#localIpAddress').val(), 'Gateway': $('#gatewayIp').val(), 'Subnet mask': $('#subnetMask').val(), 'DNS server': $('#dnsServer').val() })) return;
+    var notifyFields = [$('#telegramBotToken').val(), $('#telegramChatId').val(), $('#ntfyServer').val(), $('#ntfyTopic').val(), $('#ntfyAccessToken').val()];
+    for (var ni = 0; ni < notifyFields.length; ni++) if (String(notifyFields[ni]).indexOf('|') !== -1) { alert('Notification fields cannot contain the "|" character.'); return; }
+    $('#setupDoneFlag').val('1');
+    var postData = createParam([
+      $('#vendoName').val(), $('#wifiSSID').val(), $('#wifiPW').val(), $('#mikrotikIp').val(), $('#mikrotikUser').val(), $('#mikrotikPw').val(),
+      $('#coinSlotWaitTime').val(), $('#adminUser').val(), $('#adminPw').val(),
+      $('#coinSlotPin').val(), $('#coinSlotSetPin').val(), $('#systemReadyLEDPin').val(), $('#insertCoinLEDPin').val(),
+      $('#checkInternetStatus').val(), $('#voucherPrefix').val(), $('#setupDoneFlag').val(), $('#voucherLoginOption').val(), $('#voucherProfile').val(),
+      $('#voucherValidity').val(), $('#ledTriggerType').val(), ipAddressMode,
+      $('#localIpAddress').val(), $('#gatewayIp').val(), $('#subnetMask').val(), $('#dnsServer').val(),
+      $('#mikrotikApiPort').val(),
+      $('#notifyProvider').val(), $('#telegramBotToken').val(), $('#telegramChatId').val(), $('#ntfyServer').val(), $('#ntfyTopic').val(), $('#ntfyAccessToken').val()
+    ]);
+    $.post('admin/api/saveSystemConfig', 'data=' + postData)
+      .done(function () { alert('Settings saved. The device will restart to apply them.'); })
+      .fail(function (xhr) { alert('Save failed: ' + (xhr.responseText || xhr.statusText || 'unknown error')); });
+  }
 
-function importSystemConfig(){
-	$('#importSystemConfigFile').click();
-}
+  // Rates
+  var rateCurrencySym = '\u20b1';
+  function humanDuration(mins) { mins = parseInt(mins || 0, 10); if (isNaN(mins) || mins <= 0) return '—'; if (mins < 60) return mins + (mins === 1 ? ' min' : ' mins'); var d = Math.floor(mins / 1440), h = Math.floor((mins % 1440) / 60), m = mins % 60, parts = []; if (d) parts.push(d + (d === 1 ? ' day' : ' days')); if (h) parts.push(h + (h === 1 ? ' hour' : ' hours')); if (m) parts.push(m + (m === 1 ? ' min' : ' mins')); return parts.join(' '); }
+  function pesoLabel(v) { try { return rateCurrencySym + new Intl.NumberFormat('en-PH', { maximumFractionDigits: 2 }).format(v); } catch (e) { return rateCurrencySym + v; } }
+  function splitMinutesToHMS(mins) { mins = parseInt(mins || 0, 10); if (isNaN(mins) || mins < 0) mins = 0; return { h: Math.floor(mins / 60), m: mins % 60, s: 0 }; }
+  function totalMinutesFromHMS(h, m, s) { h = parseInt(h || 0, 10); m = parseInt(m || 0, 10); s = parseInt(s || 0, 10); if (isNaN(h)||h<0) h=0; if (isNaN(m)||m<0) m=0; if (isNaN(s)||s<0) s=0; return (h*60)+m+(s>0?Math.ceil(s/60):0); }
+  function getTimeMinutes(i) { return totalMinutesFromHMS($('#timeHoursText'+i).val(), $('#timeMinutesText'+i).val(), $('#timeSecondsText'+i).val()); }
+  function getValidityMinutes(i) { return totalMinutesFromHMS($('#validityHoursText'+i).val(), $('#validityMinutesText'+i).val(), $('#validitySecondsText'+i).val()); }
+  function ratePriceLabel(name, price) { var hint = String(price==null?'':price).trim(), p=parseFloat(hint); if (hint!==''&&isFinite(p)) return pesoLabel(p); var m=String(name==null?'':name).trim().match(/(\d+(?:\.\d+)?)/); if(m) return pesoLabel(parseFloat(m[1])); return String(name==null?'':name).trim(); }
+  function ratePreviewText(name, price, minutes, validity) { var t=humanDuration(minutes), e=humanDuration(validity); return ratePriceLabel(name,price)+' · '+(t==='—'?'no time set':t)+' · '+(e==='—'?'no expiry':e); }
+  function updateRatePreview(i) { var box=$('#ratePreview'+i); if(!box.length) return; var name=$('#rateNameText'+i).val()||'', price=$('#priceText'+i).val()||'', minutes=getTimeMinutes(i), validity=getValidityMinutes(i); if(String(name).trim()===''&&String(price).trim()===''&&minutes<=0&&validity<=0){ box.text('Blank row — not saved'); return; } box.text('Customers see: '+ratePreviewText(name,price,minutes,validity)); }
+  function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function generateRowScript(i, rowData) {
+    rowData = rowData || []; var time = splitMinutesToHMS(rowData[2]), validity = splitMinutesToHMS(rowData[3]);
+    return '<div id="rateRow'+i+'" class="rate-card"><h3>Rate '+(i+1)+'</h3>'
+      + '<div class="grid two"><div class="field"><label for="rateNameText'+i+'">Rate name</label><input type="text" id="rateNameText'+i+'" value="'+esc(rowData[0])+'" placeholder="e.g. 1 hour promo"></div>'
+      + '<div class="field"><label for="priceText'+i+'">Price (₱)</label><input type="number" min="0" step="any" id="priceText'+i+'" value="'+esc(rowData[1])+'" placeholder="0"></div></div>'
+      + '<div class="field" style="margin-top:10px"><span class="help" style="color:var(--text);font-weight:600">Time limit (internet time)</span><div class="time-group">'
+      + '<label>Hours <input type="number" min="0" id="timeHoursText'+i+'" value="'+esc(time.h)+'"></label>'
+      + '<label>Minutes <input type="number" min="0" id="timeMinutesText'+i+'" value="'+esc(time.m)+'"></label>'
+      + '<label>Seconds <input type="number" min="0" id="timeSecondsText'+i+'" value="'+esc(time.s)+'"></label></div><p class="help">Saved as total minutes. Any seconds round up to the next minute.</p></div>'
+      + '<div class="field" style="margin-top:10px"><span class="help" style="color:var(--text);font-weight:600">Validity / expiry (time to use it)</span><div class="time-group">'
+      + '<label>Hours <input type="number" min="0" id="validityHoursText'+i+'" value="'+esc(validity.h)+'"></label>'
+      + '<label>Minutes <input type="number" min="0" id="validityMinutesText'+i+'" value="'+esc(validity.m)+'"></label>'
+      + '<label>Seconds <input type="number" min="0" id="validitySecondsText'+i+'" value="'+esc(validity.s)+'"></label></div><p class="help">Leave all at 0 for no expiry. Saved as total minutes.</p></div>'
+      + '<div class="grid two" style="margin-top:10px"><div class="field"><label for="dataLimitText'+i+'">Data limit (MB, optional)</label><input type="number" min="0" id="dataLimitText'+i+'" value="'+esc(rowData[4])+'" placeholder="0"></div>'
+      + '<div class="field"><label for="profileNameText'+i+'">Hotspot profile (optional)</label><input type="text" id="profileNameText'+i+'" value="'+esc(rowData[5])+'" placeholder="Overrides default profile"></div></div>'
+      + '<div class="rate-preview" id="ratePreview'+i+'"></div>'
+      + '<div class="row-actions"><button type="button" class="btn btn-sm danger" data-del-rate="'+i+'">Remove rate</button></div></div>';
+  }
+  function addRate() { $('#promoRateBody').append(generateRowScript(rateCount, ['','','0','0','',''])); updateRatePreview(rateCount); rateCount++; }
+  function populateRateFields(data) { var rows = String(data==null?'':data).split('|'), html=''; rateCount=0; for (var i=0;i<rows.length;i++){ if(String(rows[i]).trim()==='') continue; html += generateRowScript(rateCount, rows[i].split('#')); rateCount++; } $('#promoRateBody').html(html); for (var r=0;r<rateCount;r++) updateRatePreview(r); }
+  function openPromoRates() { $.get('admin/api/getRates?query=' + new Date().getTime(), function (data) { populateRateFields(data); }); openTab('PromoRate'); }
+  function savePromoRates() {
+    var params = [];
+    for (var i=0;i<2000;i++) {
+      if ($('#rateNameText'+i).length===0) continue;
+      var rateNameText=String($('#rateNameText'+i).val()||'').trim(), priceText=String($('#priceText'+i).val()||'').trim();
+      var dataLimitText=String($('#dataLimitText'+i).val()||'').trim(), profileNameText=String($('#profileNameText'+i).val()||'').trim();
+      var minutes=getTimeMinutes(i), validity=getValidityMinutes(i);
+      var rowEmpty=(rateNameText===''&&priceText===''&&minutes<=0&&validity<=0&&dataLimitText===''&&profileNameText==='');
+      if (rowEmpty) continue;
+      var rowNum=params.length+1;
+      if (rateNameText===''){ alert('Rate '+rowNum+': enter a name, or clear the row to remove it.'); return; }
+      var price=parseFloat(priceText);
+      if (priceText===''||!isFinite(price)||price<=0){ alert('Rate '+rowNum+': price must be greater than 0.'); return; }
+      if (minutes<=0){ alert('Rate '+rowNum+': set a time limit greater than 0.'); return; }
+      if (/[#|]/.test(rateNameText)||/[#|]/.test(profileNameText)){ alert('Rate '+rowNum+': "#" and "|" cannot be used in the name or profile.'); return; }
+      params.push(rateNameText+'#'+priceText+'#'+minutes+'#'+validity+'#'+dataLimitText+'#'+profileNameText);
+    }
+    $.post('admin/api/saveRates', 'data=' + createParam(params)).done(function(){ alert('Rates saved.'); }).fail(function(xhr){ alert('Save failed: ' + (xhr.responseText || xhr.statusText || 'unknown error')); });
+  }
 
-function systemConfigFileImportChange(evt){
+  function generateVoucher() {
+    var postData = 'amt=' + $('#voucherAmount').val() + '&pfx=' + $('#voucherGeneratePrefix').val() + '&qty=' + $('#voucherQty').val() + '&sales=' + $('#addToSales').val();
+    $.post('admin/api/generateVouchers', postData).done(function (data) {
+      var append = $('#appendToPrevious').val(), voucherData = localStorage.getItem('voucherData');
+      if (append === '1' && voucherData) voucherData += '~' + data; else voucherData = data;
+      localStorage.setItem('voucherData', voucherData);
+      window.open('admin/viewGeneratedVouchers?d=' + new Date().getTime(), '_blank', 'noopener');
+    }).fail(function (xhr) { alert('Voucher generation failed: ' + (xhr.responseText || xhr.statusText || 'unknown error')); });
+  }
+  function downloadText(filename, text) { var blob=new Blob([text],{type:'text/plain'}), a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);},1000); }
+  function validateFileSize(f, type) { var sizeMb=f.size/1024/1024; if(type==='filesystem'){ if(sizeMb<0.5){ alert('Filesystem binary looks too small.'); return false; } } else { if(sizeMb>1.5){ alert('Sketch binary looks too large.'); return false; } } return true; }
+  function uploadMainBin() {
+    var files=$('#mainBin')[0].files; if(!files||!files.length){ alert('Choose a .bin file to upload.'); return; }
+    var binFileType=$('#binFileType').val(); if(!validateFileSize(files[0], binFileType)) return;
+    var fd=new FormData(); fd.append(binFileType, files[0]);
+    $.ajax({url:'/admin/updateMainBin', type:'POST', data:fd, contentType:false, processData:false}).done(function(r){ alert(r?('Upload complete: '+r):'File was not uploaded.'); }).fail(function(xhr){ alert('Upload failed: '+(xhr.responseText||xhr.statusText||'unknown error')); });
+  }
+  function logout() { if(!confirm('Sign out of the admin panel?')) return; $.get('/admin/api/logout').always(function(){ window.location.href='/admin/login'; }); }
 
- var f = $(evt)[0].files[0];
-
- var reader = new FileReader();
- reader.onload = (function(theFile) {
-	return function(e) {
-	  populateSystemConfigFields(e.target.result);
-	  alert("Restore succesfully, please review the values and click the save button");
-	};
-  })(f);
-
-  reader.readAsText(f);
-}
-
-function exportRateConfig(){
-	$.ajax({
-	  type: "GET",
-	  url: "admin/api/getRates?query="+new Date().getTime(),
-	  success: function(data){
-		var blob = new Blob([data], {type: 'data'});
-		var href = window.URL.createObjectURL(blob);
-		var a = document.createElement("a");
-		a.download = "system.data";
-		a.href = href;
-		a.click();
-	  }
-	});
-}
-
-function importRateConfig(){
-	$('#importRateConfigFile').click();
-}
-
-function rateConfigFileImportChange(evt){
-
- var f = $(evt)[0].files[0];
-
- var reader = new FileReader();
- reader.onload = (function(theFile) {
-	return function(e) {
-	  populateRateFields(e.target.result);
-	  alert("Restore succesfully, please review the values and click the save button");
-	};
-  })(f);
-
-  reader.readAsText(f);
-}
-
-function uploadMainBin(){
-	var fd = new FormData();
-	var files = $('#mainBin')[0].files;
-	
-	if(files.length > 0 ){
-		var binFileType = $("#binFileType").val();
-		if(!validateFileSize(files[0], binFileType)){
-			return;
-		}
-	    fd.append(binFileType, files[0]);
-		$.ajax({
-		  url: '/admin/updateMainBin',
-		  type: 'post',
-		  data: fd,
-		  contentType: false,
-		  processData: false,
-		  success: function(response){
-			 if(response != 0){
-				alert('Firmware uploaded: '+response);
-			 }else{
-				alert('file not uploaded');
-			 }
-		  },
-		  error: function(XMLHttpRequest, textStatus, errorThrown) { 
-			alert("Error: " + errorThrown); 
-		  } 
-		});
-	}else{
-		alert("Please select bin file!!");
-	}
-}
-
-function validateFileSize(f,type){
-	var size = f.size/1024/1024;
-	if(type == "filesystem"){
-		if(size < 1){
-			alert('File size is invalid for bin type '+type+' expected atleast 1mb, double check your bin file');
-			return false;
-		}
-	}else{
-		if(size > 0.5){
-			alert('File size is invalid for bin type '+type+' expected must be less than 500kb only, double check your bin file');
-			return false;
-		}
-	}
-	return true;
-}
-</script>
-</div>
-</body>
-</html> 
+  $(function () {
+    $('.tablinks').on('click', function () { var tab=$(this).data('tab'); if(tab==='Dashboard') openDashboard(); else if(tab==='SystemConfigration') openSystemConfig(); else if(tab==='PromoRate') openPromoRates(); else openTab(tab); });
+    $('#logoutBtn').on('click', logout);
+    $(document).on('click','[data-reset]', function(){ resetStats($(this).data('reset')); });
+    $('#ipAddressMode').on('change', ipAddressModeChange);
+    $('#saveSystemBtn').on('click', saveSystemConfig);
+    $('#exportSystemBtn').on('click', function(){ $.get('admin/api/getSystemConfig?query='+Date.now(), function(d){ downloadText('system.data', d); }); });
+    $('#importSystemBtn').on('click', function(){ $('#importSystemConfigFile').click(); });
+    $('#importSystemConfigFile').on('change', function(){ var f=this.files&&this.files[0]; if(!f) return; var r=new FileReader(); r.onload=function(e){ populateSystemConfigFields(e.target.result); alert('Settings restored into the form. Review them, then save to apply.'); }; r.readAsText(f); this.value=''; });
+    $('#addRateButton').on('click', addRate);
+    $('#saveRatesBtn').on('click', savePromoRates);
+    $('#exportRatesBtn').on('click', function(){ $.get('admin/api/getRates?query='+Date.now(), function(d){ downloadText('rates.data', d); }); });
+    $('#importRatesBtn').on('click', function(){ $('#importRateConfigFile').click(); });
+    $('#importRateConfigFile').on('change', function(){ var f=this.files&&this.files[0]; if(!f) return; var r=new FileReader(); r.onload=function(e){ populateRateFields(e.target.result); alert('Rates restored into the form. Review them, then save to apply.'); }; r.readAsText(f); this.value=''; });
+    $(document).on('click','[data-del-rate]', function(){ $('#rateRow'+$(this).data('del-rate')).remove(); });
+    $(document).on('input change','#promoRateBody input', function(){ var m=String(this.id).match(/(\d+)$/); if(m) updateRatePreview(m[1]); });
+    $('#generateVoucherBtn').on('click', generateVoucher);
+    $('#uploadFwBtn').on('click', uploadMainBin);
+    openDashboard();
+  });
+})();
