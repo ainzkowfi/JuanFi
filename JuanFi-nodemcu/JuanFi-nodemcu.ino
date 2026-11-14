@@ -93,15 +93,6 @@ String ssid = "";
 String password = "";
 String adminAuth = "";
 String adminSessionToken = "";
-
-// Sale notifier settings (system.data fields 26-31, appended)
-// notifyProvider: 0=off, 1=telegram, 2=ntfy, 3=both
-int NOTIFY_PROVIDER = 0;
-String TELEGRAM_BOT_TOKEN = "";
-String TELEGRAM_CHAT_ID = "";
-String NTFY_SERVER = "";
-String NTFY_TOPIC = "";
-String NTFY_ACCESS_TOKEN = "";
 String vendorName = "";
 
 IPAddress local_IP(192, 168, 10, 15);
@@ -378,6 +369,11 @@ void populateSystemConfiguration() {
 
   MIKROTIK_API_PORT = 8728;
 
+  // Configs written by the short-lived 32-field schema carried six notification
+  // fields after the 26-field layout. Drop them so such a file still reads as the
+  // 26-field layout instead of being mistaken for the older 30-field one.
+  if (count >= 32) count = 26;
+
   if (count >= 30) {
     // Legacy 30-field
     vendorName = safeField(get(0), 32);
@@ -498,18 +494,6 @@ void populateSystemConfiguration() {
     }
   }
 
-  // Notifier fields appended as 26-31 (32 fields total). Read when present
-  // so older configs keep parsing with notifications off.
-  NOTIFY_PROVIDER = 0; TELEGRAM_BOT_TOKEN = ""; TELEGRAM_CHAT_ID = "";
-  NTFY_SERVER = ""; NTFY_TOPIC = ""; NTFY_ACCESS_TOKEN = "";
-  if (count >= 32) {
-    NOTIFY_PROVIDER = clampInt(get(26).toInt(), 0, 3);
-    TELEGRAM_BOT_TOKEN = safeField(get(27), 80);
-    TELEGRAM_CHAT_ID = sanitizeCommandToken(get(28), 32, "");
-    NTFY_SERVER = safeField(get(29), 120);
-    NTFY_TOPIC = sanitizeCommandToken(get(30), 64, "");
-    NTFY_ACCESS_TOKEN = safeField(get(31), 120);
-  }
 
   if (MIKROTIK_API_PORT < 1 || MIKROTIK_API_PORT > 65535) MIKROTIK_API_PORT = 8728;
   if (ADMIN_USER.length() == 0) ADMIN_USER = "admin";

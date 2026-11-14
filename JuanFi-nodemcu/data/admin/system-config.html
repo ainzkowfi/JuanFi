@@ -170,20 +170,6 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
             <div class="field"><label for="confirmAdminPw">Confirm admin password</label><input type="password" id="confirmAdminPw" autocomplete="new-password"></div>
           </div></div>
 
-        <div class="card"><h3>Notifications</h3>
-          <p class="desc">Settings for sending a message when a customer finishes inserting coins or abandons a session. Values are stored on this device. Actual delivery depends on network access and the providers supported by this firmware build.</p>
-          <div class="grid" style="gap:12px">
-            <div class="field"><label for="notifyProvider">Provider</label><select id="notifyProvider"><option value="0">Off</option><option value="1">Telegram</option><option value="2">ntfy</option><option value="3">Telegram and ntfy</option></select></div>
-            <div class="note warn">Telegram and public ntfy (HTTPS) require outbound internet and compatible delivery support in firmware. A self-hosted ntfy server on your LAN can use plain HTTP (for example <code>http://192.168.1.10</code>). On public ntfy, topics are guessable; use an unguessable topic and, if needed, an access token.</div>
-            <div class="grid two">
-              <div class="field"><label for="telegramBotToken">Telegram bot token</label><input type="password" id="telegramBotToken" autocomplete="off" spellcheck="false" placeholder="123456:ABC…"><p class="hint">From <span translate="no">@BotFather</span>.</p></div>
-              <div class="field"><label for="telegramChatId">Telegram chat ID</label><input type="text" id="telegramChatId" autocomplete="off" spellcheck="false" placeholder="123456789 or -100…"></div>
-              <div class="field"><label for="ntfyServer">ntfy server</label><input type="text" id="ntfyServer" autocomplete="off" spellcheck="false" placeholder="https://ntfy.sh or http://192.168.1.10"><p class="hint">Leave blank for the public ntfy service when available; for LAN enter the full URL.</p></div>
-              <div class="field"><label for="ntfyTopic">ntfy topic</label><input type="text" id="ntfyTopic" autocomplete="off" spellcheck="false" placeholder="your-secret-topic"></div>
-              <div class="field"><label for="ntfyAccessToken">ntfy access token</label><input type="password" id="ntfyAccessToken" autocomplete="off" spellcheck="false" placeholder="Optional"><p class="hint">For protected topics (write-only recommended).</p></div>
-            </div>
-          </div></div>
-
         <div class="card"><h3>Coin slot and timing</h3>
           <div class="field"><label for="coinSlotWaitTime">Insert-wait time (seconds)</label><input type="number" id="coinSlotWaitTime" min="5" max="600" inputmode="numeric" placeholder="30"><p class="hint">How long the vendo waits for more coins before the session times out.</p></div></div>
 
@@ -319,9 +305,10 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
   function validateIpAddressFields(fields) { for (var k in fields) { var v = fields[k]; if (!v || !validateIPaddress(v)) { alert(k + ' is not a valid IPv4 address.'); return false; } } return true; }
   function validateCoinSlotPin(pinMap) { var keys = Object.keys(pinMap); for (var i = 0; i < keys.length; i++) for (var j = i + 1; j < keys.length; j++) if (pinMap[keys[i]] === pinMap[keys[j]]) { alert(keys[j] + ' is already used by ' + keys[i] + '.'); return false; } return true; }
   function ipAddressModeChange() { if ($('#ipAddressMode').val() === '1') $('#staticIpDiv').removeClass('hidden'); else $('#staticIpDiv').addClass('hidden'); }
-  function setNotifyDefaults() { $('#notifyProvider').val('0'); $('#telegramBotToken').val(''); $('#telegramChatId').val(''); $('#ntfyServer').val(''); $('#ntfyTopic').val(''); $('#ntfyAccessToken').val(''); }
   function populateSystemConfigFields(data) {
     var c = String(data || '').split(separator);
+    // Ignore the notification fields a 32-field backup may still carry.
+    if (c.length >= 32) c = c.slice(0, 26);
     if (c.length >= 30) {
       $('#vendoName').val(c[0]); $('#wifiSSID').val(c[1]); $('#wifiPW').val(c[2]); $('#mikrotikIp').val(c[3]); $('#mikrotikUser').val(c[4]); $('#mikrotikPw').val(c[5]); $('#confirmMikrotikPw').val(c[5]);
       $('#coinSlotWaitTime').val(c[6]); $('#adminUser').val(c[7]); $('#adminPw').val(c[8]); $('#confirmAdminPw').val(c[8]);
@@ -330,7 +317,7 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
       $('#voucherLoginOption').val(c[21] || '0'); $('#voucherProfile').val(c[22] || 'default'); $('#voucherValidity').val(c[23] || '0');
       $('#ledTriggerType').val(c[24] || '1'); $('#ipAddressMode').val(c[25] || '0'); ipAddressModeChange();
       $('#localIpAddress').val(c[26] || ''); $('#gatewayIp').val(c[27] || ''); $('#subnetMask').val(c[28] || ''); $('#dnsServer').val(c[29] || '');
-      $('#mikrotikApiPort').val('8728'); setNotifyDefaults(); return;
+      $('#mikrotikApiPort').val('8728'); return;
     }
     if (c.length >= 27) {
       $('#vendoName').val(c[0]); $('#wifiSSID').val(c[1]); $('#wifiPW').val(c[2]); $('#mikrotikIp').val(c[3]); $('#mikrotikUser').val(c[4]); $('#mikrotikPw').val(c[5]); $('#confirmMikrotikPw').val(c[5]);
@@ -340,7 +327,7 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
       $('#voucherLoginOption').val(c[18] || '0'); $('#voucherProfile').val(c[19] || 'default'); $('#voucherValidity').val(c[20] || '0');
       $('#ledTriggerType').val(c[21] || '1'); $('#ipAddressMode').val(c[22] || '0'); ipAddressModeChange();
       $('#localIpAddress').val(c[23] || ''); $('#gatewayIp').val(c[24] || ''); $('#subnetMask').val(c[25] || ''); $('#dnsServer').val(c[26] || '');
-      $('#mikrotikApiPort').val('8728'); setNotifyDefaults(); return;
+      $('#mikrotikApiPort').val('8728'); return;
     }
     if (c.length >= 26) {
       $('#vendoName').val(c[0] || ''); $('#wifiSSID').val(c[1] || ''); $('#wifiPW').val(c[2] || '');
@@ -352,11 +339,6 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
       $('#ledTriggerType').val(c[19] || '1'); $('#ipAddressMode').val(c[20] || '0'); ipAddressModeChange();
       $('#localIpAddress').val(c[21] || ''); $('#gatewayIp').val(c[22] || ''); $('#subnetMask').val(c[23] || ''); $('#dnsServer').val(c[24] || '');
       $('#mikrotikApiPort').val(c[25] || '8728');
-      if (c.length >= 32) {
-        $('#notifyProvider').val(String(parseInt(c[26], 10) || 0));
-        $('#telegramBotToken').val(c[27] || ''); $('#telegramChatId').val(c[28] || '');
-        $('#ntfyServer').val(c[29] || ''); $('#ntfyTopic').val(c[30] || ''); $('#ntfyAccessToken').val(c[31] || '');
-      } else { setNotifyDefaults(); }
       return;
     }
     $('#vendoName').val(c[0] || ''); $('#wifiSSID').val(c[1] || ''); $('#wifiPW').val(c[2] || '');
@@ -367,7 +349,7 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
     $('#voucherLoginOption').val(c[16] || '0'); $('#voucherProfile').val(c[17] || 'default'); $('#voucherValidity').val(c[18] || '0');
     $('#ledTriggerType').val(c[19] || '1'); $('#ipAddressMode').val(c[20] || '0'); ipAddressModeChange();
     $('#localIpAddress').val(c[21] || ''); $('#gatewayIp').val(c[22] || ''); $('#subnetMask').val(c[23] || ''); $('#dnsServer').val(c[24] || '');
-    $('#mikrotikApiPort').val('8728'); setNotifyDefaults();
+    $('#mikrotikApiPort').val('8728');
   }
   function openSystemConfig() { $.get('admin/api/getSystemConfig?query=' + new Date().getTime(), function (data) { populateSystemConfigFields(data); }); openTab('SystemConfigration'); }
   function saveSystemConfig() {
@@ -377,8 +359,6 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
     if (!validateCoinSlotPin(pinMap)) return;
     var ipAddressMode = $('#ipAddressMode').val();
     if (ipAddressMode === '1' && !validateIpAddressFields({ 'Local IP address': $('#localIpAddress').val(), 'Gateway': $('#gatewayIp').val(), 'Subnet mask': $('#subnetMask').val(), 'DNS server': $('#dnsServer').val() })) return;
-    var notifyFields = [$('#telegramBotToken').val(), $('#telegramChatId').val(), $('#ntfyServer').val(), $('#ntfyTopic').val(), $('#ntfyAccessToken').val()];
-    for (var ni = 0; ni < notifyFields.length; ni++) if (String(notifyFields[ni]).indexOf('|') !== -1) { alert('Notification fields cannot contain the "|" character.'); return; }
     $('#setupDoneFlag').val('1');
     var postData = createParam([
       $('#vendoName').val(), $('#wifiSSID').val(), $('#wifiPW').val(), $('#mikrotikIp').val(), $('#mikrotikUser').val(), $('#mikrotikPw').val(),
@@ -387,8 +367,7 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
       $('#checkInternetStatus').val(), $('#voucherPrefix').val(), $('#setupDoneFlag').val(), $('#voucherLoginOption').val(), $('#voucherProfile').val(),
       $('#voucherValidity').val(), $('#ledTriggerType').val(), ipAddressMode,
       $('#localIpAddress').val(), $('#gatewayIp').val(), $('#subnetMask').val(), $('#dnsServer').val(),
-      $('#mikrotikApiPort').val(),
-      $('#notifyProvider').val(), $('#telegramBotToken').val(), $('#telegramChatId').val(), $('#ntfyServer').val(), $('#ntfyTopic').val(), $('#ntfyAccessToken').val()
+      $('#mikrotikApiPort').val()
     ]);
     $.post('admin/api/saveSystemConfig', 'data=' + postData).done(function () { alert('Settings saved. The device will restart to apply them.'); }).fail(function (xhr) { alert('Save failed: ' + (xhr.responseText || xhr.statusText || 'unknown error')); });
   }
