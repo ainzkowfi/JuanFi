@@ -1,6 +1,6 @@
 {
    "captive": $(if logged-in == 'yes')false$(else)true$(endif),
-   "user-portal-url": "$(link-login-only)",
+   "user-portal-url": "$(link-login-only-esc)",
 $(if session-timeout-secs != 0)
    "seconds-remaining": $(session-timeout-secs),
 $(endif)

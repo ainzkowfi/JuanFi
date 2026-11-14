@@ -182,18 +182,54 @@ int evaluateTriggerOutput(int state) {
   return (state == TURN_ON) ? LOW : HIGH;
 }
 
+// Append a JSON-escaped string (including surrounding quotes) into buf.
+// Caller stops on overflow; the buffer is always NUL-terminated when cap > 0.
+static void appendJsonString(char *buf, size_t cap, size_t &pos, const char *s) {
+  if (cap == 0) return;
+  auto put = [&](char c) {
+    if (pos + 1 < cap) buf[pos++] = c;
+  };
+  put('"');
+  if (s) {
+    for (const unsigned char *p = (const unsigned char *)s; *p; p++) {
+      unsigned char c = *p;
+      switch (c) {
+        case '"':  put('\\'); put('"');  break;
+        case '\\': put('\\'); put('\\'); break;
+        case '\b': put('\\'); put('b');  break;
+        case '\f': put('\\'); put('f');  break;
+        case '\n': put('\\'); put('n');  break;
+        case '\r': put('\\'); put('r');  break;
+        case '\t': put('\\'); put('t');  break;
+        default:
+          if (c < 0x20) {
+            char esc[7];
+            snprintf(esc, sizeof(esc), "\\u%04x", c);
+            for (char *e = esc; *e; e++) put(*e);
+          } else {
+            put((char)c);
+          }
+          break;
+      }
+      if (pos + 1 >= cap) break;
+    }
+  }
+  put('"');
+  buf[pos < cap ? pos : (cap - 1)] = '\0';
+}
+
 const char* toJson(const char *keys[], const char *values[], int nField) {
   static char buf[512];
   size_t pos = 0;
-  if (pos < sizeof(buf)) buf[pos++] = '{';
+  if (pos + 1 < sizeof(buf)) buf[pos++] = '{';
   for (int i = 0; i < nField; i++) {
-    int n = snprintf(buf + pos, (pos < sizeof(buf)) ? (sizeof(buf) - pos) : 0,
-                     "%s\"%s\":\"%s\"", (i > 0 ? "," : ""), keys[i] ? keys[i] : "", values[i] ? values[i] : "");
-    if (n < 0) n = 0;
-    pos += (size_t)n;
-    if (pos >= sizeof(buf)) { pos = sizeof(buf) - 1; break; }
+    if (i > 0 && pos + 1 < sizeof(buf)) buf[pos++] = ',';
+    appendJsonString(buf, sizeof(buf), pos, keys[i] ? keys[i] : "");
+    if (pos + 1 < sizeof(buf)) buf[pos++] = ':';
+    appendJsonString(buf, sizeof(buf), pos, values[i] ? values[i] : "");
+    if (pos + 1 >= sizeof(buf)) break;
   }
-  if (pos < sizeof(buf) - 1) buf[pos++] = '}';
+  if (pos + 1 < sizeof(buf)) buf[pos++] = '}';
   buf[pos < sizeof(buf) ? pos : (sizeof(buf) - 1)] = '\0';
   return buf;
 }

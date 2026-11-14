@@ -1,5 +1,15 @@
 // Each page sets PAGE ("login"|"status") plus its MikroTik vars
-// (mac, uIp, hotspotAddress, interfaceName, loginError) before this loads,
+// (mac, uIp, hotspotAddress, interfaceName, loginError) before this loads.
+//
+// Maintainability note (audit #7): this file is the portal's single client runtime
+// (~3.7k lines, jQuery-era, no build step). It owns settings/bootstrap, multi-vendo
+// selection, coin polling/commit/convert flows, pause/resume, voucher
+// history/bank, and view rendering. State is shared via globals and storage keys;
+// changes can have cross-flow effects, so edits should be validated against real
+// RouterOS/captive-browser flows (login, insert/extend, convert, pause/resume,
+// multi-vendo, translated errors) rather than by static inspection alone. Keep new
+// logic localized and prefer defensive rendering/storage handling to match the
+// existing style.
 
 var errorCodeMap = {
 	'coins.wait.expired': 'Coin slot expired',
@@ -355,7 +365,7 @@ var SOUND_V = (function () {
 		var m = /(\?v=[\w.\-]+)/.exec(s);
 		if (m) { return m[1]; }
 	} catch (e) { }
-	return "?v=26";
+	return "?v=231";
 })();
 function snd(p) { return p + SOUND_V; }
 var sfxAudio = {};

@@ -67,8 +67,8 @@
     var done = false;
     setTimeout(function () { if (!done) { done = true; fail("Portal is taking too long."); } }, 10000);
   // Default cache (no no-store): portal.html revalidates via HTTP cache,
-  // and the ?v=220 query busts it on deploy alongside core.js?v=220.
-    fetch("portal.html?v=227").then(function (r) {
+  // and the ?v=231 query busts it on deploy alongside core.js?v=231
+    fetch("portal.html?v=231").then(function (r) {
       if (done) { return null; }
       done = true;
       if (!r.ok) { throw 0; }
@@ -83,7 +83,7 @@
       // Same 10s overall deadline the fetch path has: a browser that ignores
       // x.timeout or throws on the assignment must not spin forever.
       setTimeout(function () { settle(function () { fail("Portal is taking too long."); }); }, 10000);
-      x.open("GET", "portal.html?v=227", true);
+      x.open("GET", "portal.html?v=231", true);
       try { x.timeout = 8000; } catch (e) {}
       x.onreadystatechange = function () {
         if (x.readyState === 4) {
