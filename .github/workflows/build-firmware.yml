@@ -64,7 +64,53 @@ jobs:
             --fqbn "$FQBN" \
             --build-path "$RUNNER_TEMP/build" \
             --warnings default \
-            "$SKETCH_DIR"
+            "$SKETCH_DIR" 2>&1 | tee "$RUNNER_TEMP/compile.log"
+
+      - name: Check firmware size thresholds
+        run: |
+          set -euo pipefail
+          log="$RUNNER_TEMP/compile.log"
+          cat "$log"
+          python3 - "$log" <<'PY'
+          import re, sys
+          log = open(sys.argv[1], encoding='utf-8', errors='ignore').read()
+          failed = False
+
+          m = re.search(r'Sketch uses\s+(\d+)\s+bytes.*?Maximum is\s+(\d+)\s+bytes', log, re.S)
+          if m:
+              used, mx = int(m.group(1)), int(m.group(2))
+              pct = (used * 100.0 / mx) if mx else 0
+              print(f'Flash: {used}/{mx} ({pct:.1f}%)')
+              if pct >= 90.0:
+                  print('::error::Flash usage threshold exceeded (>=90%)')
+                  failed = True
+          else:
+              print('::warning::Could not parse flash usage from compile output')
+
+          m = re.search(r'Global variables use\s+(\d+)\s+bytes.*?Maximum is\s+(\d+)\s+bytes', log, re.S)
+          if m:
+              used, mx = int(m.group(1)), int(m.group(2))
+              pct = (used * 100.0 / mx) if mx else 0
+              print(f'RAM: {used}/{mx} ({pct:.1f}%)')
+              if pct >= 85.0:
+                  print('::error::RAM usage threshold exceeded (>=85%)')
+                  failed = True
+          else:
+              print('::warning::Could not parse RAM usage from compile output')
+
+          m = re.search(r'IRAM.*?(\d+)\s*/\s*(\d+).*?\((\d+)%\)', log, re.S | re.I)
+          if m:
+              used, mx, pct = int(m.group(1)), int(m.group(2)), int(m.group(3))
+              print(f'IRAM: {used}/{mx} ({pct}%)')
+              if pct >= 95:
+                  print('::error::IRAM usage threshold exceeded (>=95%)')
+                  failed = True
+          else:
+              print('::warning::Could not parse IRAM usage from compile output')
+
+          if failed:
+              sys.exit(1)
+          PY
 
       - name: Build filesystem image
         run: |

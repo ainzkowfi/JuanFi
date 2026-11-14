@@ -75,8 +75,14 @@
   var form = document.getElementById('loginForm');
   var err = document.getElementById('error');
   var btn = document.getElementById('submitBtn');
+  var userInput = document.getElementById('username');
+  var passInput = document.getElementById('password');
+  var toggleBtn = document.querySelector('[data-pw-toggle="password"]');
   var eye = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>';
   var eyeOff = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>';
+  var cooldownTimer = null;
+  var locked = false;
+
   document.addEventListener('click', function(e){
     var t = e.target && e.target.closest ? e.target.closest('[data-pw-toggle]') : null;
     if(!t) return;
@@ -87,23 +93,62 @@
     t.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
     t.innerHTML = show ? eyeOff : eye;
   });
+
   function showError(msg){ err.textContent = msg || 'Sign-in failed.'; err.className = 'error show'; }
   function clearError(){ err.textContent=''; err.className='error'; }
+  function setLocked(on){
+    locked = !!on;
+    userInput.disabled = locked;
+    passInput.disabled = locked;
+    btn.disabled = locked;
+    if(toggleBtn) toggleBtn.disabled = locked;
+  }
+  function startCooldown(sec, msg){
+    var remain = parseInt(sec, 10);
+    if(!isFinite(remain) || remain < 1){
+      var m = String(msg || '').match(/(\d+)/);
+      remain = m ? parseInt(m[1], 10) : 30;
+    }
+    if(cooldownTimer) clearInterval(cooldownTimer);
+    setLocked(true);
+    function tick(){
+      showError((msg ? String(msg).replace(/\d+\s*s\.?/, remain + ' s') : ('Too many failed attempts. Try again in ' + remain + ' s.')));
+      btn.textContent = 'Try again in ' + remain + 's';
+      if(remain <= 0){
+        clearInterval(cooldownTimer); cooldownTimer = null;
+        setLocked(false);
+        btn.textContent = 'Sign in';
+        clearError();
+        return;
+      }
+      remain -= 1;
+    }
+    tick();
+    cooldownTimer = setInterval(tick, 1000);
+  }
+
   form.addEventListener('submit', function(e){
     e.preventDefault();
+    if(locked) return;
     clearError();
-    var u = document.getElementById('username').value;
-    var p = document.getElementById('password').value;
+    var u = userInput.value;
+    var p = passInput.value;
     if(!u || !p){ showError('Enter your username and password.'); return; }
     btn.disabled = true; btn.textContent = 'Signing in';
     var body = 'username=' + encodeURIComponent(u) + '&password=' + encodeURIComponent(p);
     fetch('/admin/api/login', {method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body: body, credentials: 'same-origin'})
       .then(function(r){
-        if(r.ok){ window.location.href = '/admin'; return null; }
-        return r.text().then(function(t){ throw new Error(t || 'Invalid username or password'); });
+        return r.text().then(function(t){
+          if(r.ok){ window.location.href = '/admin'; return null; }
+          if(r.status === 429){
+            startCooldown(null, t || 'Too many failed attempts. Try again in 30 s.');
+            return null;
+          }
+          throw new Error(t || 'Invalid username or password');
+        });
       })
-      .catch(function(ex){ showError(ex && ex.message ? ex.message : 'Could not sign in.'); })
-      .then(function(){ btn.disabled = false; btn.textContent = 'Sign in'; });
+      .catch(function(ex){ if(!locked){ showError(ex && ex.message ? ex.message : 'Could not sign in.'); } })
+      .then(function(){ if(!locked){ btn.disabled = false; btn.textContent = 'Sign in'; } });
   });
 })();
 </script>
