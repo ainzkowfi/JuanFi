@@ -57,6 +57,19 @@ body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Robot
 .stat .label{margin:0 0 4px;color:var(--muted-foreground);font-size:0.8125rem}
 .stat .value{margin:0;font-size:1.5rem;font-weight:500;line-height:1.1;font-variant-numeric:tabular-nums}
 .stat .value.sm{font-size:1rem;overflow-wrap:anywhere}
+.sales-stats .stat{display:flex;flex-direction:column}
+.sales-stats .stat .actions{margin-top:auto;padding-top:12px}
+.info-list{display:grid;gap:0;margin-top:8px}
+.info-row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:10px 0;border-bottom:1px solid var(--border)}
+.info-row:last-child{border-bottom:0;padding-bottom:0}
+.info-row:first-child{padding-top:0}
+.info-label{color:var(--muted-foreground);font-size:0.875rem}
+.info-value{font-weight:500;font-size:0.9375rem;text-align:right;overflow-wrap:anywhere}
+.hs-list{max-height:168px;overflow:auto;border:1px solid var(--border);border-radius:8px;background:var(--muted);padding:4px 0}
+.hs-item{display:flex;justify-content:space-between;gap:12px;padding:8px 10px;border-bottom:1px solid var(--border);font-size:0.875rem}
+.hs-item:last-child{border-bottom:0}
+.hs-ip{font-weight:500;overflow-wrap:anywhere}
+.hs-ttl{color:var(--muted-foreground);white-space:nowrap}
 .field{display:grid;gap:6px;min-width:0}
 label,.label-text{font-size:0.875rem;font-weight:500;color:var(--foreground)}
 .hint{margin:0;color:var(--muted-foreground);font-size:0.8125rem}
@@ -82,6 +95,8 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
 .rate-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
 .rate-head h4{margin:0;font-size:0.9375rem;font-weight:500}
 .preview{margin-top:12px;padding:10px 12px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--muted-foreground);font-size:0.875rem;overflow-wrap:anywhere}
+.subcard{margin-top:12px;padding:12px;border:1px solid var(--border);border-radius:8px;background:var(--card)}
+.subcard .subcard-title{margin:0 0 8px;font-size:0.875rem;font-weight:500;color:var(--foreground)}
 .hidden{display:none!important}
 #loading{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:rgba(17,19,21,.65)}
 #loading.hidden{display:none!important}
@@ -109,7 +124,7 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
       <button type="button" class="tablinks" data-tab="PromoRate"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span>Promo rates</span></button>
       <button type="button" class="tablinks" data-tab="VoucherGenerate"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg><span>Vouchers</span></button>
       <button type="button" class="tablinks" data-tab="FirmwareUpdate"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg><span>Firmware</span></button>
-      <button type="button" class="tablinks" data-tab="About"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span>About</span></button>
+      <button type="button" class="tablinks" data-tab="About"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span>Ours</span></button>
       <div class="sep" aria-hidden="true"></div>
       <button type="button" id="logoutBtn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg><span>Sign out</span></button>
     </nav>
@@ -117,17 +132,35 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
 
       <section id="Dashboard" class="tabcontent" aria-labelledby="dash-h">
         <div class="page-head"><div><h2 id="dash-h">Dashboard</h2><p>Device status and sales counters</p></div></div>
-        <div class="grid stats">
-          <div class="card stat"><p class="label">Total sales</p><p class="value" id="lifeCoinCount">₱0</p><div class="actions" style="margin-top:12px"><button type="button" class="btn sm" data-reset="lifeTimeCount">Reset</button></div></div>
-          <div class="card stat"><p class="label">Current sales</p><p class="value" id="coinCount">₱0</p><div class="actions" style="margin-top:12px"><button type="button" class="btn sm" data-reset="coinCount">Reset</button></div></div>
-          <div class="card stat"><p class="label">Customers served</p><p class="value" id="customerCount">0</p><div class="actions" style="margin-top:12px"><button type="button" class="btn sm" data-reset="customerCount">Reset</button></div></div>
-          <div class="card stat"><p class="label">Uptime</p><p class="value sm" id="upTime">0 sec</p></div>
+        <div class="grid stats sales-stats">
+          <div class="card stat"><p class="label">Total sales</p><p class="value" id="lifeCoinCount">₱0</p><div class="actions"><button type="button" class="btn sm" data-reset="lifeTimeCount">Reset</button></div></div>
+          <div class="card stat"><p class="label">Current sales</p><p class="value" id="coinCount">₱0</p><div class="actions"><button type="button" class="btn sm" data-reset="coinCount">Reset</button></div></div>
+          <div class="card stat"><p class="label">Customers served</p><p class="value" id="customerCount">0</p><div class="actions"><button type="button" class="btn sm" data-reset="customerCount">Reset</button></div></div>
         </div>
         <div class="grid two">
-          <div class="card stat"><p class="label">MikroTik</p><p class="value sm" id="mikrotikStatus">Checking</p></div>
-          <div class="card stat"><p class="label">Device MAC</p><p class="value sm" id="macAddress">—</p></div>
-          <div class="card stat"><p class="label">Device IP</p><p class="value sm" id="ipAddress">—</p></div>
-          <div class="card stat"><p class="label">Hardware</p><p class="value sm" id="hardwareType">—</p></div>
+          <div class="card">
+            <h3>Device status</h3>
+            <div class="info-list">
+              <div class="info-row"><span class="info-label">Uptime</span><span class="info-value" id="upTime">0 sec</span></div>
+              <div class="info-row"><span class="info-label">MikroTik</span><span class="info-value" id="mikrotikStatus">Checking</span></div>
+              <div class="info-row"><span class="info-label">Device MAC</span><span class="info-value" id="macAddress">—</span></div>
+              <div class="info-row"><span class="info-label">Device IP</span><span class="info-value" id="ipAddress">—</span></div>
+              <div class="info-row"><span class="info-label">Hardware</span><span class="info-value" id="hardwareType">—</span></div>
+              <div class="info-row"><span class="info-label">Free heap</span><span class="info-value" id="freeHeap">—</span></div>
+              <div class="info-row"><span class="info-label">Heap fragmentation</span><span class="info-value" id="heapFrag">—</span></div>
+              <div class="info-row"><span class="info-label">Max free block</span><span class="info-value" id="maxFreeBlock">—</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Hotspot users</h3>
+            <div class="info-list" style="margin-top:4px;margin-bottom:8px">
+              <div class="info-row"><span class="info-label">Active</span><span class="info-value" id="hsActiveCount">—</span></div>
+              <div class="info-row"><span class="info-label">Total users</span><span class="info-value" id="hsTotalCount">—</span></div>
+              <div class="info-row"><span class="info-label">Offline</span><span class="info-value" id="hsOfflineCount">—</span></div>
+            </div>
+            <p class="hint" style="margin:0 0 8px">Active IP · session time left</p>
+            <div class="hs-list" id="hsUserList"><div class="hint">Not loaded</div></div>
+          </div>
         </div>
       </section>
 
@@ -174,10 +207,9 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
           <h3>Vendo behavior and hardware</h3>
           <p class="desc">Timing, voucher defaults, and pin mapping.</p>
           <div class="grid two">
-            <div class="field"><label for="coinSlotWaitTime">Insert-wait time (seconds)</label><input type="number" id="coinSlotWaitTime" min="5" max="600" inputmode="numeric" placeholder="30"><p class="hint">How long the vendo waits for more coins before timing out.</p></div>
-            <div class="field"><label for="autoRestartMinutes">Auto restart (minutes)</label><input type="number" id="autoRestartMinutes" min="0" max="10080" inputmode="numeric" placeholder="0"><p class="hint">0 disables. Restarts only when idle (no coin session). Pulses capped at 20 per session.</p></div>
-            <div class="field"><label for="voucherPrefix">Voucher prefix</label><input type="text" id="voucherPrefix" value="P" maxlength="5" autocomplete="off" spellcheck="false"><p class="hint">Up to 5 characters. Login mode: username only. Validity: stacks when extending (fixed).</p></div>
-            <div class="field"><label for="voucherProfile">Hotspot profile</label><input type="text" id="voucherProfile" value="default" autocomplete="off" spellcheck="false"></div>
+            <div class="field"><label for="coinSlotWaitTime">Insert-wait time (seconds)</label><input type="number" id="coinSlotWaitTime" min="5" max="600" inputmode="numeric" placeholder="30"></div>
+            <div class="field"><label for="autoRestartMinutes">Auto restart ESP/NODEMCU (if not busy)</label><input type="number" id="autoRestartMinutes" min="0" max="10080" inputmode="numeric" placeholder="0"></div>
+            <div class="field"><label for="voucherPrefix">Voucher prefix</label><input type="text" id="voucherPrefix" value="P" maxlength="5" autocomplete="off" spellcheck="false"></div>
           </div>
           <input type="hidden" id="voucherLoginOption" value="0">
           <input type="hidden" id="voucherValidity" value="0">
@@ -190,6 +222,7 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
             <div class="field"><label for="insertCoinLEDPin">Insert coin LED pin</label><select id="insertCoinLEDPin"><option value="16">D0</option><option value="0">D3</option><option value="2" selected>D4</option><option value="14">D5</option><option value="12">D6</option><option value="13">D7</option><option value="15">D8</option><option value="3">RX</option></select></div>
             <div class="field"><label for="ledTriggerType">LED/relay trigger level</label><select id="ledTriggerType"><option value="0">Low</option><option value="1" selected>High</option></select></div>
           </div>
+          <div class="field" style="margin-top:16px"><label for="voucherProfile">Hotspot profile</label><input type="text" id="voucherProfile" value="default" autocomplete="off" spellcheck="false"></div>
         </div>
 
         <input type="hidden" value="1" id="setupDoneFlag">
@@ -242,7 +275,7 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
       </section>
 
       <section id="About" class="tabcontent" aria-labelledby="about-h">
-        <div class="page-head"><div><h2 id="about-h">About</h2><p>Version and project information</p></div></div>
+        <div class="page-head"><div><h2 id="about-h">Ours</h2><p>Version and project information</p></div></div>
         <div class="card"><div class="grid" style="gap:8px">
           <p style="margin:0"><span class="hint">System version</span><br><strong id="appVersionAbout">—</strong></p>
           <p style="margin:0"><span class="hint">Developer</span><br><span translate="no">Ivan Julius Alayan</span></p>
@@ -280,6 +313,36 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
     return parts.join(' ');
   }
   function setStatus(sel, ok, okText, badText) { $(sel).text(ok ? okText : badText).css('color', ok ? 'var(--success)' : 'var(--danger)'); }
+  function loadHotspotSummary() {
+    $('#hsUserList').html('<div class="hint" style="padding:8px 10px">Loading…</div>');
+    $.get('admin/api/hotspotSummary?query=' + new Date().getTime(), function (data) {
+      var p = String(data || '').split(separator);
+      var active = parseInt(p[0], 10); if (isNaN(active)) active = 0;
+      var total = parseInt(p[1], 10); if (isNaN(total)) total = 0;
+      var offline = total - active; if (offline < 0) offline = 0;
+      $('#hsActiveCount').text(String(active));
+      $('#hsTotalCount').text(String(total));
+      $('#hsOfflineCount').text(String(offline));
+      var listRaw = p.slice(2).join(separator);
+      var html = '';
+      if (listRaw) {
+        var items = listRaw.split(';');
+        for (var i = 0; i < items.length; i++) {
+          if (!items[i]) continue;
+          var parts = items[i].split(',');
+          var ip = parts[0] || '-';
+          var ttl = parts.slice(1).join(',') || '-';
+          html += '<div class="hs-item"><span class="hs-ip">' + $('<div/>').text(ip).html() + '</span><span class="hs-ttl">' + $('<div/>').text(ttl).html() + '</span></div>';
+        }
+      }
+      if (!html) html = '<div class="hint" style="padding:8px 10px">No active users</div>';
+      $('#hsUserList').html(html);
+    }).fail(function () {
+      $('#hsActiveCount').text('—'); $('#hsTotalCount').text('—'); $('#hsOfflineCount').text('—');
+      $('#hsUserList').html('<div class="hint" style="padding:8px 10px">Unavailable</div>');
+    });
+  }
+
   function openDashboard() {
     $.get('admin/api/dashboard?query=' + new Date().getTime(), function (data) {
       if (timer) { clearInterval(timer); timer = null; }
@@ -291,8 +354,12 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
       var mkOk = d[5] === '1';
       setStatus('#mikrotikStatus', mkOk, 'Online', 'Offline');
       $('#macAddress').text(d[6] || '—'); $('#ipAddress').text(d[7] || '—'); $('#hardwareType').text(d[8] || 'ESP8266');
+      if (d[10] !== undefined && d[10] !== '') $('#freeHeap').text(d[10] + ' B'); else $('#freeHeap').text('—');
+      if (d[11] !== undefined && d[11] !== '') $('#heapFrag').text(d[11] + '%'); else $('#heapFrag').text('—');
+      if (d[12] !== undefined && d[12] !== '') $('#maxFreeBlock').text(d[12] + ' B'); else $('#maxFreeBlock').text('—');
       var ver = d[9] || '—'; $('#appVersionAbout').text(ver); $('#currentVersion').text(ver);
     }).fail(function () { setStatus('#mikrotikStatus', false, 'Online', 'Offline'); });
+    loadHotspotSummary();
     openTab('Dashboard');
   }
   function resetStats(type) { if (!confirm('Reset this statistic?')) return; $.post('admin/api/resetStatistic', 'type=' + encodeURIComponent(type), function () { openDashboard(); }).fail(function(xhr){ alert('Reset failed: ' + (xhr.responseText || xhr.statusText || 'unknown error')); }); }
@@ -398,18 +465,16 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
       + '<input type="hidden" id="rateNameText'+i+'" value="'+esc(rowData[0])+'">'
       + '<div class="grid two"><div class="field"><label for="priceText'+i+'">Price (₱)</label><input type="number" min="0" step="any" id="priceText'+i+'" value="'+esc(rowData[1])+'" placeholder="0"></div>'
       + '<div class="field"><label for="dataLimitText'+i+'">Data limit (MB, optional)</label><input type="number" min="0" id="dataLimitText'+i+'" value="'+esc(rowData[4])+'" placeholder="0"></div></div>'
-      + '<div class="field" style="margin-top:12px"><span class="label-text">Time limit</span><div class="grid three" style="margin-top:6px">'
+      + '<div class="subcard"><p class="subcard-title">Time limit</p><div class="grid three">'
       + '<div class="field"><label for="timeHoursText'+i+'" class="hint">Hours</label><input type="number" min="0" id="timeHoursText'+i+'" value="'+esc(time.h)+'"></div>'
       + '<div class="field"><label for="timeMinutesText'+i+'" class="hint">Minutes</label><input type="number" min="0" id="timeMinutesText'+i+'" value="'+esc(time.m)+'"></div>'
-      + '<div class="field"><label for="timeSecondsText'+i+'" class="hint">Seconds</label><input type="number" min="0" id="timeSecondsText'+i+'" value="'+esc(time.s)+'"></div></div>'
-      + '<p class="hint" style="margin-top:6px">Saved as total minutes. Any seconds round up to the next minute.</p></div>'
-      + '<div class="field" style="margin-top:12px"><span class="label-text">Validity</span><div class="grid three" style="margin-top:6px">'
+      + '<div class="field"><label for="timeSecondsText'+i+'" class="hint">Seconds</label><input type="number" min="0" id="timeSecondsText'+i+'" value="'+esc(time.s)+'"></div></div></div>'
+      + '<div class="subcard"><p class="subcard-title">Validity</p><div class="grid three">'
       + '<div class="field"><label for="validityHoursText'+i+'" class="hint">Hours</label><input type="number" min="0" id="validityHoursText'+i+'" value="'+esc(validity.h)+'"></div>'
       + '<div class="field"><label for="validityMinutesText'+i+'" class="hint">Minutes</label><input type="number" min="0" id="validityMinutesText'+i+'" value="'+esc(validity.m)+'"></div>'
-      + '<div class="field"><label for="validitySecondsText'+i+'" class="hint">Seconds</label><input type="number" min="0" id="validitySecondsText'+i+'" value="'+esc(validity.s)+'"></div></div>'
-      + '<p class="hint" style="margin-top:6px">Leave at 0 for no expiry.</p></div>'
-      + '<div class="grid two" style="margin-top:12px"><div class="field"><label for="profileNameText'+i+'">Hotspot profile (optional)</label><input type="text" id="profileNameText'+i+'" value="'+esc(rowData[5])+'" placeholder="Overrides default"></div></div>'
-      + '<div class="preview" id="ratePreview'+i+'"></div></div>';
+      + '<div class="field"><label for="validitySecondsText'+i+'" class="hint">Seconds</label><input type="number" min="0" id="validitySecondsText'+i+'" value="'+esc(validity.s)+'"></div></div></div>'
+      + '<div class="preview" id="ratePreview'+i+'"></div>'
+      + '<div class="field" style="margin-top:12px"><label for="profileNameText'+i+'">Hotspot profile (optional)</label><input type="text" id="profileNameText'+i+'" value="'+esc(rowData[5])+'" placeholder="Overrides default"></div></div>';
   }
   function addRate() { $('#promoRateBody').append(generateRowScript(rateCount, ['','','0','0','',''])); updateRatePreview(rateCount); rateCount++; }
   function populateRateFields(data) { var rows = String(data==null?'':data).split('|'), html=''; rateCount=0; for (var i=0;i<rows.length;i++){ if(String(rows[i]).trim()==='') continue; html += generateRowScript(rateCount, rows[i].split('#')); rateCount++; } $('#promoRateBody').html(html); for (var r=0;r<rateCount;r++) updateRatePreview(r); }

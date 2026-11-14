@@ -973,6 +973,130 @@ bool ensureMikrotikConnection(bool force = false) {
   return loginMirotik();
 }
 
+// ---------- Hotspot summary (cached, low-stress) ----------
+struct HotspotSummaryCache {
+  unsigned long ms = 0;
+  bool ok = false;
+  int activeCount = 0;
+  int totalCount = 0;
+  String list; // "ip,ttl;ip,ttl" max 5
+} hotspotSummaryCache;
+const unsigned long HOTSPOT_SUMMARY_TTL_MS = 30000;
+
+bool fetchHotspotActiveList(int &activeCount, String &listOut, int maxItems) {
+  activeCount = 0;
+  listOut = "";
+  apiResetResult();
+  if (!apiClient.connected()) { apiLast.fatal = true; return false; }
+
+  if (!apiWriteWord("/ip/hotspot/active/print")) { apiLast.fatal = true; apiClient.stop(); return false; }
+  if (!apiWriteWord("=.proplist=address,session-time-left")) { apiLast.fatal = true; apiClient.stop(); return false; }
+  if (!apiEndSentence()) { apiLast.fatal = true; apiClient.stop(); return false; }
+
+  ApiReplyType current = ApiReplyType::NONE;
+  bool finished = false;
+  unsigned long deadline = millis() + 7000;
+  String curAddr = "";
+  String curTtl = "";
+
+  while (!finished) {
+    if ((long)(millis() - deadline) >= 0) { apiLast.fatal = true; apiClient.stop(); return false; }
+
+    String word;
+    unsigned long remain = deadline - millis();
+    if (remain < 1) remain = 1;
+    if (!apiReadWord(word, remain)) { apiLast.fatal = true; apiClient.stop(); return false; }
+
+    if (word.length() == 0) {
+      if (current == ApiReplyType::RE) {
+        apiLast.records++;
+        if (apiLast.records <= maxItems) {
+          if (curAddr.length() == 0) curAddr = "-";
+          if (curTtl.length() == 0) curTtl = "-";
+          if (listOut.length() > 0) listOut += ";";
+          listOut += curAddr + "," + curTtl;
+        }
+        curAddr = "";
+        curTtl = "";
+      } else if (current == ApiReplyType::DONE) {
+        apiLast.gotDone = true; finished = true;
+      } else if (current == ApiReplyType::TRAP) {
+        /* consume trailing !done */
+      } else if (current == ApiReplyType::FATAL) {
+        finished = true;
+      }
+      current = ApiReplyType::NONE;
+      continue;
+    }
+
+    if (word == "!re") { current = ApiReplyType::RE; curAddr = ""; curTtl = ""; }
+    else if (word == "!done") { current = ApiReplyType::DONE; }
+    else if (word == "!trap") { current = ApiReplyType::TRAP; }
+    else if (word == "!fatal") { current = ApiReplyType::FATAL; apiLast.fatal = true; }
+    else if (word == "!empty") { current = ApiReplyType::EMPTY; }
+    else if (word.charAt(0) == '=') {
+      int eq = word.indexOf('=', 1);
+      String key = (eq >= 0) ? word.substring(1, eq) : word.substring(1);
+      String val = (eq >= 0) ? word.substring(eq + 1) : "";
+      if (current == ApiReplyType::TRAP || current == ApiReplyType::FATAL) {
+        if (key == "message" && apiLast.trapMessage.length() == 0) apiLast.trapMessage = val;
+      } else if (current == ApiReplyType::RE) {
+        if (key == "address") curAddr = val;
+        else if (key == "session-time-left") curTtl = val;
+      }
+    }
+  }
+
+  activeCount = apiLast.records;
+  apiLast.ok = !apiLast.fatal && apiLast.gotDone && apiLast.trapMessage.length() == 0;
+  if (apiLast.fatal) apiClient.stop();
+  return apiLast.ok;
+}
+
+bool fetchHotspotTotalUsers(int &totalCount) {
+  totalCount = 0;
+  String attrs[1];
+  attrs[0] = "=count-only=";
+  if (!apiTransact("/ip/hotspot/user/print", attrs, 1, 7000)) return false;
+  totalCount = apiLast.ret.toInt();
+  if (totalCount < 0) totalCount = 0;
+  return true;
+}
+
+void handleAdminHotspotSummary() {
+  if (!isAuthorized()) { handleNotAuthorize(); return; }
+  unsigned long now = millis();
+  if (hotspotSummaryCache.ms != 0 && (now - hotspotSummaryCache.ms) < HOTSPOT_SUMMARY_TTL_MS) {
+    server.send(200, "text/plain", hotspotSummaryCache.list);
+    return;
+  }
+
+  String resp = "0|0|";
+  if (ensureMikrotikConnection()) {
+    int activeCount = 0;
+    int totalCount = 0;
+    String list = "";
+    bool aok = fetchHotspotActiveList(activeCount, list, 5);
+    bool tok = fetchHotspotTotalUsers(totalCount);
+    if (aok || tok) {
+      if (!aok) activeCount = hotspotSummaryCache.ok ? hotspotSummaryCache.activeCount : 0;
+      if (!tok) totalCount = hotspotSummaryCache.ok ? hotspotSummaryCache.totalCount : 0;
+      resp = String(activeCount) + "|" + String(totalCount) + "|" + (aok ? list : hotspotSummaryCache.list.substring(hotspotSummaryCache.list.indexOf('|', hotspotSummaryCache.list.indexOf('|') + 1) + 1));
+      hotspotSummaryCache.ms = millis();
+      hotspotSummaryCache.ok = true;
+      hotspotSummaryCache.activeCount = activeCount;
+      hotspotSummaryCache.totalCount = totalCount;
+      hotspotSummaryCache.list = resp;
+    } else if (hotspotSummaryCache.ok) {
+      resp = hotspotSummaryCache.list; // serve stale on failure
+    }
+  } else if (hotspotSummaryCache.ok) {
+    resp = hotspotSummaryCache.list;
+  }
+
+  server.send(200, "text/plain", resp);
+}
+
 // Parse RouterOS time strings to seconds: "1w2d3h4m5s", "03:04:05", "1d03:04:05", "0s".
 long parseRosTimeToSeconds(const String &in) {
   String s = in;
@@ -1312,7 +1436,8 @@ void handleAdminDashboard() {
   String data = String(upTime) + "|" + String(lifeTimeCoinCount) + "|" + String(coinCountVal) + "|" +
                 String(customerCount) + "|" + String(hasInternetConnection ? "1" : "0") + "|" +
                 String(mtOk ? "1" : "0") + "|" + currentMacAddress + "|" +
-                currentIpAddress + "|" + HARDWARE_TYPE + "|" + String(CURRENT_VERSION);
+                currentIpAddress + "|" + HARDWARE_TYPE + "|" + String(CURRENT_VERSION) + "|" +
+                String(ESP.getFreeHeap()) + "|" + String(ESP.getHeapFragmentation()) + "|" + String(ESP.getMaxFreeBlockSize());
   server.send(200, "text/plain", data);
 }
 
@@ -1755,6 +1880,7 @@ void setup() {
   server.on("/admin/api/generateVouchers", HTTP_POST, handleGenerateVouchers);
   server.on("/admin/api/getAutoRestart", handleAdminGetAutoRestart);
   server.on("/admin/api/saveAutoRestart", HTTP_POST, handleAdminSaveAutoRestart);
+  server.on("/admin/api/hotspotSummary", handleAdminHotspotSummary);
   server.on("/admin", HTTP_GET, handleAdminPage);
   server.on("/admin/viewGeneratedVouchers", handleAdminGeneratedVoucherPage);
   server.on("/admin/updateMainBin", HTTP_POST, handleFileUploadRequest, handleFileUploadStream);
