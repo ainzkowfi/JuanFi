@@ -2968,7 +2968,10 @@ function isPortalCoinslotBanned() {
 	if (st.bannedUntil && Date.now() >= st.bannedUntil) clearPortalCoinslotBanState();
 	return false;
 }
-function recordPortalCoinslotInsertAttempt() {
+// Count an abuse attempt only when the insert-coin countdown/window expires with
+// no coin data received. Successful coin inserts must not count, so the streak
+// resets on any received coin.
+function recordPortalCoinslotNoCoinExpiry() {
 	if (typeof enableCoinslotBan === "undefined" || !enableCoinslotBan) return false;
 	var maxAttempts = parseInt(coinslotBanCount, 10);
 	var banMinutes = parseInt(coinslotBanMinutes, 10);
@@ -2993,10 +2996,6 @@ function insertBtnAction() {
 	}
 	// No double-submit: one coin session at a time (second tap = busy error).
 	if (insertingCoin) { return false; }
-	if (recordPortalCoinslotInsertAttempt()) {
-		notifyCoinSlotError("coin.slot.banned");
-		return false;
-	}
 	topUpGen++;
 	// Fresh session, fresh fail budget. Without this the streak left over from
 	// a previous give-up trips the >=8 stop on the FIRST poll of the new
@@ -3344,6 +3343,7 @@ function checkCoin() {
 			if (data.status == "true") {
 			try { dbgLog("checkCoin COIN +" + data.newCoin + " total=" + data.totalCoin + " timeAdded=" + data.timeAdded + "s", "dbg-ok"); } catch (e) { }
 			totalCoinReceived = (isFinite(parseInt(data.totalCoin, 10)) ? parseInt(data.totalCoin, 10) : 0);
+			try { clearPortalCoinslotBanState(); } catch (e) {}
 			paintCoinLiveNote();
 			paintCoinTotal(data.totalCoin);
 			$('#totalTime').html(secondsToDhms(parseInt(data.timeAdded, 10)));
@@ -3380,6 +3380,8 @@ function checkCoin() {
 						saveVoucherBtnAction();
 					} else {
 						try { dbgLog("checkCoin: wait expired, no coins", "dbg-err"); } catch (e) { }
+						// Count only a countdown expiry with no coin data as an abuse attempt.
+						try { recordPortalCoinslotNoCoinExpiry(); } catch (e) {}
 						// ponytail: one message for one event. The coinslot.busy
 						// branch a poll later stays silent, and closeCoinModal()
 						// ends the panel before that poll ever happens.
@@ -3424,10 +3426,13 @@ function checkCoin() {
 				try { dbgLog("checkCoin: wait window expired, coins=" + totalCoinReceived, "dbg-err"); } catch (e) {}
 				clearInterval(timer);
 				timer = null;
-				notifyCoinSlotError('coins.wait.expired');
 				if (totalCoinReceived <= 0) {
+					// Count only a countdown/window expiry with no coin data as an abuse attempt.
+					try { recordPortalCoinslotNoCoinExpiry(); } catch (e) {}
+					notifyCoinSlotError('coins.wait.expired');
 					closeCoinModal();
 				} else {
+					notifyCoinSlotError('coins.wait.expired');
 					$.toast({ title: 'Time is up', content: 'Your coins are still in the slot - tap DONE now', type: 'warning', delay: 6000 });
 				}
 			} else {
