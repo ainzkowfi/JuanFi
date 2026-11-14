@@ -101,7 +101,6 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
       <div class="logo" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M7 20h10"/><path d="M9 8h6"/></svg></div>
       <div><h1><span translate="no">JuanFi</span> admin</h1><p>Vendo control panel</p></div>
     </div>
-    <div class="chip" title="MikroTik connection status"><span id="mkDot" class="chip-dot" aria-hidden="true"></span><span id="mkLabel">MikroTik: checking</span></div>
   </header>
   <div class="layout">
     <nav class="nav" aria-label="Sections">
@@ -119,13 +118,12 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
       <section id="Dashboard" class="tabcontent" aria-labelledby="dash-h">
         <div class="page-head"><div><h2 id="dash-h">Dashboard</h2><p>Device status and sales counters</p></div></div>
         <div class="grid stats">
-          <div class="card stat"><p class="label">Total sales</p><p class="value" id="lifeCoinCount">0</p><div class="actions" style="margin-top:12px"><button type="button" class="btn sm" data-reset="lifeTimeCount">Reset</button></div></div>
-          <div class="card stat"><p class="label">Current sales</p><p class="value" id="coinCount">0</p><div class="actions" style="margin-top:12px"><button type="button" class="btn sm" data-reset="coinCount">Reset</button></div></div>
+          <div class="card stat"><p class="label">Total sales</p><p class="value" id="lifeCoinCount">₱0</p><div class="actions" style="margin-top:12px"><button type="button" class="btn sm" data-reset="lifeTimeCount">Reset</button></div></div>
+          <div class="card stat"><p class="label">Current sales</p><p class="value" id="coinCount">₱0</p><div class="actions" style="margin-top:12px"><button type="button" class="btn sm" data-reset="coinCount">Reset</button></div></div>
           <div class="card stat"><p class="label">Customers served</p><p class="value" id="customerCount">0</p><div class="actions" style="margin-top:12px"><button type="button" class="btn sm" data-reset="customerCount">Reset</button></div></div>
           <div class="card stat"><p class="label">Uptime</p><p class="value sm" id="upTime">0 sec</p></div>
         </div>
         <div class="grid two">
-          <div class="card stat"><p class="label">Internet</p><p class="value sm" id="internetStatus">Checking</p></div>
           <div class="card stat"><p class="label">MikroTik</p><p class="value sm" id="mikrotikStatus">Checking</p></div>
           <div class="card stat"><p class="label">Device MAC</p><p class="value sm" id="macAddress">—</p></div>
           <div class="card stat"><p class="label">Device IP</p><p class="value sm" id="ipAddress">—</p></div>
@@ -136,65 +134,63 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
       <section id="SystemConfigration" class="tabcontent" aria-labelledby="sys-h">
         <div class="page-head"><div><h2 id="sys-h">System configuration</h2><p>Network, router, access, and device settings</p></div></div>
 
-        <div class="card"><h3>Vendo identity</h3><p class="desc">Name shown to customers and on printed vouchers.</p>
-          <div class="field"><label for="vendoName">Vendo name</label><input type="text" id="vendoName" autocomplete="organization" placeholder="JuanFi Vendo"></div></div>
-
-        <div class="card"><h3>Wi-Fi connection</h3><p class="desc">The network this device uses for internet and MikroTik access.</p>
+        <div class="card">
+          <h3>Vendo and network</h3>
+          <p class="desc">Identity, Wi-Fi connection, and device network settings.</p>
           <div class="grid two">
+            <div class="field"><label for="vendoName">Vendo name</label><input type="text" id="vendoName" autocomplete="organization" placeholder="JuanFi Vendo"></div>
             <div class="field"><label for="wifiSSID">Wi-Fi SSID</label><input type="text" id="wifiSSID" autocomplete="off" spellcheck="false" placeholder="Network name"></div>
             <div class="field"><label for="wifiPW">Wi-Fi password</label><input type="password" id="wifiPW" autocomplete="off" placeholder="Leave blank if open"></div>
-          </div></div>
+          </div>
+          <div class="field" style="margin-top:16px"><span class="label-text">Device IP address (static IP)</span><p class="hint" style="margin-top:4px">Fixed address settings for this device.</p></div>
+          <input type="hidden" id="ipAddressMode" value="1">
+          <div id="staticIpDiv" class="grid two" style="margin-top:8px">
+            <div class="field"><label for="localIpAddress">Local IP</label><input type="text" id="localIpAddress" inputmode="decimal" autocomplete="off" value="10.0.0.254" placeholder="10.0.0.254"></div>
+            <div class="field"><label for="subnetMask">Subnet mask</label><input type="text" id="subnetMask" inputmode="decimal" autocomplete="off" value="255.255.255.0" placeholder="255.255.255.0"></div>
+            <div class="field"><label for="gatewayIp">Gateway</label><input type="text" id="gatewayIp" inputmode="decimal" autocomplete="off" value="10.0.0.1" placeholder="10.0.0.1"></div>
+            <div class="field"><label for="dnsServer">DNS server</label><input type="text" id="dnsServer" inputmode="decimal" autocomplete="off" value="1.1.1.1" placeholder="1.1.1.1"></div>
+          </div>
+        </div>
 
-        <div class="card"><h3>Device IP address</h3><p class="desc">Use DHCP unless this device needs a fixed address.</p>
-          <div class="field"><label for="ipAddressMode">Address mode</label><select id="ipAddressMode"><option value="0">DHCP (automatic)</option><option value="1">Static IP</option></select></div>
-          <div id="staticIpDiv" class="grid two hidden" style="margin-top:12px">
-            <div class="field"><label for="localIpAddress">Local IP address</label><input type="text" id="localIpAddress" inputmode="decimal" autocomplete="off" placeholder="192.168.1.50"></div>
-            <div class="field"><label for="subnetMask">Subnet mask</label><input type="text" id="subnetMask" inputmode="decimal" autocomplete="off" placeholder="255.255.255.0"></div>
-            <div class="field"><label for="gatewayIp">Gateway</label><input type="text" id="gatewayIp" inputmode="decimal" autocomplete="off" placeholder="192.168.1.1"></div>
-            <div class="field"><label for="dnsServer">DNS server</label><input type="text" id="dnsServer" inputmode="decimal" autocomplete="off" placeholder="8.8.8.8"></div>
-          </div></div>
-
-        <div class="card"><h3>MikroTik router</h3><p class="desc">RouterOS API credentials used to create and manage hotspot vouchers. On RouterOS v6, enable the API service (IP → Services → api).</p>
+        <div class="card">
+          <h3>MikroTik router</h3>
+          <p class="desc">RouterOS API access (v6: enable IP → Services → api).</p>
           <div class="grid two">
-            <div class="field"><label for="mikrotikIp">Router IP address</label><input type="text" id="mikrotikIp" inputmode="decimal" autocomplete="off" placeholder="10.0.0.1"></div>
+            <div class="field"><label for="mikrotikIp">Router IP address</label><input type="text" id="mikrotikIp" inputmode="decimal" autocomplete="off" value="10.0.0.1" placeholder="10.0.0.1"></div>
             <div class="field"><label for="mikrotikApiPort">API port</label><input type="number" id="mikrotikApiPort" min="1" max="65535" value="8728" inputmode="numeric"></div>
             <div class="field"><label for="mikrotikUser">API username</label><input type="text" id="mikrotikUser" autocomplete="off" spellcheck="false" placeholder="api"></div>
             <div class="field"><label for="mikrotikPw">API password</label><input type="password" id="mikrotikPw" autocomplete="off"></div>
             <div class="field"><label for="confirmMikrotikPw">Confirm API password</label><input type="password" id="confirmMikrotikPw" autocomplete="off"></div>
-          </div></div>
-
-        <div class="card"><h3>Admin sign-in</h3><p class="desc">Credentials for this admin panel.</p>
-          <div class="grid two">
+          </div>
+          <div class="field" style="margin-top:16px"><span class="label-text">Admin sign-in</span><p class="hint" style="margin-top:4px">Credentials for this admin panel.</p></div>
+          <div class="grid two" style="margin-top:8px">
             <div class="field"><label for="adminUser">Admin username</label><input type="text" id="adminUser" autocomplete="username" spellcheck="false" placeholder="admin"></div>
             <div class="field"><label for="adminPw">Admin password</label><input type="password" id="adminPw" autocomplete="new-password"></div>
             <div class="field"><label for="confirmAdminPw">Confirm admin password</label><input type="password" id="confirmAdminPw" autocomplete="new-password"></div>
-          </div></div>
+          </div>
+        </div>
 
-        <div class="card"><h3>Coin slot and timing</h3>
+        <div class="card">
+          <h3>Vendo behavior and hardware</h3>
+          <p class="desc">Timing, voucher defaults, and pin mapping.</p>
           <div class="grid two">
-            <div class="field"><label for="coinSlotWaitTime">Insert-wait time (seconds)</label><input type="number" id="coinSlotWaitTime" min="5" max="600" inputmode="numeric" placeholder="30"><p class="hint">How long the vendo waits for more coins before the session times out.</p></div>
-            <div class="field"><label for="autoRestartMinutes">Auto restart (minutes)</label><input type="number" id="autoRestartMinutes" min="0" max="10080" inputmode="numeric" placeholder="0"><p class="hint">0 disables scheduled restart. The device restarts only when idle (no coin session in progress). Coin pulses are capped at 20 per session.</p></div>
-          </div></div>
-
-        <div class="card"><h3>Pin mapping</h3><p class="desc">Match these to your wiring. Each pin must be unique.</p>
-          <div class="grid two">
+            <div class="field"><label for="coinSlotWaitTime">Insert-wait time (seconds)</label><input type="number" id="coinSlotWaitTime" min="5" max="600" inputmode="numeric" placeholder="30"><p class="hint">How long the vendo waits for more coins before timing out.</p></div>
+            <div class="field"><label for="autoRestartMinutes">Auto restart (minutes)</label><input type="number" id="autoRestartMinutes" min="0" max="10080" inputmode="numeric" placeholder="0"><p class="hint">0 disables. Restarts only when idle (no coin session). Pulses capped at 20 per session.</p></div>
+            <div class="field"><label for="voucherPrefix">Voucher prefix</label><input type="text" id="voucherPrefix" value="P" maxlength="5" autocomplete="off" spellcheck="false"><p class="hint">Up to 5 characters. Login mode: username only. Validity: stacks when extending (fixed).</p></div>
+            <div class="field"><label for="voucherProfile">Hotspot profile</label><input type="text" id="voucherProfile" value="default" autocomplete="off" spellcheck="false"></div>
+          </div>
+          <input type="hidden" id="voucherLoginOption" value="0">
+          <input type="hidden" id="voucherValidity" value="0">
+          <input type="hidden" id="checkInternetStatus" value="0">
+          <div class="field" style="margin-top:16px"><span class="label-text">Pin mapping</span><p class="hint" style="margin-top:4px">Each pin must be unique.</p></div>
+          <div class="grid two" style="margin-top:8px">
             <div class="field"><label for="coinSlotPin">Coinslot pin</label><select id="coinSlotPin"><option value="16">D0</option><option value="0">D3</option><option value="2">D4</option><option value="14">D5</option><option value="12" selected>D6</option><option value="13">D7</option><option value="15">D8</option><option value="3">RX</option></select></div>
             <div class="field"><label for="coinSlotSetPin">Coinslot set pin</label><select id="coinSlotSetPin"><option value="16">D0</option><option value="2">D3</option><option value="0">D4</option><option value="14">D5</option><option value="12">D6</option><option value="13" selected>D7</option><option value="15">D8</option><option value="3">RX</option></select></div>
             <div class="field"><label for="systemReadyLEDPin">System ready LED pin</label><select id="systemReadyLEDPin"><option value="16">D0</option><option value="0" selected>D3</option><option value="2">D4</option><option value="14">D5</option><option value="12">D6</option><option value="13">D7</option><option value="15">D8</option><option value="3">RX</option></select></div>
             <div class="field"><label for="insertCoinLEDPin">Insert coin LED pin</label><select id="insertCoinLEDPin"><option value="16">D0</option><option value="0">D3</option><option value="2" selected>D4</option><option value="14">D5</option><option value="12">D6</option><option value="13">D7</option><option value="15">D8</option><option value="3">RX</option></select></div>
             <div class="field"><label for="ledTriggerType">LED/relay trigger level</label><select id="ledTriggerType"><option value="0">Low</option><option value="1" selected>High</option></select></div>
-          </div></div>
-
-        <div class="card"><h3>Voucher defaults</h3>
-          <div class="grid two">
-            <div class="field"><label for="voucherPrefix">Voucher prefix</label><input type="text" id="voucherPrefix" value="P" maxlength="2" autocomplete="off" spellcheck="false"><p class="hint">Up to 2 characters, starting with a letter.</p></div>
-            <div class="field"><label for="voucherProfile">Hotspot profile</label><input type="text" id="voucherProfile" value="default" autocomplete="off" spellcheck="false"></div>
-            <div class="field"><label for="voucherLoginOption">Login mode</label><select id="voucherLoginOption"><option value="0">Username only</option><option value="1">Username and password</option></select></div>
-            <div class="field"><label for="voucherValidity">Validity behavior</label><select id="voucherValidity"><option value="0">Stack validity when extending time</option><option value="1">Use first validity plus extend time</option></select></div>
-          </div></div>
-
-        <div class="card"><h3>Internet check</h3>
-          <div class="field"><label for="checkInternetStatus">Check internet before accepting coins</label><select id="checkInternetStatus"><option value="1">Yes</option><option value="0">No</option></select></div></div>
+          </div>
+        </div>
 
         <input type="hidden" value="1" id="setupDoneFlag">
         <input id="importSystemConfigFile" type="file" accept=".data,text/plain" class="hidden">
@@ -221,7 +217,7 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
         <div class="card">
           <p class="desc">Generates voucher codes on the router and opens a printable sheet. Keep quantities reasonable to avoid overloading the device or router.</p>
           <div class="grid two">
-            <div class="field"><label for="voucherGeneratePrefix">Prefix</label><input type="text" id="voucherGeneratePrefix" value="VC" maxlength="2" autocomplete="off" spellcheck="false"></div>
+            <div class="field"><label for="voucherGeneratePrefix">Prefix</label><input type="text" id="voucherGeneratePrefix" value="VC" maxlength="5" autocomplete="off" spellcheck="false"></div>
             <div class="field"><label for="voucherAmount">Amount (₱)</label><input type="number" id="voucherAmount" value="50" min="1" inputmode="numeric"></div>
             <div class="field"><label for="voucherQty">Quantity</label><input type="number" id="voucherQty" value="1" min="1" max="50" inputmode="numeric"></div>
             <div class="field"><label for="addToSales">Add to sales totals</label><select id="addToSales"><option value="1">Yes</option><option value="0">No</option></select></div>
@@ -291,15 +287,12 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
       upTimeSeconds = (parseInt(d[0], 10) || 0) / 1000;
       timer = setInterval(function () { upTimeSeconds++; $('#upTime').text(secondsToDhms(upTimeSeconds)); }, 1000);
       $('#upTime').text(secondsToDhms(upTimeSeconds));
-      $('#lifeCoinCount').text(d[1] || '0'); $('#coinCount').text(d[2] || '0'); $('#customerCount').text(d[3] || '0');
-      setStatus('#internetStatus', d[4] === '1', 'Online', 'Offline');
+      $('#lifeCoinCount').text('₱' + (d[1] || '0')); $('#coinCount').text('₱' + (d[2] || '0')); $('#customerCount').text(d[3] || '0');
       var mkOk = d[5] === '1';
       setStatus('#mikrotikStatus', mkOk, 'Online', 'Offline');
-      $('#mkLabel').text('MikroTik: ' + (mkOk ? 'online' : 'offline'));
-      $('#mkDot').removeClass('ok bad').addClass(mkOk ? 'ok' : 'bad');
       $('#macAddress').text(d[6] || '—'); $('#ipAddress').text(d[7] || '—'); $('#hardwareType').text(d[8] || 'ESP8266');
       var ver = d[9] || '—'; $('#appVersionAbout').text(ver); $('#currentVersion').text(ver);
-    }).fail(function () { $('#mkLabel').text('MikroTik: unavailable'); $('#mkDot').removeClass('ok').addClass('bad'); });
+    }).fail(function () { setStatus('#mikrotikStatus', false, 'Online', 'Offline'); });
     openTab('Dashboard');
   }
   function resetStats(type) { if (!confirm('Reset this statistic?')) return; $.post('admin/api/resetStatistic', 'type=' + encodeURIComponent(type), function () { openDashboard(); }).fail(function(xhr){ alert('Reset failed: ' + (xhr.responseText || xhr.statusText || 'unknown error')); }); }
@@ -307,52 +300,60 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
   function validateIPaddress(ip) { return /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(ip); }
   function validateIpAddressFields(fields) { for (var k in fields) { var v = fields[k]; if (!v || !validateIPaddress(v)) { alert(k + ' is not a valid IPv4 address.'); return false; } } return true; }
   function validateCoinSlotPin(pinMap) { var keys = Object.keys(pinMap); for (var i = 0; i < keys.length; i++) for (var j = i + 1; j < keys.length; j++) if (pinMap[keys[i]] === pinMap[keys[j]]) { alert(keys[j] + ' is already used by ' + keys[i] + '.'); return false; } return true; }
-  function ipAddressModeChange() { if ($('#ipAddressMode').val() === '1') $('#staticIpDiv').removeClass('hidden'); else $('#staticIpDiv').addClass('hidden'); }
+  function ipAddressModeChange() { $('#staticIpDiv').removeClass('hidden'); }
   function populateSystemConfigFields(data) {
     var c = String(data || '').split(separator);
-    // Ignore the notification fields a 32-field backup may still carry.
     if (c.length >= 32) c = c.slice(0, 26);
+    var setFixed = function () {
+      $('#checkInternetStatus').val('0');
+      $('#voucherLoginOption').val('0');
+      $('#voucherValidity').val('0');
+      $('#ipAddressMode').val('1');
+      ipAddressModeChange();
+    };
+    var setStaticDefaults = function () {
+      if (!$('#localIpAddress').val()) $('#localIpAddress').val('10.0.0.254');
+      if (!$('#subnetMask').val()) $('#subnetMask').val('255.255.255.0');
+      if (!$('#gatewayIp').val()) $('#gatewayIp').val('10.0.0.1');
+      if (!$('#dnsServer').val()) $('#dnsServer').val('1.1.1.1');
+      if (!$('#mikrotikIp').val()) $('#mikrotikIp').val('10.0.0.1');
+    };
     if (c.length >= 30) {
-      $('#vendoName').val(c[0]); $('#wifiSSID').val(c[1]); $('#wifiPW').val(c[2]); $('#mikrotikIp').val(c[3]); $('#mikrotikUser').val(c[4]); $('#mikrotikPw').val(c[5]); $('#confirmMikrotikPw').val(c[5]);
-      $('#coinSlotWaitTime').val(c[6]); $('#adminUser').val(c[7]); $('#adminPw').val(c[8]); $('#confirmAdminPw').val(c[8]);
-      $('#coinSlotPin').val(c[11]); $('#coinSlotSetPin').val(c[12]); $('#systemReadyLEDPin').val(c[13]); $('#insertCoinLEDPin').val(c[14]);
-      $('#checkInternetStatus').val(c[17] || '0'); $('#voucherPrefix').val(c[18] || 'P'); $('#setupDoneFlag').val(c[20] || '0');
-      $('#voucherLoginOption').val(c[21] || '0'); $('#voucherProfile').val(c[22] || 'default'); $('#voucherValidity').val(c[23] || '0');
-      $('#ledTriggerType').val(c[24] || '1'); $('#ipAddressMode').val(c[25] || '0'); ipAddressModeChange();
-      $('#localIpAddress').val(c[26] || ''); $('#gatewayIp').val(c[27] || ''); $('#subnetMask').val(c[28] || ''); $('#dnsServer').val(c[29] || '');
-      $('#mikrotikApiPort').val('8728'); return;
+      $('#vendoName').val(c[0] || ''); $('#wifiSSID').val(c[1] || ''); $('#wifiPW').val(c[2] || ''); $('#mikrotikIp').val(c[3] || '10.0.0.1'); $('#mikrotikUser').val(c[4] || ''); $('#mikrotikPw').val(c[5] || ''); $('#confirmMikrotikPw').val(c[5] || '');
+      $('#coinSlotWaitTime').val(c[6] || '30'); $('#adminUser').val(c[7] || ''); $('#adminPw').val(c[8] || ''); $('#confirmAdminPw').val(c[8] || '');
+      $('#coinSlotPin').val(c[11] || '12'); $('#coinSlotSetPin').val(c[12] || '13'); $('#systemReadyLEDPin').val(c[13] || '0'); $('#insertCoinLEDPin').val(c[14] || '2');
+      $('#voucherPrefix').val(c[18] || 'P'); $('#setupDoneFlag').val(c[20] || '0'); $('#voucherProfile').val(c[22] || 'default');
+      $('#ledTriggerType').val(c[24] || '1');
+      $('#localIpAddress').val(c[26] || '10.0.0.254'); $('#gatewayIp').val(c[27] || '10.0.0.1'); $('#subnetMask').val(c[28] || '255.255.255.0'); $('#dnsServer').val(c[29] || '1.1.1.1');
+      $('#mikrotikApiPort').val('8728'); setFixed(); return;
     }
     if (c.length >= 27) {
-      $('#vendoName').val(c[0]); $('#wifiSSID').val(c[1]); $('#wifiPW').val(c[2]); $('#mikrotikIp').val(c[3]); $('#mikrotikUser').val(c[4]); $('#mikrotikPw').val(c[5]); $('#confirmMikrotikPw').val(c[5]);
-      $('#coinSlotWaitTime').val(c[6]); $('#adminUser').val(c[7]); $('#adminPw').val(c[8]); $('#confirmAdminPw').val(c[8]);
-      $('#coinSlotPin').val(c[11]); $('#coinSlotSetPin').val(c[12]); $('#systemReadyLEDPin').val(c[13]); $('#insertCoinLEDPin').val(c[14]);
-      $('#checkInternetStatus').val(c[15] || '0'); $('#voucherPrefix').val(c[16] || 'P'); $('#setupDoneFlag').val(c[17] || '0');
-      $('#voucherLoginOption').val(c[18] || '0'); $('#voucherProfile').val(c[19] || 'default'); $('#voucherValidity').val(c[20] || '0');
-      $('#ledTriggerType').val(c[21] || '1'); $('#ipAddressMode').val(c[22] || '0'); ipAddressModeChange();
-      $('#localIpAddress').val(c[23] || ''); $('#gatewayIp').val(c[24] || ''); $('#subnetMask').val(c[25] || ''); $('#dnsServer').val(c[26] || '');
-      $('#mikrotikApiPort').val('8728'); return;
+      $('#vendoName').val(c[0] || ''); $('#wifiSSID').val(c[1] || ''); $('#wifiPW').val(c[2] || ''); $('#mikrotikIp').val(c[3] || '10.0.0.1'); $('#mikrotikUser').val(c[4] || ''); $('#mikrotikPw').val(c[5] || ''); $('#confirmMikrotikPw').val(c[5] || '');
+      $('#coinSlotWaitTime').val(c[6] || '30'); $('#adminUser').val(c[7] || ''); $('#adminPw').val(c[8] || ''); $('#confirmAdminPw').val(c[8] || '');
+      $('#coinSlotPin').val(c[11] || '12'); $('#coinSlotSetPin').val(c[12] || '13'); $('#systemReadyLEDPin').val(c[13] || '0'); $('#insertCoinLEDPin').val(c[14] || '2');
+      $('#voucherPrefix').val(c[16] || 'P'); $('#setupDoneFlag').val(c[17] || '0'); $('#voucherProfile').val(c[19] || 'default');
+      $('#ledTriggerType').val(c[21] || '1');
+      $('#localIpAddress').val(c[23] || '10.0.0.254'); $('#gatewayIp').val(c[24] || '10.0.0.1'); $('#subnetMask').val(c[25] || '255.255.255.0'); $('#dnsServer').val(c[26] || '1.1.1.1');
+      $('#mikrotikApiPort').val('8728'); setFixed(); return;
     }
     if (c.length >= 26) {
       $('#vendoName').val(c[0] || ''); $('#wifiSSID').val(c[1] || ''); $('#wifiPW').val(c[2] || '');
-      $('#mikrotikIp').val(c[3] || ''); $('#mikrotikUser').val(c[4] || ''); $('#mikrotikPw').val(c[5] || ''); $('#confirmMikrotikPw').val(c[5] || '');
+      $('#mikrotikIp').val(c[3] || '10.0.0.1'); $('#mikrotikUser').val(c[4] || ''); $('#mikrotikPw').val(c[5] || ''); $('#confirmMikrotikPw').val(c[5] || '');
       $('#coinSlotWaitTime').val(c[6] || '30'); $('#adminUser').val(c[7] || ''); $('#adminPw').val(c[8] || ''); $('#confirmAdminPw').val(c[8] || '');
       $('#coinSlotPin').val(c[9] || '12'); $('#coinSlotSetPin').val(c[10] || '13'); $('#systemReadyLEDPin').val(c[11] || '0'); $('#insertCoinLEDPin').val(c[12] || '2');
-      $('#checkInternetStatus').val(c[13] || '0'); $('#voucherPrefix').val(c[14] || 'P'); $('#setupDoneFlag').val(c[15] || '0');
-      $('#voucherLoginOption').val(c[16] || '0'); $('#voucherProfile').val(c[17] || 'default'); $('#voucherValidity').val(c[18] || '0');
-      $('#ledTriggerType').val(c[19] || '1'); $('#ipAddressMode').val(c[20] || '0'); ipAddressModeChange();
-      $('#localIpAddress').val(c[21] || ''); $('#gatewayIp').val(c[22] || ''); $('#subnetMask').val(c[23] || ''); $('#dnsServer').val(c[24] || '');
-      $('#mikrotikApiPort').val(c[25] || '8728');
-      return;
+      $('#voucherPrefix').val(c[14] || 'P'); $('#setupDoneFlag').val(c[15] || '0'); $('#voucherProfile').val(c[17] || 'default');
+      $('#ledTriggerType').val(c[19] || '1');
+      $('#localIpAddress').val(c[21] || '10.0.0.254'); $('#gatewayIp').val(c[22] || '10.0.0.1'); $('#subnetMask').val(c[23] || '255.255.255.0'); $('#dnsServer').val(c[24] || '1.1.1.1');
+      $('#mikrotikApiPort').val(c[25] || '8728'); setFixed(); return;
     }
     $('#vendoName').val(c[0] || ''); $('#wifiSSID').val(c[1] || ''); $('#wifiPW').val(c[2] || '');
-    $('#mikrotikIp').val(c[3] || ''); $('#mikrotikUser').val(c[4] || ''); $('#mikrotikPw').val(c[5] || ''); $('#confirmMikrotikPw').val(c[5] || '');
+    $('#mikrotikIp').val(c[3] || '10.0.0.1'); $('#mikrotikUser').val(c[4] || ''); $('#mikrotikPw').val(c[5] || ''); $('#confirmMikrotikPw').val(c[5] || '');
     $('#coinSlotWaitTime').val(c[6] || '30'); $('#adminUser').val(c[7] || ''); $('#adminPw').val(c[8] || ''); $('#confirmAdminPw').val(c[8] || '');
     $('#coinSlotPin').val(c[9] || '12'); $('#coinSlotSetPin').val(c[10] || '13'); $('#systemReadyLEDPin').val(c[11] || '0'); $('#insertCoinLEDPin').val(c[12] || '2');
-    $('#checkInternetStatus').val(c[13] || '0'); $('#voucherPrefix').val(c[14] || 'P'); $('#setupDoneFlag').val(c[15] || '0');
-    $('#voucherLoginOption').val(c[16] || '0'); $('#voucherProfile').val(c[17] || 'default'); $('#voucherValidity').val(c[18] || '0');
-    $('#ledTriggerType').val(c[19] || '1'); $('#ipAddressMode').val(c[20] || '0'); ipAddressModeChange();
-    $('#localIpAddress').val(c[21] || ''); $('#gatewayIp').val(c[22] || ''); $('#subnetMask').val(c[23] || ''); $('#dnsServer').val(c[24] || '');
-    $('#mikrotikApiPort').val('8728');
+    $('#voucherPrefix').val(c[14] || 'P'); $('#setupDoneFlag').val(c[15] || '0'); $('#voucherProfile').val(c[17] || 'default');
+    $('#ledTriggerType').val(c[19] || '1');
+    $('#localIpAddress').val(c[21] || '10.0.0.254'); $('#gatewayIp').val(c[22] || '10.0.0.1'); $('#subnetMask').val(c[23] || '255.255.255.0'); $('#dnsServer').val(c[24] || '1.1.1.1');
+    $('#mikrotikApiPort').val('8728'); setFixed(); setStaticDefaults();
   }
   function openSystemConfig() { $.get('admin/api/getSystemConfig?query=' + new Date().getTime(), function (data) { populateSystemConfigFields(data); }); $.get('admin/api/getAutoRestart?query=' + new Date().getTime(), function (m) { $('#autoRestartMinutes').val(String(parseInt(m,10)||0)); }).fail(function(){ $('#autoRestartMinutes').val('0'); }); openTab('SystemConfigration'); }
   function saveSystemConfig() {
@@ -360,9 +361,9 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
     if ($('#mikrotikPw').val() !== $('#confirmMikrotikPw').val()) { alert('MikroTik password does not match the confirmation.'); return; }
     if ($('#adminPw').val() !== $('#confirmAdminPw').val()) { alert('Admin password does not match the confirmation.'); return; }
     if (!validateCoinSlotPin(pinMap)) return;
-    var ipAddressMode = $('#ipAddressMode').val();
-    if (ipAddressMode === '1' && !validateIpAddressFields({ 'Local IP address': $('#localIpAddress').val(), 'Gateway': $('#gatewayIp').val(), 'Subnet mask': $('#subnetMask').val(), 'DNS server': $('#dnsServer').val() })) return;
-    var delimFields = { 'Vendo name': $('#vendoName').val(), 'WiFi SSID': $('#wifiSSID').val(), 'WiFi password': $('#wifiPW').val(), 'MikroTik IP': $('#mikrotikIp').val(), 'MikroTik username': $('#mikrotikUser').val(), 'MikroTik password': $('#mikrotikPw').val(), 'Admin username': $('#adminUser').val(), 'Admin password': $('#adminPw').val(), 'Voucher prefix': $('#voucherPrefix').val(), 'Hotspot profile': $('#voucherProfile').val() };
+    var ipAddressMode = '1';
+    if (!validateIpAddressFields({ 'Local IP': $('#localIpAddress').val(), 'Gateway': $('#gatewayIp').val(), 'Subnet mask': $('#subnetMask').val(), 'DNS server': $('#dnsServer').val() })) return;
+    var delimFields = { 'Vendo name': $('#vendoName').val(), 'WiFi SSID': $('#wifiSSID').val(), 'WiFi password': $('#wifiPW').val(), 'Router IP address': $('#mikrotikIp').val(), 'MikroTik username': $('#mikrotikUser').val(), 'MikroTik password': $('#mikrotikPw').val(), 'Admin username': $('#adminUser').val(), 'Admin password': $('#adminPw').val(), 'Voucher prefix': $('#voucherPrefix').val(), 'Hotspot profile': $('#voucherProfile').val() };
     for (var dk in delimFields) { if (String(delimFields[dk]).indexOf('|') !== -1) { alert(dk + ' cannot contain the "|" character.'); return; } }
     $('#setupDoneFlag').val('1');
     var restartMinutes = parseInt($('#autoRestartMinutes').val(), 10); if (isNaN(restartMinutes) || restartMinutes < 0) restartMinutes = 0;
@@ -370,8 +371,8 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
       $('#vendoName').val(), $('#wifiSSID').val(), $('#wifiPW').val(), $('#mikrotikIp').val(), $('#mikrotikUser').val(), $('#mikrotikPw').val(),
       $('#coinSlotWaitTime').val(), $('#adminUser').val(), $('#adminPw').val(),
       $('#coinSlotPin').val(), $('#coinSlotSetPin').val(), $('#systemReadyLEDPin').val(), $('#insertCoinLEDPin').val(),
-      $('#checkInternetStatus').val(), $('#voucherPrefix').val(), $('#setupDoneFlag').val(), $('#voucherLoginOption').val(), $('#voucherProfile').val(),
-      $('#voucherValidity').val(), $('#ledTriggerType').val(), ipAddressMode,
+      '0', $('#voucherPrefix').val(), $('#setupDoneFlag').val(), '0', $('#voucherProfile').val(),
+      '0', $('#ledTriggerType').val(), ipAddressMode,
       $('#localIpAddress').val(), $('#gatewayIp').val(), $('#subnetMask').val(), $('#dnsServer').val(),
       $('#mikrotikApiPort').val()
     ]);
@@ -389,13 +390,14 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
   function getValidityMinutes(i) { return totalMinutesFromHMS($('#validityHoursText'+i).val(), $('#validityMinutesText'+i).val(), $('#validitySecondsText'+i).val()); }
   function ratePriceLabel(name, price) { var hint = String(price==null?'':price).trim(), p=parseFloat(hint); if (hint!==''&&isFinite(p)) return pesoLabel(p); var m=String(name==null?'':name).trim().match(/(\d+(?:\.\d+)?)/); if(m) return pesoLabel(parseFloat(m[1])); return String(name==null?'':name).trim(); }
   function ratePreviewText(name, price, minutes, validity) { var t=humanDuration(minutes), e=humanDuration(validity); return ratePriceLabel(name,price)+' · '+(t==='—'?'no time set':t)+' · '+(e==='—'?'no expiry':e); }
-  function updateRatePreview(i) { var box=$('#ratePreview'+i); if(!box.length) return; var name=$('#rateNameText'+i).val()||'', price=$('#priceText'+i).val()||'', minutes=getTimeMinutes(i), validity=getValidityMinutes(i); if(String(name).trim()===''&&String(price).trim()===''&&minutes<=0&&validity<=0){ box.text('Blank row — not saved'); return; } box.text(ratePreviewText(name,price,minutes,validity)); }
+  function updateRatePreview(i) { var box=$('#ratePreview'+i); if(!box.length) return; var name=$('#rateNameText'+i).val()||'', price=$('#priceText'+i).val()||'', minutes=getTimeMinutes(i), validity=getValidityMinutes(i); if(String(price).trim()===''&&minutes<=0&&validity<=0){ box.text('Blank row — not saved'); return; } box.text(ratePreviewText(name,price,minutes,validity)); }
   function esc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function generateRowScript(i, rowData) {
     rowData = rowData || []; var time = splitMinutesToHMS(rowData[2]), validity = splitMinutesToHMS(rowData[3]);
     return '<div id="rateRow'+i+'" class="rate"><div class="rate-head"><h4>Rate '+(i+1)+'</h4><button type="button" class="btn sm danger" data-del-rate="'+i+'">Remove</button></div>'
-      + '<div class="grid two"><div class="field"><label for="rateNameText'+i+'">Rate name</label><input type="text" id="rateNameText'+i+'" value="'+esc(rowData[0])+'" placeholder="1 hour promo"></div>'
-      + '<div class="field"><label for="priceText'+i+'">Price (₱)</label><input type="number" min="0" step="any" id="priceText'+i+'" value="'+esc(rowData[1])+'" placeholder="0"></div></div>'
+      + '<input type="hidden" id="rateNameText'+i+'" value="'+esc(rowData[0])+'">'
+      + '<div class="grid two"><div class="field"><label for="priceText'+i+'">Price (₱)</label><input type="number" min="0" step="any" id="priceText'+i+'" value="'+esc(rowData[1])+'" placeholder="0"></div>'
+      + '<div class="field"><label for="dataLimitText'+i+'">Data limit (MB, optional)</label><input type="number" min="0" id="dataLimitText'+i+'" value="'+esc(rowData[4])+'" placeholder="0"></div></div>'
       + '<div class="field" style="margin-top:12px"><span class="label-text">Time limit</span><div class="grid three" style="margin-top:6px">'
       + '<div class="field"><label for="timeHoursText'+i+'" class="hint">Hours</label><input type="number" min="0" id="timeHoursText'+i+'" value="'+esc(time.h)+'"></div>'
       + '<div class="field"><label for="timeMinutesText'+i+'" class="hint">Minutes</label><input type="number" min="0" id="timeMinutesText'+i+'" value="'+esc(time.m)+'"></div>'
@@ -405,9 +407,8 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
       + '<div class="field"><label for="validityHoursText'+i+'" class="hint">Hours</label><input type="number" min="0" id="validityHoursText'+i+'" value="'+esc(validity.h)+'"></div>'
       + '<div class="field"><label for="validityMinutesText'+i+'" class="hint">Minutes</label><input type="number" min="0" id="validityMinutesText'+i+'" value="'+esc(validity.m)+'"></div>'
       + '<div class="field"><label for="validitySecondsText'+i+'" class="hint">Seconds</label><input type="number" min="0" id="validitySecondsText'+i+'" value="'+esc(validity.s)+'"></div></div>'
-      + '<p class="hint" style="margin-top:6px">Leave at 0 for no expiry. Saved as total minutes.</p></div>'
-      + '<div class="grid two" style="margin-top:12px"><div class="field"><label for="dataLimitText'+i+'">Data limit (MB, optional)</label><input type="number" min="0" id="dataLimitText'+i+'" value="'+esc(rowData[4])+'" placeholder="0"></div>'
-      + '<div class="field"><label for="profileNameText'+i+'">Hotspot profile (optional)</label><input type="text" id="profileNameText'+i+'" value="'+esc(rowData[5])+'" placeholder="Overrides default"></div></div>'
+      + '<p class="hint" style="margin-top:6px">Leave at 0 for no expiry.</p></div>'
+      + '<div class="grid two" style="margin-top:12px"><div class="field"><label for="profileNameText'+i+'">Hotspot profile (optional)</label><input type="text" id="profileNameText'+i+'" value="'+esc(rowData[5])+'" placeholder="Overrides default"></div></div>'
       + '<div class="preview" id="ratePreview'+i+'"></div></div>';
   }
   function addRate() { $('#promoRateBody').append(generateRowScript(rateCount, ['','','0','0','',''])); updateRatePreview(rateCount); rateCount++; }
@@ -416,18 +417,20 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
   function savePromoRates() {
     var params = [];
     for (var i=0;i<2000;i++) {
-      if ($('#rateNameText'+i).length===0) continue;
-      var rateNameText=String($('#rateNameText'+i).val()||'').trim(), priceText=String($('#priceText'+i).val()||'').trim();
+      if ($('#priceText'+i).length===0) continue;
+      var priceText=String($('#priceText'+i).val()||'').trim();
       var dataLimitText=String($('#dataLimitText'+i).val()||'').trim(), profileNameText=String($('#profileNameText'+i).val()||'').trim();
       var minutes=getTimeMinutes(i), validity=getValidityMinutes(i);
-      var rowEmpty=(rateNameText===''&&priceText===''&&minutes<=0&&validity<=0&&dataLimitText===''&&profileNameText==='');
+      var rowEmpty=(priceText===''&&minutes<=0&&validity<=0&&dataLimitText===''&&profileNameText==='');
       if (rowEmpty) continue;
       var rowNum=params.length+1;
-      if (rateNameText===''){ alert('Rate '+rowNum+': enter a name, or clear the row to remove it.'); return; }
       var price=parseFloat(priceText);
       if (priceText===''||!isFinite(price)||price<=0){ alert('Rate '+rowNum+': price must be greater than 0.'); return; }
       if (minutes<=0){ alert('Rate '+rowNum+': set a time limit greater than 0.'); return; }
-      if (/[#|]/.test(rateNameText)||/[#|]/.test(profileNameText)){ alert('Rate '+rowNum+': "#" and "|" cannot be used in the name or profile.'); return; }
+      if (/[#|]/.test(profileNameText)){ alert('Rate '+rowNum+': "#" and "|" cannot be used in the profile.'); return; }
+      var rateNameText=String($('#rateNameText'+i).val()||'').trim();
+      if (!rateNameText || /[₱]/.test(rateNameText) || rateNameText === String(price)) rateNameText = 'P' + priceText;
+      if (/[#|]/.test(rateNameText)) rateNameText = 'P' + priceText;
       params.push(rateNameText+'#'+priceText+'#'+minutes+'#'+validity+'#'+dataLimitText+'#'+profileNameText);
     }
     $.post('admin/api/saveRates', 'data=' + createParam(params)).done(function(){ alert('Rates saved.'); }).fail(function(xhr){ alert('Save failed: ' + (xhr.responseText || xhr.statusText || 'unknown error')); });

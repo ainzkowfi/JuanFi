@@ -105,10 +105,10 @@ String adminAuth = "";
 String adminSessionToken = "";
 String vendorName = "";
 
-IPAddress local_IP(192, 168, 10, 15);
-IPAddress gateway(192, 168, 10, 1);
+IPAddress local_IP(10, 0, 0, 254);
+IPAddress gateway(10, 0, 0, 1);
 IPAddress subnet(255, 255, 255, 0);
-IPAddress primaryDNS(192, 168, 10, 1);
+IPAddress primaryDNS(1, 1, 1, 1);
 IPAddress apIP(172, 217, 28, 1);
 
 WiFiClient apiClient;
@@ -399,12 +399,12 @@ void populateSystemConfiguration() {
     COIN_SET_PIN = get(12).toInt();
     SYSTEM_READY_LED = get(13).toInt();
     INSERT_COIN_LED = get(14).toInt();
-    CHECK_INTERNET_CONNECTION = get(17).toInt() ? 1 : 0;
-    VOUCHER_PREFIX = sanitizeCommandToken(get(18), 2, "P");
+    CHECK_INTERNET_CONNECTION = 0;
+    VOUCHER_PREFIX = sanitizeCommandToken(get(18), 5, "P");
     SETUP_FINISH = get(20).toInt() ? 1 : 0;
-    VOUCHER_LOGIN_OPTION = get(21).toInt() ? 1 : 0;
+    VOUCHER_LOGIN_OPTION = 0;
     VOUCHER_PROFILE = sanitizeCommandToken(get(22), 24, "default");
-    VOUCHER_VALIDITY_OPTION = get(23).toInt() ? 1 : 0;
+    VOUCHER_VALIDITY_OPTION = 0;
     LED_TRIGGER_TYPE = get(24).toInt() ? 1 : 0;
     IP_ADDRESS_MODE = get(25).toInt() ? 1 : 0;
     if (IP_ADDRESS_MODE == 1) {
@@ -428,12 +428,12 @@ void populateSystemConfiguration() {
     COIN_SET_PIN = get(12).toInt();
     SYSTEM_READY_LED = get(13).toInt();
     INSERT_COIN_LED = get(14).toInt();
-    CHECK_INTERNET_CONNECTION = get(15).toInt() ? 1 : 0;
-    VOUCHER_PREFIX = sanitizeCommandToken(get(16), 2, "P");
+    CHECK_INTERNET_CONNECTION = 0;
+    VOUCHER_PREFIX = sanitizeCommandToken(get(16), 5, "P");
     SETUP_FINISH = get(17).toInt() ? 1 : 0;
-    VOUCHER_LOGIN_OPTION = get(18).toInt() ? 1 : 0;
+    VOUCHER_LOGIN_OPTION = 0;
     VOUCHER_PROFILE = sanitizeCommandToken(get(19), 24, "default");
-    VOUCHER_VALIDITY_OPTION = get(20).toInt() ? 1 : 0;
+    VOUCHER_VALIDITY_OPTION = 0;
     LED_TRIGGER_TYPE = get(21).toInt() ? 1 : 0;
     IP_ADDRESS_MODE = get(22).toInt() ? 1 : 0;
     if (IP_ADDRESS_MODE == 1) {
@@ -457,12 +457,12 @@ void populateSystemConfiguration() {
     COIN_SET_PIN = get(10).toInt();
     SYSTEM_READY_LED = get(11).toInt();
     INSERT_COIN_LED = get(12).toInt();
-    CHECK_INTERNET_CONNECTION = get(13).toInt() ? 1 : 0;
-    VOUCHER_PREFIX = sanitizeCommandToken(get(14), 2, "P");
+    CHECK_INTERNET_CONNECTION = 0;
+    VOUCHER_PREFIX = sanitizeCommandToken(get(14), 5, "P");
     SETUP_FINISH = get(15).toInt() ? 1 : 0;
-    VOUCHER_LOGIN_OPTION = get(16).toInt() ? 1 : 0;
+    VOUCHER_LOGIN_OPTION = 0;
     VOUCHER_PROFILE = sanitizeCommandToken(get(17), 24, "default");
-    VOUCHER_VALIDITY_OPTION = get(18).toInt() ? 1 : 0;
+    VOUCHER_VALIDITY_OPTION = 0;
     LED_TRIGGER_TYPE = get(19).toInt() ? 1 : 0;
     IP_ADDRESS_MODE = get(20).toInt() ? 1 : 0;
     if (IP_ADDRESS_MODE == 1) {
@@ -488,12 +488,12 @@ void populateSystemConfiguration() {
     COIN_SET_PIN = get(10).toInt();
     SYSTEM_READY_LED = get(11).toInt();
     INSERT_COIN_LED = get(12).toInt();
-    CHECK_INTERNET_CONNECTION = get(13).toInt() ? 1 : 0;
-    VOUCHER_PREFIX = sanitizeCommandToken(get(14), 2, "P");
+    CHECK_INTERNET_CONNECTION = 0;
+    VOUCHER_PREFIX = sanitizeCommandToken(get(14), 5, "P");
     SETUP_FINISH = get(15).toInt() ? 1 : 0;
-    VOUCHER_LOGIN_OPTION = get(16).toInt() ? 1 : 0;
+    VOUCHER_LOGIN_OPTION = 0;
     VOUCHER_PROFILE = sanitizeCommandToken(get(17), 24, "default");
-    VOUCHER_VALIDITY_OPTION = get(18).toInt() ? 1 : 0;
+    VOUCHER_VALIDITY_OPTION = 0;
     LED_TRIGGER_TYPE = get(19).toInt() ? 1 : 0;
     IP_ADDRESS_MODE = get(20).toInt() ? 1 : 0;
     if (IP_ADDRESS_MODE == 1) {
@@ -1307,7 +1307,6 @@ void handleAdminDashboard() {
   int coinCountVal = eeGetInt(COIN_COUNT_ADDRESS);
   int customerCount = eeGetInt(CUSTOMER_COUNT_ADDRESS);
   bool hasInternetConnection = true;
-  if (CHECK_INTERNET_CONNECTION == 1) hasInternetConnection = hasInternetConnect();
   // Refresh mikrotik status opportunistically (lightweight) without blocking long; rely on ensure state
   bool mtOk = mikrotikConnectionSuccess && apiClient.connected();
   String data = String(upTime) + "|" + String(lifeTimeCoinCount) + "|" + String(coinCountVal) + "|" +
@@ -1521,15 +1520,6 @@ void convertVoucher() {
 }
 
 void topUp() {
-  bool hasInternetConnection = true;
-  if (CHECK_INTERNET_CONNECTION == 1) hasInternetConnection = hasInternetConnect();
-  if (!hasInternetConnection) {
-    const char *keys[] = {"status", "errorCode"};
-    const char *values[] = {"false", "no.internet.detected"};
-    setupCORSPolicy();
-    server.send(200, "application/json", toJson(keys, values, 2));
-    return;
-  }
   if (!checkIfSystemIsAvailable()) return;
 
   String voucher = server.arg("voucher");
@@ -1581,7 +1571,7 @@ void handleGenerateVouchers() {
   int amount = clampInt(server.arg("amt").toInt(), 0, 100000);
   int qty = clampInt(server.arg("qty").toInt(), 1, 50);
   int addToSales = server.arg("sales").toInt() ? 1 : 0;
-  String prefix = sanitizeCommandToken(server.arg("pfx"), 4, VOUCHER_PREFIX);
+  String prefix = sanitizeCommandToken(server.arg("pfx"), 5, VOUCHER_PREFIX);
   String voucherGenerated = "";
   int successCount = 0;
   const char alphabet[] = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
