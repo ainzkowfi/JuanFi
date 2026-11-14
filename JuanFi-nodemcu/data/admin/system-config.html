@@ -171,7 +171,10 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
           </div></div>
 
         <div class="card"><h3>Coin slot and timing</h3>
-          <div class="field"><label for="coinSlotWaitTime">Insert-wait time (seconds)</label><input type="number" id="coinSlotWaitTime" min="5" max="600" inputmode="numeric" placeholder="30"><p class="hint">How long the vendo waits for more coins before the session times out.</p></div></div>
+          <div class="grid two">
+            <div class="field"><label for="coinSlotWaitTime">Insert-wait time (seconds)</label><input type="number" id="coinSlotWaitTime" min="5" max="600" inputmode="numeric" placeholder="30"><p class="hint">How long the vendo waits for more coins before the session times out.</p></div>
+            <div class="field"><label for="autoRestartMinutes">Auto restart (minutes)</label><input type="number" id="autoRestartMinutes" min="0" max="10080" inputmode="numeric" placeholder="0"><p class="hint">0 disables scheduled restart. The device restarts only when idle (no coin session in progress). Coin pulses are capped at 20 per session.</p></div>
+          </div></div>
 
         <div class="card"><h3>Pin mapping</h3><p class="desc">Match these to your wiring. Each pin must be unique.</p>
           <div class="grid two">
@@ -351,7 +354,7 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
     $('#localIpAddress').val(c[21] || ''); $('#gatewayIp').val(c[22] || ''); $('#subnetMask').val(c[23] || ''); $('#dnsServer').val(c[24] || '');
     $('#mikrotikApiPort').val('8728');
   }
-  function openSystemConfig() { $.get('admin/api/getSystemConfig?query=' + new Date().getTime(), function (data) { populateSystemConfigFields(data); }); openTab('SystemConfigration'); }
+  function openSystemConfig() { $.get('admin/api/getSystemConfig?query=' + new Date().getTime(), function (data) { populateSystemConfigFields(data); }); $.get('admin/api/getAutoRestart?query=' + new Date().getTime(), function (m) { $('#autoRestartMinutes').val(String(parseInt(m,10)||0)); }).fail(function(){ $('#autoRestartMinutes').val('0'); }); openTab('SystemConfigration'); }
   function saveSystemConfig() {
     var pinMap = { 'Coinslot pin': $('#coinSlotPin').val(), 'Coinslot set pin': $('#coinSlotSetPin').val(), 'System ready LED pin': $('#systemReadyLEDPin').val(), 'Insert coin LED pin': $('#insertCoinLEDPin').val() };
     if ($('#mikrotikPw').val() !== $('#confirmMikrotikPw').val()) { alert('MikroTik password does not match the confirmation.'); return; }
@@ -360,6 +363,7 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
     var ipAddressMode = $('#ipAddressMode').val();
     if (ipAddressMode === '1' && !validateIpAddressFields({ 'Local IP address': $('#localIpAddress').val(), 'Gateway': $('#gatewayIp').val(), 'Subnet mask': $('#subnetMask').val(), 'DNS server': $('#dnsServer').val() })) return;
     $('#setupDoneFlag').val('1');
+    var restartMinutes = parseInt($('#autoRestartMinutes').val(), 10); if (isNaN(restartMinutes) || restartMinutes < 0) restartMinutes = 0;
     var postData = createParam([
       $('#vendoName').val(), $('#wifiSSID').val(), $('#wifiPW').val(), $('#mikrotikIp').val(), $('#mikrotikUser').val(), $('#mikrotikPw').val(),
       $('#coinSlotWaitTime').val(), $('#adminUser').val(), $('#adminPw').val(),
@@ -369,7 +373,9 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
       $('#localIpAddress').val(), $('#gatewayIp').val(), $('#subnetMask').val(), $('#dnsServer').val(),
       $('#mikrotikApiPort').val()
     ]);
-    $.post('admin/api/saveSystemConfig', 'data=' + postData).done(function () { alert('Settings saved. The device will restart to apply them.'); }).fail(function (xhr) { alert('Save failed: ' + (xhr.responseText || xhr.statusText || 'unknown error')); });
+    $.post('admin/api/saveAutoRestart', 'minutes=' + encodeURIComponent(restartMinutes)).always(function () {
+      $.post('admin/api/saveSystemConfig', 'data=' + postData).done(function () { alert('Settings saved. The device will restart to apply them.'); }).fail(function (xhr) { alert('Save failed: ' + (xhr.responseText || xhr.statusText || 'unknown error')); });
+    });
   }
 
   var rateCurrencySym = '\u20b1';

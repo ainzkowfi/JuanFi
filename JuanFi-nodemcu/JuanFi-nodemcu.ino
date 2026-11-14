@@ -27,6 +27,8 @@ volatile int processCoin = 0;
 volatile int totalCoin = 0;
 bool isNewVoucher = false;
 volatile int coinsChange = 0;
+volatile int pulsesThisSession = 0;
+const int MAX_PULSE_PER_SESSION = 20;
 String currentActiveVoucher = "";
 int timeToAdd = 0;
 bool coinSlotActive = false;
@@ -39,6 +41,8 @@ const unsigned long MIKROTIK_RECONNECT_INTERVAL = 15000;
 String currentMacAddress = "";
 String currentIpAddress = "";
 const String HARDWARE_TYPE = "ESP8266";
+int AUTO_RESTART_MINUTES = 0;
+unsigned long autoRestartAtMs = 0;
 
 typedef struct {
   String rateName;
@@ -64,7 +68,8 @@ const int BACKUP_CONFIG_LENGTH_INDEX = 20;
 const int EEPROM_SIZE = 512;
 
 void ICACHE_RAM_ATTR coinInserted() {
-  if (coinSlotActive) {
+  if (coinSlotActive && pulsesThisSession < MAX_PULSE_PER_SESSION) {
+    pulsesThisSession++;
     coin = coin + 1;
     coinsChange = 1;
   }
@@ -106,7 +111,7 @@ ESP8266WebServer server(80);
 const byte DNS_PORT = 53;
 DNSServer dnsServer;
 
-const unsigned long WIFI_CONNECT_TIMEOUT = 180000;
+const unsigned long WIFI_CONNECT_TIMEOUT = 360000; // 6 minutes
 const int WIFI_CONNECT_DELAY = 500;
 const String INTERNET_CHECK_URL = "http://ifconfig.me";
 
@@ -508,6 +513,46 @@ void backupSystemConfig() {
   eeWriteInt(BACKUP_CONFIG_LENGTH_INDEX, len);
   eeWriteString(BACKUP_CONFIG_LENGTH_INDEX + 5, data);
 }
+
+void loadAutoRestartConfig() {
+  String data = readFile("/admin/config/autorestart.data");
+  data.trim();
+  AUTO_RESTART_MINUTES = clampInt(data.toInt(), 0, 10080);
+}
+
+void scheduleAutoRestart() {
+  if (AUTO_RESTART_MINUTES > 0) {
+    autoRestartAtMs = millis() + ((unsigned long)AUTO_RESTART_MINUTES * 60000UL);
+  } else {
+    autoRestartAtMs = 0;
+  }
+}
+
+bool systemIsIdleForRestart() {
+  if (coinSlotActive || acceptCoin) return false;
+  if (coin != 0 || coinsChange != 0 || processCoin != 0) return false;
+  if (totalCoin != 0 || timeToAdd != 0) return false;
+  if (currentActiveVoucher.length() > 0) return false;
+  return true;
+}
+
+void handleAdminGetAutoRestart() {
+  if (!isAuthorized()) { handleNotAuthorize(); return; }
+  server.send(200, "text/plain", String(AUTO_RESTART_MINUTES));
+}
+
+void handleAdminSaveAutoRestart() {
+  if (!isAuthorized()) { handleNotAuthorize(); return; }
+  int mins = clampInt(server.arg("minutes").toInt(), 0, 10080);
+  if (!handleFileWrite("/admin/config/autorestart.data", String(mins))) {
+    server.send(500, "text/plain", "write failed");
+    return;
+  }
+  AUTO_RESTART_MINUTES = mins;
+  scheduleAutoRestart();
+  server.send(200, "text/plain", "ok");
+}
+
 
 String generateSessionToken() {
   String t = "";
@@ -1136,6 +1181,7 @@ void resetGlobalVariables() {
   currentDataLimit = 0;
   currentRateProfile = "";
   isNewVoucher = false;
+  pulsesThisSession = 0;
 }
 
 void disableCoinSlot() {
@@ -1147,6 +1193,11 @@ void disableCoinSlot() {
 void activateCoinSlot() {
   digitalWrite(COIN_SET_PIN, HIGH);
   delay(200);
+  noInterrupts();
+  coin = 0;
+  coinsChange = 0;
+  pulsesThisSession = 0;
+  interrupts();
   processCoin = 0;
   acceptCoin = true;
   coinSlotActive = true;
@@ -1612,6 +1663,8 @@ void setup() {
   }
 
   populateSystemConfiguration();
+  loadAutoRestartConfig();
+  scheduleAutoRestart();
 
   pinMode(COIN_SELECTOR_PIN, INPUT_PULLUP);
   pinMode(INSERT_COIN_LED, OUTPUT);
@@ -1694,6 +1747,8 @@ void setup() {
   server.on("/admin/login", HTTP_GET, handleAdminLoginPage);
   server.on("/admin/api/logout", handleLogout);
   server.on("/admin/api/generateVouchers", handleGenerateVouchers);
+  server.on("/admin/api/getAutoRestart", handleAdminGetAutoRestart);
+  server.on("/admin/api/saveAutoRestart", HTTP_POST, handleAdminSaveAutoRestart);
   server.on("/admin", HTTP_GET, handleAdminPage);
   server.on("/admin/viewGeneratedVouchers", handleAdminGeneratedVoucherPage);
   server.on("/admin/updateMainBin", HTTP_POST, handleFileUploadRequest, handleFileUploadStream);
@@ -1719,6 +1774,10 @@ void loop() {
       if (ensureMikrotikConnection()) {
         digitalWrite(SYSTEM_READY_LED, evaluateTriggerOutput(TURN_ON));
       }
+    }
+
+    if (autoRestartAtMs > 0 && (long)(currentMilis - autoRestartAtMs) >= 0 && systemIsIdleForRestart()) {
+      ESP.restart();
     }
 
     if (acceptCoin) {
