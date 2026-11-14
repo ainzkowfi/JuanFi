@@ -100,7 +100,7 @@
   "trialNoExtend": true,
   "macAsVoucherCode": true,
   "showConvertVoucher": true,
-  "showPauseTime": false,
+  "showPauseTime": true,
   "enableCoinslotBan": true,
   "coinslotBanCount": 3,
   "coinslotBanMinutes": 5
