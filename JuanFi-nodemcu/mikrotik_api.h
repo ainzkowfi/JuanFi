@@ -152,14 +152,18 @@ bool apiReadLen(uint32_t &len, unsigned long timeoutMs) {
   return true;
 }
 
-bool apiReadWord(String &out, unsigned long timeoutMs, uint32_t maxLen = 4096) {
-  out = "";
+// Read one reply word straight into a caller-supplied buffer. No heap traffic per word:
+// the API reply loop runs on every transaction, so allocating a String per word (and
+// more per attribute split) is what fragments the ESP8266 heap over a long uptime.
+bool apiReadWordTo(char *buf, size_t bufSize, unsigned long timeoutMs, uint32_t maxLen = 4096) {
+  if (bufSize == 0) return false;
+  buf[0] = '\0';
   uint32_t len = 0;
   if (!apiReadLen(len, timeoutMs)) return false;
   if (len == 0) return true;
-  if (len > maxLen) {
-    // Drain oversized word to keep the stream aligned, but fail closed: returning an
-    // empty word would be misread as an end-of-sentence marker and desync parsing.
+  if (len > maxLen || len >= (uint32_t)bufSize) {
+    // Drain the oversized word to keep the stream aligned, but fail closed: returning
+    // an empty word would be misread as an end-of-sentence marker and desync parsing.
     uint8_t tmp[64];
     uint32_t remaining = len;
     while (remaining > 0) {
@@ -169,40 +173,8 @@ bool apiReadWord(String &out, unsigned long timeoutMs, uint32_t maxLen = 4096) {
     }
     return false;
   }
-  char stackBuf[128];
-  char *buf = stackBuf;
-  bool heapBuf = false;
-  if (len >= sizeof(stackBuf)) {
-    buf = (char *)malloc(len + 1);
-    if (!buf) {
-      uint8_t tmp[64];
-      uint32_t remaining = len;
-      while (remaining > 0) {
-        uint32_t chunk = remaining > sizeof(tmp) ? sizeof(tmp) : remaining;
-        if (!apiReadExact(tmp, chunk, timeoutMs)) return false;
-        remaining -= chunk;
-      }
-      return false;
-    }
-    heapBuf = true;
-  }
-  unsigned long start = millis();
-  for (uint32_t i = 0; i < len; i++) {
-    int b = -1;
-    while (b < 0) {
-      if ((millis() - start) > timeoutMs) { if (heapBuf) free(buf); return false; }
-      b = apiClient.read();
-      if (b < 0) {
-        if (!apiClient.connected() && !apiClient.available()) { if (heapBuf) free(buf); return false; }
-        delay(1);
-        yield();
-      }
-    }
-    buf[i] = (char)b;
-  }
+  if (!apiReadExact((uint8_t *)buf, len, timeoutMs)) return false;
   buf[len] = '\0';
-  out = String(buf);
-  if (heapBuf) free(buf);
   return true;
 }
 
@@ -230,12 +202,12 @@ bool apiTransact(const String &cmd, const String attrs[], int attrCount, unsigne
   while (!finished) {
     if ((long)(millis() - deadline) >= 0) { apiLast.fatal = true; apiClient.stop(); return false; }
 
-    String word;
+    char word[192];
     unsigned long remain = deadline - millis();
     if (remain < 1) remain = 1;
-    if (!apiReadWord(word, remain)) { apiLast.fatal = true; apiClient.stop(); return false; }
+    if (!apiReadWordTo(word, sizeof(word), remain)) { apiLast.fatal = true; apiClient.stop(); return false; }
 
-    if (word.length() == 0) {
+    if (word[0] == '\0') {
       // End of a reply sentence. RouterOS sends !done after !trap for the same
       // command, so a trap must keep reading or the stale !done desyncs the next call.
       if (current == ApiReplyType::DONE) { apiLast.gotDone = true; finished = true; }
@@ -245,29 +217,31 @@ bool apiTransact(const String &cmd, const String attrs[], int attrCount, unsigne
       continue;
     }
 
-    if (word == "!re") { current = ApiReplyType::RE; apiLast.records++; }
-    else if (word == "!done") { current = ApiReplyType::DONE; }
-    else if (word == "!trap") { current = ApiReplyType::TRAP; }
-    else if (word == "!fatal") { current = ApiReplyType::FATAL; apiLast.fatal = true; }
-    else if (word == "!empty") { current = ApiReplyType::EMPTY; }
-    else if (word.charAt(0) == '=') {
-      int eq = word.indexOf('=', 1);
-      String key = (eq >= 0) ? word.substring(1, eq) : word.substring(1);
-      String val = (eq >= 0) ? word.substring(eq + 1) : "";
+    if (!strcmp(word, "!re")) { current = ApiReplyType::RE; apiLast.records++; }
+    else if (!strcmp(word, "!done")) { current = ApiReplyType::DONE; }
+    else if (!strcmp(word, "!trap")) { current = ApiReplyType::TRAP; }
+    else if (!strcmp(word, "!fatal")) { current = ApiReplyType::FATAL; apiLast.fatal = true; }
+    else if (!strcmp(word, "!empty")) { current = ApiReplyType::EMPTY; }
+    else if (word[0] == '=') {
+      // Split "=key=value" in place instead of two substrings per attribute.
+      char *key = word + 1;
+      char *val = (char *)"";
+      char *eq = strchr(key, '=');
+      if (eq) { *eq = '\0'; val = eq + 1; }
       if (current == ApiReplyType::TRAP || current == ApiReplyType::FATAL) {
-        if (key == "message" && apiLast.trapMessage.length() == 0) apiLast.trapMessage = val;
+        if (!strcmp(key, "message") && apiLast.trapMessage.length() == 0) apiLast.trapMessage = val;
       } else if (current == ApiReplyType::DONE) {
-        if (key == "ret") apiLast.ret = val;
+        if (!strcmp(key, "ret")) apiLast.ret = val;
       } else if (current == ApiReplyType::RE && apiLast.records == 1) {
-        if (key == ".id" && apiLast.reId.length() == 0) apiLast.reId = val;
-        else if (key == "name" && apiLast.reName.length() == 0) apiLast.reName = val;
-        else if (key == "limit-uptime" && apiLast.reLimitUptime.length() == 0) apiLast.reLimitUptime = val;
-        else if (key == "limit-bytes-total" && apiLast.reLimitBytesTotal.length() == 0) apiLast.reLimitBytesTotal = val;
-        else if (key == "uptime" && apiLast.reUptime.length() == 0) apiLast.reUptime = val;
-        else if (key == "bytes-in" && apiLast.reBytesIn.length() == 0) apiLast.reBytesIn = val;
-        else if (key == "bytes-out" && apiLast.reBytesOut.length() == 0) apiLast.reBytesOut = val;
-        else if (key == "comment" && apiLast.reComment.length() == 0) apiLast.reComment = val;
-        else if (key == "profile" && apiLast.reProfile.length() == 0) apiLast.reProfile = val;
+        if (!strcmp(key, ".id") && apiLast.reId.length() == 0) apiLast.reId = val;
+        else if (!strcmp(key, "name") && apiLast.reName.length() == 0) apiLast.reName = val;
+        else if (!strcmp(key, "limit-uptime") && apiLast.reLimitUptime.length() == 0) apiLast.reLimitUptime = val;
+        else if (!strcmp(key, "limit-bytes-total") && apiLast.reLimitBytesTotal.length() == 0) apiLast.reLimitBytesTotal = val;
+        else if (!strcmp(key, "uptime") && apiLast.reUptime.length() == 0) apiLast.reUptime = val;
+        else if (!strcmp(key, "bytes-in") && apiLast.reBytesIn.length() == 0) apiLast.reBytesIn = val;
+        else if (!strcmp(key, "bytes-out") && apiLast.reBytesOut.length() == 0) apiLast.reBytesOut = val;
+        else if (!strcmp(key, "comment") && apiLast.reComment.length() == 0) apiLast.reComment = val;
+        else if (!strcmp(key, "profile") && apiLast.reProfile.length() == 0) apiLast.reProfile = val;
       }
     }
   }
@@ -299,7 +273,7 @@ String hexToBinary(const String &hex) {
   buf[n] = '\0';
   String out;
   out.reserve(n);
-  for (int i = 0; i < n; i++) out += buf[i];
+  out.concat(buf, (unsigned int)n);
   if (heapBuf) free(buf);
   return out;
 }
@@ -406,28 +380,35 @@ bool fetchHotspotActiveList(int &activeCount, String &listOut, int maxItems) {
   ApiReplyType current = ApiReplyType::NONE;
   bool finished = false;
   unsigned long deadline = millis() + 7000;
-  String curAddr = "";
-  String curTtl = "";
+  char curAddr[24];
+  char curTtl[24];
+  curAddr[0] = '\0';
+  curTtl[0] = '\0';
+  char listBuf[192];
+  size_t listLen = 0;
+  listBuf[0] = '\0';
 
   while (!finished) {
     if ((long)(millis() - deadline) >= 0) { apiLast.fatal = true; apiClient.stop(); return false; }
 
-    String word;
+    char word[192];
     unsigned long remain = deadline - millis();
     if (remain < 1) remain = 1;
-    if (!apiReadWord(word, remain)) { apiLast.fatal = true; apiClient.stop(); return false; }
+    if (!apiReadWordTo(word, sizeof(word), remain)) { apiLast.fatal = true; apiClient.stop(); return false; }
 
-    if (word.length() == 0) {
+    if (word[0] == '\0') {
       if (current == ApiReplyType::RE) {
         apiLast.records++;
         if (apiLast.records <= maxItems) {
-          if (curAddr.length() == 0) curAddr = "-";
-          if (curTtl.length() == 0) curTtl = "-";
-          if (listOut.length() > 0) listOut += ";";
-          listOut += curAddr + "," + curTtl;
+          if (listLen > 0 && listLen + 1 < sizeof(listBuf)) listBuf[listLen++] = ';';
+          int n = snprintf(listBuf + listLen, sizeof(listBuf) - listLen, "%s,%s",
+                           curAddr[0] ? curAddr : "-", curTtl[0] ? curTtl : "-");
+          if (n > 0) listLen += (size_t)n;
+          if (listLen >= sizeof(listBuf)) listLen = sizeof(listBuf) - 1;
+          listBuf[listLen] = '\0';
         }
-        curAddr = "";
-        curTtl = "";
+        curAddr[0] = '\0';
+        curTtl[0] = '\0';
       } else if (current == ApiReplyType::DONE) {
         apiLast.gotDone = true; finished = true;
       } else if (current == ApiReplyType::TRAP) {
@@ -439,24 +420,26 @@ bool fetchHotspotActiveList(int &activeCount, String &listOut, int maxItems) {
       continue;
     }
 
-    if (word == "!re") { current = ApiReplyType::RE; curAddr = ""; curTtl = ""; }
-    else if (word == "!done") { current = ApiReplyType::DONE; }
-    else if (word == "!trap") { current = ApiReplyType::TRAP; }
-    else if (word == "!fatal") { current = ApiReplyType::FATAL; apiLast.fatal = true; }
-    else if (word == "!empty") { current = ApiReplyType::EMPTY; }
-    else if (word.charAt(0) == '=') {
-      int eq = word.indexOf('=', 1);
-      String key = (eq >= 0) ? word.substring(1, eq) : word.substring(1);
-      String val = (eq >= 0) ? word.substring(eq + 1) : "";
+    if (!strcmp(word, "!re")) { current = ApiReplyType::RE; curAddr[0] = '\0'; curTtl[0] = '\0'; }
+    else if (!strcmp(word, "!done")) { current = ApiReplyType::DONE; }
+    else if (!strcmp(word, "!trap")) { current = ApiReplyType::TRAP; }
+    else if (!strcmp(word, "!fatal")) { current = ApiReplyType::FATAL; apiLast.fatal = true; }
+    else if (!strcmp(word, "!empty")) { current = ApiReplyType::EMPTY; }
+    else if (word[0] == '=') {
+      char *key = word + 1;
+      char *val = (char *)"";
+      char *eq = strchr(key, '=');
+      if (eq) { *eq = '\0'; val = eq + 1; }
       if (current == ApiReplyType::TRAP || current == ApiReplyType::FATAL) {
-        if (key == "message" && apiLast.trapMessage.length() == 0) apiLast.trapMessage = val;
+        if (!strcmp(key, "message") && apiLast.trapMessage.length() == 0) apiLast.trapMessage = val;
       } else if (current == ApiReplyType::RE) {
-        if (key == "address") curAddr = val;
-        else if (key == "session-time-left") curTtl = val;
+        if (!strcmp(key, "address")) snprintf(curAddr, sizeof(curAddr), "%s", val);
+        else if (!strcmp(key, "session-time-left")) snprintf(curTtl, sizeof(curTtl), "%s", val);
       }
     }
   }
 
+  listOut = listBuf;
   activeCount = apiLast.records;
   apiLast.ok = !apiLast.fatal && apiLast.gotDone && apiLast.trapMessage.length() == 0;
   if (apiLast.fatal) apiClient.stop();
@@ -508,57 +491,68 @@ void handleAdminHotspotSummary() {
 }
 
 // Parse RouterOS time strings to seconds: "1w2d3h4m5s", "03:04:05", "1d03:04:05", "0s".
+// Works on a trimmed copy in a fixed buffer: this runs on every voucher extend/convert,
+// and the old String-based version allocated several temporaries per call.
 long parseRosTimeToSeconds(const String &in) {
-  String s = in;
-  s.trim();
-  if (s.length() == 0) return 0;
+  char s[40];
+  const char *src = in.c_str();
+  size_t start = 0;
+  size_t end = in.length();
+  while (start < end && (src[start] == ' ' || src[start] == '\t' || src[start] == '\r' || src[start] == '\n')) start++;
+  while (end > start && (src[end - 1] == ' ' || src[end - 1] == '\t' || src[end - 1] == '\r' || src[end - 1] == '\n')) end--;
+  size_t n = end - start;
+  if (n >= sizeof(s)) n = sizeof(s) - 1;
+  if (n > 0) memcpy(s, src + start, n);
+  s[n] = '\0';
+  if (n == 0) return 0;
 
-  int colonCount = 0;
-  for (size_t i = 0; i < s.length(); i++) if (s[i] == ':') colonCount++;
-
-  if (colonCount >= 1) {
+  if (strchr(s, ':') != nullptr) {
     long total = 0;
-    String rest = s;
-    int dIdx = s.indexOf('d');
-    if (dIdx > 0) {
+    char *dayPos = strchr(s, 'd');
+    char *rest = s;
+    if (dayPos && dayPos > s) {
       bool digits = true;
-      for (int i = 0; i < dIdx; i++) if (s[i] < '0' || s[i] > '9') { digits = false; break; }
+      for (char *p = s; p < dayPos; p++) if (*p < '0' || *p > '9') { digits = false; break; }
       if (digits) {
-        total += (long)s.substring(0, dIdx).toInt() * 86400L;
-        rest = s.substring(dIdx + 1);
+        *dayPos = '\0';
+        total += atol(s) * 86400L;
+        rest = dayPos + 1;
       }
     }
-    String parts[3];
+    const char *parts[3];
     int pc = 0;
-    String cur = "";
-    for (size_t i = 0; i < rest.length() && pc < 3; i++) {
-      char c = rest[i];
-      if (c == ':') { parts[pc++] = cur; cur = ""; }
-      else cur += c;
+    char *cursor = rest;
+    for (char *p = rest; *p && pc < 3; p++) {
+      if (*p == ':') { *p = '\0'; parts[pc++] = cursor; cursor = p + 1; }
     }
-    if (pc < 3) parts[pc++] = cur;
-    if (pc == 3) total += (long)parts[0].toInt() * 3600L + (long)parts[1].toInt() * 60L + parts[2].toInt();
-    else if (pc == 2) total += (long)parts[0].toInt() * 60L + parts[1].toInt();
-    else if (pc == 1) total += parts[0].toInt();
+    if (pc < 3) parts[pc++] = cursor;
+    if (pc == 3) total += (long)atol(parts[0]) * 3600L + (long)atol(parts[1]) * 60L + atol(parts[2]);
+    else if (pc == 2) total += (long)atol(parts[0]) * 60L + atol(parts[1]);
+    else if (pc == 1) total += atol(parts[0]);
     return total < 0 ? 0 : total;
   }
 
   long total = 0;
-  String num = "";
+  long val = 0;
+  bool haveDigits = false;
   bool sawUnit = false;
-  for (size_t i = 0; i < s.length(); i++) {
-    char c = s[i];
-    if (c >= '0' && c <= '9') { num += c; continue; }
-    long v = num.toInt();
-    if (c == 'w') total += v * 604800L;
-    else if (c == 'd') total += v * 86400L;
-    else if (c == 'h') total += v * 3600L;
-    else if (c == 'm') total += v * 60L;
-    else if (c == 's') total += v;
-    num = "";
+  for (const char *p = s; *p; p++) {
+    char c = *p;
+    if (c >= '0' && c <= '9') {
+      val = val * 10 + (c - '0');
+      haveDigits = true;
+      continue;
+    }
+    if (c == 'w') total += val * 604800L;
+    else if (c == 'd') total += val * 86400L;
+    else if (c == 'h') total += val * 3600L;
+    else if (c == 'm') total += val * 60L;
+    else if (c == 's') total += val;
+    val = 0;
+    haveDigits = false;
     sawUnit = true;
   }
-  if (num.length() > 0 && !sawUnit) total += num.toInt();
+  if (haveDigits && !sawUnit) total += val;
   return total < 0 ? 0 : total;
 }
 
@@ -569,13 +563,16 @@ String formatRosTimeSeconds(long seconds) {
   long d = seconds / 86400L; seconds %= 86400L;
   long h = seconds / 3600L; seconds %= 3600L;
   long m = seconds / 60L; long sec = seconds % 60L;
-  String out = "";
-  if (w > 0) { out += String(w); out += "w"; }
-  if (d > 0) { out += String(d); out += "d"; }
-  if (h > 0) { out += String(h); out += "h"; }
-  if (m > 0) { out += String(m); out += "m"; }
-  if (sec > 0 || out.length() == 0) { out += String(sec); out += "s"; }
-  return out;
+  char buf[32];
+  size_t p = 0;
+  if (w > 0) p += (size_t)snprintf(buf + p, sizeof(buf) - p, "%ldw", w);
+  if (d > 0 && p < sizeof(buf)) p += (size_t)snprintf(buf + p, sizeof(buf) - p, "%ldd", d);
+  if (h > 0 && p < sizeof(buf)) p += (size_t)snprintf(buf + p, sizeof(buf) - p, "%ldh", h);
+  if (m > 0 && p < sizeof(buf)) p += (size_t)snprintf(buf + p, sizeof(buf) - p, "%ldm", m);
+  if ((sec > 0 || p == 0) && p < sizeof(buf)) p += (size_t)snprintf(buf + p, sizeof(buf) - p, "%lds", sec);
+  if (p >= sizeof(buf)) p = sizeof(buf) - 1;
+  buf[p] = '\0';
+  return String(buf);
 }
 
 bool registerNewVoucher(const String &voucher, bool *existedBefore = nullptr) {

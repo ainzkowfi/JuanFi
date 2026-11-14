@@ -292,23 +292,29 @@ String readFile(const String &path) {
   return content;
 }
 
+// Config fields are short (<= 64 chars by schema), so accumulate each row in a fixed
+// buffer and hand it to String once instead of growing a String per character.
 int split(String rows[], int maxRows, const String &data, char delimeter) {
   if (maxRows <= 0) return 0;
   int count = 0;
-  String elementData = "";
-  for (int i = 0; i < (int)data.length(); i++) {
-    char c = data.charAt(i);
+  char buf[128];
+  size_t p = 0;
+  buf[0] = '\0';
+  const char *s = data.c_str();
+  for (int i = 0; s[i]; i++) {
+    char c = s[i];
     if (c == '\r' || c == '\n') continue;
     if (c != delimeter) {
-      elementData += c;
+      if (p + 1 < sizeof(buf)) { buf[p++] = c; buf[p] = '\0'; }
     } else {
-      if (count < maxRows) rows[count] = elementData;
+      if (count < maxRows) rows[count] = buf;
       count++;
-      elementData = "";
+      p = 0;
+      buf[0] = '\0';
     }
   }
   if (count < maxRows) {
-    rows[count] = elementData;
+    rows[count] = buf;
     count++;
   }
   return count;
@@ -318,30 +324,40 @@ void populateRates() {
   ratesCount = 0;
   String data = readFile("/admin/config/rates.data");
   if (data.length() == 0) return;
-  int start = 0;
+  // Parse "name#price#minutes#validity#dataLimit#profile" straight off the file buffer:
+  // the old version took a substring per column, i.e. six heap allocations per rate row.
+  const char *s = data.c_str();
   int len = (int)data.length();
+  int start = 0;
   while (start <= len && ratesCount < 100) {
-    int end = data.indexOf('|', start);
-    if (end < 0) end = len;
+    int end = start;
+    while (end < len && s[end] != '|') end++;
     if (end > start) {
-      // Parse "name#price#minutes#validity#dataLimit#profile" without a 100-row stack array.
-      String column[6];
-      for (int c = 0; c < 6; c++) column[c] = "";
+      char column[6][48];
       int col = 0;
       int fstart = start;
-      for (int i = start; i <= end && col < 6; i++) {
-        char ch = (i < end) ? data.charAt(i) : '#';
-        if (ch == '#' || i == end) {
-          column[col++] = data.substring(fstart, i);
+      int i = start;
+      while (col < 6) {
+        bool atEnd = (i >= end);
+        if (atEnd || s[i] == '#') {
+          int flen = i - fstart;
+          if (flen < 0) flen = 0;
+          if (flen > (int)sizeof(column[col]) - 1) flen = (int)sizeof(column[col]) - 1;
+          if (flen > 0) memcpy(column[col], s + fstart, flen);
+          column[col][flen] = '\0';
+          col++;
           fstart = i + 1;
+          if (atEnd) break;
         }
+        i++;
       }
+      for (; col < 6; col++) column[col][0] = '\0';
       PromoRates r;
       r.rateName = column[0];
-      r.price = column[1].toInt();
-      r.minutes = column[2].toInt();
-      r.validity = column[3].toInt();
-      r.dataLimit = column[4].toInt();
+      r.price = atoi(column[1]);
+      r.minutes = atoi(column[2]);
+      r.validity = atoi(column[3]);
+      r.dataLimit = atoi(column[4]);
       r.profileName = column[5];
       if (r.price < 0) r.price = 0;
       if (r.minutes < 0) r.minutes = 0;
@@ -353,15 +369,32 @@ void populateRates() {
   }
 }
 
+// Parse "a.b.c.d" without the four Strings the split()-based version allocated.
 void applyIpField(IPAddress &ip, const String &s, const IPAddress &fallback) {
-  String parts[4];
-  for (int i = 0; i < 4; i++) parts[i] = "";
-  int c = split(parts, 4, s, '.');
-  if (c < 4) { ip = fallback; return; }
-  ip[0] = (uint8_t)parts[0].toInt();
-  ip[1] = (uint8_t)parts[1].toInt();
-  ip[2] = (uint8_t)parts[2].toInt();
-  ip[3] = (uint8_t)parts[3].toInt();
+  uint8_t octet[4] = { 0, 0, 0, 0 };
+  int parsed = 0;
+  int value = 0;
+  bool digits = false;
+  for (const char *p = s.c_str(); ; p++) {
+    char c = *p;
+    if (c >= '0' && c <= '9') {
+      value = value * 10 + (c - '0');
+      if (value > 255) value = 255;
+      digits = true;
+      continue;
+    }
+    if (!digits) break;
+    if (parsed < 4) octet[parsed] = (uint8_t)value;
+    parsed++;
+    value = 0;
+    digits = false;
+    if (c != '.' || parsed >= 4 || c == '\0') break;
+  }
+  if (parsed < 4) { ip = fallback; return; }
+  ip[0] = octet[0];
+  ip[1] = octet[1];
+  ip[2] = octet[2];
+  ip[3] = octet[3];
 }
 
 void populateSystemConfiguration() {
@@ -382,7 +415,10 @@ void populateSystemConfiguration() {
   for (int i = 0; i < 40; i++) rows[i] = "";
   int count = split(rows, 40, data, '|');
 
-  auto get = [&](int idx)->String { return (idx >= 0 && idx < 40) ? rows[idx] : String(""); };
+  // Return a reference: by-value returns copied the row (a heap allocation) on each
+  // of the ~25 field reads below.
+  static const String emptySetting = "";
+  auto get = [&](int idx)->const String & { return (idx >= 0 && idx < 40) ? rows[idx] : emptySetting; };
 
   MIKROTIK_API_PORT = 8728;
 
