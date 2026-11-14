@@ -4,7 +4,7 @@
  * Config schema (current): 26 fields, with legacy 25/27/30 compatibility.
  */
 
-#define CURRENT_VERSION "2.5-api"
+#define CURRENT_VERSION "v1"
 
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
