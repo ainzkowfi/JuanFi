@@ -49,15 +49,16 @@ body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Robot
 .card + .card{margin-top:12px}
 .card h3{margin:0 0 4px;font-size:1rem;font-weight:500;line-height:1.3}
 .card .desc{margin:0 0 16px;color:var(--muted-foreground);font-size:0.875rem}
-.grid{display:grid;gap:12px}
+.grid{display:grid;gap:12px;align-items:stretch}
+.grid > .card{margin-top:0;height:100%}
 .grid.stats{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-bottom:12px}
 .grid.two{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
 .grid.three{grid-template-columns:repeat(3,minmax(0,1fr))}
 @media (max-width:520px){.grid.three{grid-template-columns:1fr 1fr 1fr}}
 .stat .label{margin:0 0 4px;color:var(--muted-foreground);font-size:0.8125rem}
-.stat .value{margin:0;font-size:1.5rem;font-weight:500;line-height:1.1;font-variant-numeric:tabular-nums}
+.stat .value{margin:0;font-size:1.5rem;font-weight:500;line-height:1.2;font-variant-numeric:tabular-nums;min-height:1.2em}
 .stat .value.sm{font-size:1rem;overflow-wrap:anywhere}
-.sales-stats .stat{display:flex;flex-direction:column}
+.sales-stats .stat{display:flex;flex-direction:column;min-height:100%}
 .sales-stats .stat .actions{margin-top:auto;padding-top:12px}
 .info-list{display:grid;gap:0;margin-top:8px}
 .info-row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:10px 0;border-bottom:1px solid var(--border)}
