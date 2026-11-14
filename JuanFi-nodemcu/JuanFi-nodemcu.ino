@@ -182,18 +182,20 @@ int evaluateTriggerOutput(int state) {
   return (state == TURN_ON) ? LOW : HIGH;
 }
 
-String toJson(const char *keys[], const char *values[], int nField) {
-  String json = "{";
+const char* toJson(const char *keys[], const char *values[], int nField) {
+  static char buf[512];
+  size_t pos = 0;
+  if (pos < sizeof(buf)) buf[pos++] = '{';
   for (int i = 0; i < nField; i++) {
-    if (i > 0) json += ",";
-    json += " \"";
-    json += String(keys[i]);
-    json += "\": \"";
-    json += String(values[i]);
-    json += "\" ";
+    int n = snprintf(buf + pos, (pos < sizeof(buf)) ? (sizeof(buf) - pos) : 0,
+                     "%s\"%s\":\"%s\"", (i > 0 ? "," : ""), keys[i] ? keys[i] : "", values[i] ? values[i] : "");
+    if (n < 0) n = 0;
+    pos += (size_t)n;
+    if (pos >= sizeof(buf)) { pos = sizeof(buf) - 1; break; }
   }
-  json += "}";
-  return json;
+  if (pos < sizeof(buf) - 1) buf[pos++] = '}';
+  buf[pos < sizeof(buf) ? pos : (sizeof(buf) - 1)] = '\0';
+  return buf;
 }
 
 void setupCORSPolicy() {

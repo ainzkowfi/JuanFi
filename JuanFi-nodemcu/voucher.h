@@ -78,12 +78,16 @@ bool hasInternetConnect() {
 String generateVoucher() {
   const char alphabet[] = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const int alphaLen = (int)(sizeof(alphabet) - 1);
-  String voucher = VOUCHER_PREFIX;
-  for (int i = 0; i < 6; i++) {
+  char buf[24];
+  size_t p = 0;
+  const char *prefix = VOUCHER_PREFIX.c_str();
+  while (*prefix && p < sizeof(buf) - 7) buf[p++] = *prefix++;
+  for (int i = 0; i < 6 && p < sizeof(buf) - 1; i++) {
     uint32_t r = ESP.random();
-    voucher += alphabet[r % alphaLen];
+    buf[p++] = alphabet[r % alphaLen];
   }
-  return voucher;
+  buf[p] = '\0';
+  return String(buf);
 }
 
 bool isValidVoucherCode(const String &v) {
@@ -368,9 +372,12 @@ void handleGenerateVouchers() {
   int qty = clampInt(server.arg("qty").toInt(), 1, 50);
   int addToSales = server.arg("sales").toInt() ? 1 : 0;
   String prefix = sanitizeCommandToken(server.arg("pfx"), 5, VOUCHER_PREFIX);
-  String voucherGenerated = "";
+  char voucherGenerated[640];
+  voucherGenerated[0] = '\0';
+  size_t vgLen = 0;
   int successCount = 0;
   const char alphabet[] = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const int alphaLen = (int)(sizeof(alphabet) - 1);
   // Codes minted here are fresh sessions, never extensions of an existing one.
   isNewVoucher = true;
   totalCoin = amount;
@@ -379,26 +386,40 @@ void handleGenerateVouchers() {
     // A 4-character suffix shares its name space with every voucher ever printed,
     // and registerNewVoucher() treats "already exists" as success. Redraw instead of
     // silently extending some other customer's voucher.
-    String voucher = "";
-    for (int attempt = 0; attempt < 5 && voucher.length() == 0; attempt++) {
-      String candidate = prefix;
-      for (int j = 0; j < 4; j++) {
-        candidate += alphabet[ESP.random() % (sizeof(alphabet) - 1)];
+    char voucherBuf[24];
+    voucherBuf[0] = '\0';
+    for (int attempt = 0; attempt < 5 && voucherBuf[0] == '\0'; attempt++) {
+      char candidate[24];
+      size_t p = 0;
+      const char *pfx = prefix.c_str();
+      while (*pfx && p < sizeof(candidate) - 5) candidate[p++] = *pfx++;
+      for (int j = 0; j < 4 && p < sizeof(candidate) - 1; j++) {
+        candidate[p++] = alphabet[ESP.random() % alphaLen];
       }
+      candidate[p] = '\0';
       bool existed = false;
-      if (!registerNewVoucher(candidate, &existed)) break;  // real trap: stop retrying
-      if (!existed) voucher = candidate;
+      if (!registerNewVoucher(String(candidate), &existed)) break;  // real trap: stop retrying
+      if (!existed) {
+        strncpy(voucherBuf, candidate, sizeof(voucherBuf) - 1);
+        voucherBuf[sizeof(voucherBuf) - 1] = '\0';
+      }
     }
-    if (voucher.length() == 0) continue;
-    bool extOk = addTimeToVoucher(voucher, timeToAdd);
+    if (voucherBuf[0] == '\0') continue;
+    bool extOk = addTimeToVoucher(String(voucherBuf), timeToAdd);
     if (!extOk) continue;
     if (addToSales == 1) updateStatistic();
-    if (successCount > 0) voucherGenerated += "#";
-    voucherGenerated += voucher;
+    size_t vlen = strlen(voucherBuf);
+    if (successCount > 0 && vgLen + 1 < sizeof(voucherGenerated)) voucherGenerated[vgLen++] = '#';
+    if (vgLen + vlen < sizeof(voucherGenerated)) {
+      memcpy(voucherGenerated + vgLen, voucherBuf, vlen);
+      vgLen += vlen;
+      voucherGenerated[vgLen] = '\0';
+    }
     successCount++;
   }
   String safeVendor = sanitizeRouterText(vendorName, 32);
-  String returnData = safeVendor + "|" + String(amount) + "|" + String(timeToAdd) + "|" + voucherGenerated;
+  char returnData[760];
+  snprintf(returnData, sizeof(returnData), "%s|%d|%d|%s", safeVendor.c_str(), amount, timeToAdd, voucherGenerated);
   if (successCount == 0) {
     server.send(503, "text/plain", "MikroTik operation failed");
   } else {
