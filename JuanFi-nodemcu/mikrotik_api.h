@@ -363,13 +363,13 @@ struct HotspotSummaryCache {
   bool ok = false;
   int activeCount = 0;
   int totalCount = 0;
-  String list; // "ip,ttl;ip,ttl" max 5
+  char payload[224] = { 0 }; // "active|total|ip,ttl;ip,ttl" max 5
 } hotspotSummaryCache;
 const unsigned long HOTSPOT_SUMMARY_TTL_MS = 30000;
 
-bool fetchHotspotActiveList(int &activeCount, String &listOut, int maxItems) {
+bool fetchHotspotActiveList(int &activeCount, char *listOut, size_t listOutSize, int maxItems) {
   activeCount = 0;
-  listOut = "";
+  if (listOut && listOutSize > 0) listOut[0] = '\0';
   apiResetResult();
   if (!apiClient.connected()) { apiLast.fatal = true; return false; }
 
@@ -384,9 +384,7 @@ bool fetchHotspotActiveList(int &activeCount, String &listOut, int maxItems) {
   char curTtl[24];
   curAddr[0] = '\0';
   curTtl[0] = '\0';
-  char listBuf[192];
   size_t listLen = 0;
-  listBuf[0] = '\0';
 
   while (!finished) {
     if ((long)(millis() - deadline) >= 0) { apiLast.fatal = true; apiClient.stop(); return false; }
@@ -399,13 +397,13 @@ bool fetchHotspotActiveList(int &activeCount, String &listOut, int maxItems) {
     if (word[0] == '\0') {
       if (current == ApiReplyType::RE) {
         apiLast.records++;
-        if (apiLast.records <= maxItems) {
-          if (listLen > 0 && listLen + 1 < sizeof(listBuf)) listBuf[listLen++] = ';';
-          int n = snprintf(listBuf + listLen, sizeof(listBuf) - listLen, "%s,%s",
+        if (apiLast.records <= maxItems && listOut && listLen + 1 < listOutSize) {
+          if (listLen > 0) listOut[listLen++] = ';';
+          int n = snprintf(listOut + listLen, listOutSize - listLen, "%s,%s",
                            curAddr[0] ? curAddr : "-", curTtl[0] ? curTtl : "-");
           if (n > 0) listLen += (size_t)n;
-          if (listLen >= sizeof(listBuf)) listLen = sizeof(listBuf) - 1;
-          listBuf[listLen] = '\0';
+          if (listLen >= listOutSize) listLen = listOutSize - 1;
+          listOut[listLen] = '\0';
         }
         curAddr[0] = '\0';
         curTtl[0] = '\0';
@@ -439,7 +437,6 @@ bool fetchHotspotActiveList(int &activeCount, String &listOut, int maxItems) {
     }
   }
 
-  listOut = listBuf;
   activeCount = apiLast.records;
   apiLast.ok = !apiLast.fatal && apiLast.gotDone && apiLast.trapMessage.length() == 0;
   if (apiLast.fatal) apiClient.stop();
@@ -460,31 +457,41 @@ void handleAdminHotspotSummary() {
   if (!isAuthorized()) { handleNotAuthorize(); return; }
   unsigned long now = millis();
   if (hotspotSummaryCache.ms != 0 && (now - hotspotSummaryCache.ms) < HOTSPOT_SUMMARY_TTL_MS) {
-    server.send(200, "text/plain", hotspotSummaryCache.list);
+    server.send(200, "text/plain", hotspotSummaryCache.payload);
     return;
   }
 
-  String resp = "0|0|";
+  char resp[224];
+  snprintf(resp, sizeof(resp), "0|0|");
   if (ensureMikrotikConnection()) {
     int activeCount = 0;
     int totalCount = 0;
-    String list = "";
-    bool aok = fetchHotspotActiveList(activeCount, list, 5);
+    char list[192];
+    list[0] = '\0';
+    bool aok = fetchHotspotActiveList(activeCount, list, sizeof(list), 5);
     bool tok = fetchHotspotTotalUsers(totalCount);
     if (aok || tok) {
       if (!aok) activeCount = hotspotSummaryCache.ok ? hotspotSummaryCache.activeCount : 0;
       if (!tok) totalCount = hotspotSummaryCache.ok ? hotspotSummaryCache.totalCount : 0;
-      resp = String(activeCount) + "|" + String(totalCount) + "|" + (aok ? list : hotspotSummaryCache.list.substring(hotspotSummaryCache.list.indexOf('|', hotspotSummaryCache.list.indexOf('|') + 1) + 1));
+      const char *listPart = list;
+      if (!aok) {
+        // Reuse the cached list segment (after the second '|') rather than a substring.
+        const char *cached = hotspotSummaryCache.payload;
+        const char *first = strchr(cached, '|');
+        const char *second = first ? strchr(first + 1, '|') : nullptr;
+        listPart = second ? second + 1 : "";
+      }
+      snprintf(resp, sizeof(resp), "%d|%d|%s", activeCount, totalCount, listPart);
       hotspotSummaryCache.ms = millis();
       hotspotSummaryCache.ok = true;
       hotspotSummaryCache.activeCount = activeCount;
       hotspotSummaryCache.totalCount = totalCount;
-      hotspotSummaryCache.list = resp;
+      snprintf(hotspotSummaryCache.payload, sizeof(hotspotSummaryCache.payload), "%s", resp);
     } else if (hotspotSummaryCache.ok) {
-      resp = hotspotSummaryCache.list; // serve stale on failure
+      snprintf(resp, sizeof(resp), "%s", hotspotSummaryCache.payload); // serve stale on failure
     }
   } else if (hotspotSummaryCache.ok) {
-    resp = hotspotSummaryCache.list;
+    snprintf(resp, sizeof(resp), "%s", hotspotSummaryCache.payload);
   }
 
   server.send(200, "text/plain", resp);

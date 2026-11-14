@@ -99,7 +99,9 @@ void handleAdminGetRates() { if (!isAuthorized()) { handleNotAuthorize(); return
 
 void handleAdminSaveRates() {
   if (!isAuthorized()) { handleNotAuthorize(); return; }
-  String data = server.arg("data");
+  // Bind the request argument by reference: the body itself is one unavoidable
+  // allocation inside server.arg(), so do not copy up to 4 KB of it again.
+  const String &data = server.arg("data");
   if (data.length() > 4096) { server.send(413, "text/plain", "too large"); return; }
   if (!handleFileWrite("/admin/config/rates.data", data)) { server.send(500, "text/plain", "write failed"); return; }
   populateRates();
@@ -108,7 +110,8 @@ void handleAdminSaveRates() {
 
 void handleAdminSaveSystemConfig() {
   if (!isAuthorized()) { handleNotAuthorize(); return; }
-  String data = server.arg("data");
+  // See handleAdminSaveRates: keep a reference so the config body is not copied twice.
+  const String &data = server.arg("data");
   if (data.length() > 4096) { server.send(413, "text/plain", "too large"); return; }
   if (!handleFileWrite("/admin/config/system.data", data)) { server.send(500, "text/plain", "write failed"); return; }
   server.send(200, "text/plain", "ok");
@@ -136,11 +139,14 @@ void handleAdminDashboard() {
   bool hasInternetConnection = true;
   // Refresh mikrotik status opportunistically (lightweight) without blocking long; rely on ensure state
   bool mtOk = mikrotikConnectionSuccess && apiClient.connected();
-  String data = String(upTime) + "|" + String(lifeTimeCoinCount) + "|" + String(coinCountVal) + "|" +
-                String(customerCount) + "|" + String(hasInternetConnection ? "1" : "0") + "|" +
-                String(mtOk ? "1" : "0") + "|" + currentMacAddress + "|" +
-                currentIpAddress + "|" + HARDWARE_TYPE + "|" + String(CURRENT_VERSION) + "|" +
-                String(ESP.getFreeHeap()) + "|" + String(ESP.getHeapFragmentation()) + "|" + String(ESP.getMaxFreeBlockSize());
+  // The admin UI polls this every few seconds, so build the payload in one bounded
+  // buffer instead of chaining a String per field (13 temporaries per poll).
+  char data[224];
+  snprintf(data, sizeof(data), "%lu|%d|%d|%d|%d|%d|%s|%s|%s|%s|%u|%u|%u",
+           upTime, lifeTimeCoinCount, coinCountVal, customerCount,
+           hasInternetConnection ? 1 : 0, mtOk ? 1 : 0,
+           currentMacAddress.c_str(), currentIpAddress.c_str(), HARDWARE_TYPE.c_str(),
+           CURRENT_VERSION, ESP.getFreeHeap(), ESP.getHeapFragmentation(), ESP.getMaxFreeBlockSize());
   server.send(200, "text/plain", data);
 }
 
