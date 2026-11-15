@@ -2,19 +2,25 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="light dark">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#111315">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111315">
 <title>Generated vouchers · JuanFi</title>
 <style>
 :root{--background:#111315;--foreground:#eceef0;--card:#181b1f;--muted-foreground:#9aa4ad;--border:#2a3036;--secondary:#23282e;--primary:#c89b3c;--primary-foreground:#16130b;--radius:8px}
 *,*::before,*::after{box-sizing:border-box}
-body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:16px;line-height:1.5;color:var(--foreground);background:var(--background)}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:16px;line-height:1.5;color:var(--foreground);background:var(--background);-webkit-tap-highlight-color:transparent}
 .bar{position:sticky;top:0;z-index:10;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:rgba(17,19,21,.92);border-bottom:1px solid var(--border)}
 .bar h1{margin:0;font-size:1rem;font-weight:500}
 .bar p{margin:2px 0 0;color:var(--muted-foreground);font-size:0.8125rem}
 .actions{display:flex;gap:8px}
-.btn{display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--secondary);color:var(--foreground);font:inherit;font-size:0.875rem;font-weight:500;cursor:pointer}
+.btn{display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--secondary);color:var(--foreground);font:inherit;font-size:0.875rem;font-weight:500;cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
 .btn.primary{background:var(--primary);color:var(--primary-foreground);border-color:transparent}
+@media (hover: hover) and (pointer: fine) {
+  .btn:hover{filter:brightness(1.05)}
+}
 .btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(221,180,90,.22)}
 .wrap{padding:16px}
 .empty{color:var(--muted-foreground);padding:24px 0}

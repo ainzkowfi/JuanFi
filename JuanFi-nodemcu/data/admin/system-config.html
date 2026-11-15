@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="color-scheme" content="dark">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#111315">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111315">
 <title>Admin · JuanFi</title>
 <style>
 :root{
@@ -18,7 +20,8 @@
 }
 *,*::before,*::after{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:16px;line-height:1.5;color:var(--foreground);background:var(--background);-webkit-font-smoothing:antialiased}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:16px;line-height:1.5;color:var(--foreground);background:var(--background);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
 .skip{position:absolute;left:12px;top:-44px;z-index:50;background:var(--primary);color:var(--primary-foreground);padding:8px 12px;border-radius:6px;font-weight:500;text-decoration:none}
 .skip:focus{top:12px}
 .app{max-width:1120px;margin:0 auto;padding:16px}
@@ -36,7 +39,9 @@ body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Robot
 .nav{position:sticky;top:12px;display:flex;flex-direction:column;gap:4px;padding:8px;background:var(--card);border:1px solid var(--border);border-radius:12px}
 @media (max-width:860px){.nav{position:static;flex-direction:row;overflow-x:auto;-webkit-overflow-scrolling:touch}}
 .nav button{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:8px 10px;border:0;border-radius:6px;background:transparent;color:var(--muted-foreground);font:inherit;font-size:0.875rem;font-weight:500;text-align:left;cursor:pointer;white-space:nowrap}
+@media (hover: hover) and (pointer: fine) {
 .nav button:hover{background:var(--muted);color:var(--foreground)}
+}
 .nav button.active{background:var(--secondary);color:var(--foreground)}
 .nav button svg{width:16px;height:16px;flex:none;opacity:.9}
 .nav .sep{height:1px;background:var(--border);margin:4px 4px}
@@ -65,8 +70,9 @@ body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Robot
 .stat .label{margin:0 0 4px;color:var(--muted-foreground);font-size:0.8125rem}
 .stat .value{margin:0;font-size:1.5rem;font-weight:500;line-height:1.2;font-variant-numeric:tabular-nums;min-height:1.2em}
 .stat .value.sm{font-size:1rem;overflow-wrap:anywhere}
-.sales-stats .stat{display:flex;flex-direction:column;min-height:100%}
-.sales-stats .stat .actions{margin-top:auto;padding-top:12px}
+.sales-stats .stat{display:flex;flex-direction:column;min-height:100%;align-items:center;text-align:center}
+.sales-stats .stat .actions{margin-top:auto;padding-top:12px;justify-content:center;width:100%}
+.sales-stats .stat .label,.sales-stats .stat .value{text-align:center}
 .info-list{display:grid;gap:0;margin-top:8px}
 .info-row{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:10px 0;border-bottom:1px solid var(--border)}
 .info-row:last-child{border-bottom:0;padding-bottom:0}
@@ -87,18 +93,26 @@ input::placeholder{color:#727d87}
   .pw-wrap{position:relative}
   .pw-wrap input[type="password"],.pw-wrap input[type="text"]{padding-right:40px}
   .pw-toggle{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:32px;height:32px;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:6px;background:transparent;color:var(--muted-foreground);cursor:pointer;padding:0}
+  @media (hover: hover) and (pointer: fine) {
   .pw-toggle:hover{color:var(--foreground);background:rgba(255,255,255,.04)}
+}
   .pw-toggle:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(221,180,90,.18)}
   .pw-toggle svg{width:16px;height:16px}
 select{padding-right:32px}
 input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foreground);background:var(--input);border:1px solid var(--border);border-radius:var(--radius)}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 14px;border-radius:var(--radius);border:1px solid var(--border);background:var(--secondary);color:var(--secondary-foreground);font:inherit;font-size:0.875rem;font-weight:500;cursor:pointer;touch-action:manipulation}
+@media (hover: hover) and (pointer: fine) {
 .btn:hover{background:#2a3038}
+}
 .btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(221,180,90,.22)}
 .btn.primary{background:var(--primary);color:var(--primary-foreground);border-color:transparent}
+@media (hover: hover) and (pointer: fine) {
 .btn.primary:hover{filter:brightness(1.05)}
+}
 .btn.ghost{background:transparent;border-color:transparent;color:var(--muted-foreground)}
+@media (hover: hover) and (pointer: fine) {
 .btn.ghost:hover{background:var(--muted);color:var(--foreground)}
+}
 .btn.danger{color:#e6a3a1;border-color:rgba(196,92,90,.35);background:rgba(196,92,90,.08)}
 .btn.sm{height:32px;padding:0 10px;font-size:0.8125rem}
 .btn[disabled]{opacity:.6;cursor:not-allowed}
@@ -222,9 +236,10 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
           <p class="desc">Timing, voucher defaults, and pin mapping.</p>
           <div class="grid two">
             <div class="field"><label for="coinSlotWaitTime">Insert-wait time (seconds)</label><input type="number" id="coinSlotWaitTime" min="5" max="600" inputmode="numeric" placeholder="30"></div>
-            <div class="field"><label for="autoRestartMinutes">Auto restart ESP/NODEMCU (if not busy)</label><input type="number" id="autoRestartMinutes" min="0" max="10080" inputmode="numeric" placeholder="0"></div>
+            <div class="field"><label for="autoRestartMinutes">Auto restart ESP (minutes)</label><input type="number" id="autoRestartMinutes" min="0" max="10080" inputmode="numeric" placeholder="0"></div>
             <div class="field"><label for="voucherPrefix">Voucher prefix</label><input type="text" id="voucherPrefix" value="P" maxlength="5" autocomplete="off" spellcheck="false"></div>
-            <div class="field"><label for="voucherProfile">Hotspot profile (global default)</label><input type="text" id="voucherProfile" value="default" autocomplete="off" spellcheck="false"><p class="hint" style="margin-top:4px">Used for new vouchers unless a promo rate sets its own profile.</p></div>
+            <div class="field"><label for="voucherCodeLength">Voucher code length</label><input type="number" id="voucherCodeLength" min="1" max="10" value="5" inputmode="numeric" placeholder="5"><p class="hint" style="margin-top:4px">Default 5, max 10</p></div>
+            <div class="field"><label for="voucherProfile">Hotspot profile (global default)</label><input type="text" id="voucherProfile" value="default" autocomplete="off" spellcheck="false"></div>
           </div>
           <input type="hidden" id="voucherLoginOption" value="0">
           <input type="hidden" id="voucherValidity" value="0">
@@ -435,7 +450,7 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
     $('#localIpAddress').val(c[21] || '10.0.0.254'); $('#gatewayIp').val(c[22] || '10.0.0.1'); $('#subnetMask').val(c[23] || '255.255.255.0'); $('#dnsServer').val(c[24] || '1.1.1.1');
     $('#mikrotikApiPort').val('8728'); setFixed(); setStaticDefaults();
   }
-  function openSystemConfig() { $.get('admin/api/getSystemConfig?query=' + new Date().getTime(), function (data) { populateSystemConfigFields(data); }); $.get('admin/api/getAutoRestart?query=' + new Date().getTime(), function (m) { $('#autoRestartMinutes').val(String(parseInt(m,10)||0)); }).fail(function(){ $('#autoRestartMinutes').val('0'); }); openTab('SystemConfigration'); }
+  function openSystemConfig() { $.get('admin/api/getSystemConfig?query=' + new Date().getTime(), function (data) { populateSystemConfigFields(data); }); $.get('admin/api/getAutoRestart?query=' + new Date().getTime(), function (m) { $('#autoRestartMinutes').val(String(parseInt(m,10)||0)); }).fail(function(){ $('#autoRestartMinutes').val('0'); }); $.get('admin/api/getVoucherCodeLength?query=' + new Date().getTime(), function (n) { var v=parseInt(n,10); if(isNaN(v)||v<1) v=5; if(v>10) v=10; $('#voucherCodeLength').val(String(v)); }).fail(function(){ $('#voucherCodeLength').val('5'); }); openTab('SystemConfigration'); }
   function saveSystemConfig() {
     var pinMap = { 'Coinslot pin': $('#coinSlotPin').val(), 'Coinslot set pin': $('#coinSlotSetPin').val(), 'System ready LED pin': $('#systemReadyLEDPin').val(), 'Insert coin LED pin': $('#insertCoinLEDPin').val() };
     if ($('#mikrotikPw').val() !== $('#confirmMikrotikPw').val()) { alert('MikroTik password does not match the confirmation.'); return; }
@@ -447,6 +462,7 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
     for (var dk in delimFields) { if (String(delimFields[dk]).indexOf('|') !== -1) { alert(dk + ' cannot contain the "|" character.'); return; } }
     $('#setupDoneFlag').val('1');
     var restartMinutes = parseInt($('#autoRestartMinutes').val(), 10); if (isNaN(restartMinutes) || restartMinutes < 0) restartMinutes = 0;
+    var voucherCodeLength = parseInt($('#voucherCodeLength').val(), 10); if (isNaN(voucherCodeLength) || voucherCodeLength < 1) voucherCodeLength = 5; if (voucherCodeLength > 10) voucherCodeLength = 10; $('#voucherCodeLength').val(String(voucherCodeLength));
     var postData = createParam([
       $('#vendoName').val(), $('#wifiSSID').val(), $('#wifiPW').val(), $('#mikrotikIp').val(), $('#mikrotikUser').val(), $('#mikrotikPw').val(),
       $('#coinSlotWaitTime').val(), $('#adminUser').val(), $('#adminPw').val(),
@@ -457,7 +473,9 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
       $('#mikrotikApiPort').val()
     ]);
     $.post('admin/api/saveAutoRestart', 'minutes=' + encodeURIComponent(restartMinutes)).always(function () {
-      $.post('admin/api/saveSystemConfig', 'data=' + postData).done(function () { alert('Settings saved. The device will restart to apply them.'); }).fail(function (xhr) { alert('Save failed: ' + (xhr.responseText || xhr.statusText || 'unknown error')); });
+      $.post('admin/api/saveVoucherCodeLength', 'length=' + encodeURIComponent(voucherCodeLength)).always(function () {
+        $.post('admin/api/saveSystemConfig', 'data=' + postData).done(function () { alert('Settings saved. The device will restart to apply them.'); }).fail(function (xhr) { alert('Save failed: ' + (xhr.responseText || xhr.statusText || 'unknown error')); });
+      });
     });
   }
 

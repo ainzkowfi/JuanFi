@@ -176,6 +176,23 @@ void handleAdminSaveAutoRestart() {
   server.send(200, "text/plain", "ok");
 }
 
+void handleAdminGetVoucherCodeLength() {
+  if (!isAuthorized()) { handleNotAuthorize(); return; }
+  server.send(200, "text/plain", String(VOUCHER_CODE_LENGTH));
+}
+
+void handleAdminSaveVoucherCodeLength() {
+  if (!isAuthorized()) { handleNotAuthorize(); return; }
+  int len = clampInt(server.arg("length").toInt(), 1, 10);
+  if (len <= 0) len = 5;
+  if (!handleFileWrite("/admin/config/vouchercodelen.data", String(len))) {
+    server.send(500, "text/plain", "write failed");
+    return;
+  }
+  VOUCHER_CODE_LENGTH = len;
+  server.send(200, "text/plain", "ok");
+}
+
 void handleAdminPanelPing() {
   if (!isAuthorized()) { handleNotAuthorize(); return; }
   lastAdminPanelSeenMs = millis();

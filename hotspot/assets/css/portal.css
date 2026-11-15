@@ -115,7 +115,7 @@ body {
 }
 /* hover only where a real pointer exists, so the pill does not sit in a stuck
    highlighted state after a tap on touch devices */
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
 	.footer-social:hover {
 		color: #fff;
 		background: rgba(24, 119, 242, .14);

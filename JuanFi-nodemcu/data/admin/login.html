@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="color-scheme" content="dark">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#111315">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#111315">
 <title>Sign in · JuanFi</title>
 <style>
   :root{
@@ -14,7 +16,8 @@
   }
   *,*::before,*::after{box-sizing:border-box}
   html,body{height:100%}
-  body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:16px;line-height:1.5;color:var(--foreground);background:var(--background);-webkit-font-smoothing:antialiased}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;font-size:16px;line-height:1.5;color:var(--foreground);background:var(--background);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
   .wrap{min-height:100%;display:flex;align-items:center;justify-content:center;padding:24px 16px}
   .card{width:100%;max-width:400px;background:var(--card);color:var(--card-foreground);border:1px solid var(--border);border-radius:12px;padding:24px}
   .brand{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:24px;text-align:center}
@@ -30,11 +33,15 @@
   .pw-wrap{position:relative}
   .pw-wrap input{padding-right:44px}
   .pw-toggle{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:36px;height:36px;display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:6px;background:transparent;color:var(--muted-foreground);cursor:pointer;padding:0}
-  .pw-toggle:hover{color:var(--foreground);background:rgba(255,255,255,.04)}
+  @media (hover: hover) and (pointer: fine) {
+    .pw-toggle:hover{color:var(--foreground);background:rgba(255,255,255,.04)}
+  }
   .pw-toggle:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(221,180,90,.18)}
   .pw-toggle svg{width:18px;height:18px}
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 16px;width:100%;border-radius:var(--radius);border:1px solid transparent;background:var(--primary);color:var(--primary-foreground);font:inherit;font-size:0.9375rem;font-weight:500;cursor:pointer;touch-action:manipulation}
-  .btn:hover{filter:brightness(1.05)}
+  @media (hover: hover) and (pointer: fine) {
+    .btn:hover{filter:brightness(1.05)}
+  }
   .btn:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(221,180,90,.28)}
   .btn[disabled]{opacity:.6;cursor:not-allowed}
   .error{display:none;padding:10px 12px;border-radius:var(--radius);border:1px solid rgba(196,92,90,.35);background:rgba(196,92,90,.1);color:#e6a3a1;font-size:0.875rem}

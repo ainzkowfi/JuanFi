@@ -5,7 +5,8 @@ $(if http-header == "Location")$(link-redirect)$(endif)
 <head>
 <link rel="icon" type="image/x-icon" sizes="32x32" href="favicon.ico?v=231">
 <title>Hotspot redirect</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="color-scheme" content="light dark">
 <meta charset="utf-8">
 <!-- Line 2 above must stay raw: it IS the Location header value. This one is
      an attribute, so $(link-redirect-esc) keeps a crafted dst from breaking

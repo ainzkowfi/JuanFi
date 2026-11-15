@@ -216,6 +216,10 @@ body {
 /* Overscroll bounce must reveal the gradient's end colour, not grey. */
 html { background-color: #3d4044; }
 button, a, input, select { touch-action: manipulation; }
+button, a, [role="button"] {
+    -webkit-user-select: none;
+    user-select: none;
+}
 body { -webkit-tap-highlight-color: transparent; }
 /* Coin session live: suppress pull-to-refresh so the gesture cannot reload
    the page with coins in the ESP slot. Applied only while the coin panel
@@ -272,6 +276,7 @@ body.coin-live { overscroll-behavior-y: contain; }
    reach it, not stop at the body's edge. */
 html { scroll-padding-bottom: max(20px, env(safe-area-inset-bottom)); }
 body { padding-bottom: env(safe-area-inset-bottom); }
+body.portal-modal-open { overflow: hidden; }
 
 /* Single-column kiosk layout: one phone screen per state. */
 .portal {
@@ -755,10 +760,15 @@ body { padding-bottom: env(safe-area-inset-bottom); }
        pairs below so the label never darkens on press either. */
     color: #fff;
 }
-#pauseTimeBtn:hover,
 #pauseTimeBtn:focus {
     background-color: #d24436;
     border-color: #d24436;
+}
+@media (hover: hover) and (pointer: fine) {
+  #pauseTimeBtn:hover {
+    background-color: #d24436;
+    border-color: #d24436;
+  }
 }
 #pauseTimeBtn:active {
     background-color: #a93226;
@@ -943,7 +953,9 @@ hr.foot-hr {
     line-height: 1;
     cursor: pointer;
 }
-.bank-del:hover { background: #333d48; }
+@media (hover: hover) and (pointer: fine) {
+  .bank-del:hover { background: #333d48; }
+}
 .vhist-left {
     display: flex;
     flex-direction: column;
@@ -1132,7 +1144,9 @@ body.coin-focus #coinPanel .hero .sub { margin-top: 0; }
     text-underline-offset: 3px;
     cursor: pointer;
 }
-.convertlink:hover { color: #cfd6de; }
+@media (hover: hover) and (pointer: fine) {
+  .convertlink:hover { color: #cfd6de; }
+}
 .convertrow { display: flex; gap: 8px; align-items: stretch; }
 .convertinput {
     flex: 1 1 auto;
@@ -1197,7 +1211,9 @@ body.coin-focus #coinPanel .hero .sub { margin-top: 0; }
 #app .btn {
     transition: transform 120ms cubic-bezier(.22, 1, .36, 1), opacity .2s ease, filter .12s ease, color .15s ease-in-out, background-color .15s ease-in-out, border-color .15s ease-in-out, box-shadow .15s ease-in-out;
 }
-#app .btn:hover:not(:disabled) { filter: brightness(1.08); }
+@media (hover: hover) and (pointer: fine) {
+  #app .btn:hover:not(:disabled) { filter: brightness(1.08); }
+}
 #app .btn:active:not(:disabled) { filter: brightness(.9); }
 #app .btn:disabled { cursor: not-allowed; }
 .iconbtn, .vhist-row, .bank-del, #memberSection .member-toggle {

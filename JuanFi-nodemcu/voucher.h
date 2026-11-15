@@ -79,11 +79,16 @@ bool hasInternetConnect() {
 String generateVoucher() {
   const char alphabet[] = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const int alphaLen = (int)(sizeof(alphabet) - 1);
-  char buf[24];
+  char buf[32];
   size_t p = 0;
   const char *prefix = VOUCHER_PREFIX.c_str();
-  while (*prefix && p < sizeof(buf) - 7) buf[p++] = *prefix++;
-  for (int i = 0; i < 6 && p < sizeof(buf) - 1; i++) {
+  int codeLen = VOUCHER_CODE_LENGTH;
+  if (codeLen < 1) codeLen = 5;
+  if (codeLen > 10) codeLen = 10;
+  size_t reserve = (size_t)codeLen + 1;
+  if (reserve > sizeof(buf)) reserve = sizeof(buf);
+  while (*prefix && p < sizeof(buf) - reserve) buf[p++] = *prefix++;
+  for (int i = 0; i < codeLen && p < sizeof(buf) - 1; i++) {
     uint32_t r = ESP.random();
     buf[p++] = alphabet[r % alphaLen];
   }
@@ -473,22 +478,26 @@ void handleGenerateVouchers() {
   int successCount = 0;
   const char alphabet[] = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const int alphaLen = (int)(sizeof(alphabet) - 1);
+  int codeLen = VOUCHER_CODE_LENGTH;
+  if (codeLen < 1) codeLen = 5;
+  if (codeLen > 10) codeLen = 10;
   // Codes minted here are fresh sessions, never extensions of an existing one.
   isNewVoucher = true;
   totalCoin = amount;
   timeToAdd = calculateAddTime();
   for (int i = 0; i < qty; i++) {
-    // A 4-character suffix shares its name space with every voucher ever printed,
-    // and registerNewVoucher() treats "already exists" as success. Redraw instead of
-    // silently extending some other customer's voucher.
-    char voucherBuf[24];
+    // Redraw on collision: registerNewVoucher() treats "already exists" as success,
+    // so reusing a code would silently extend another customer's voucher.
+    char voucherBuf[32];
     voucherBuf[0] = '\0';
     for (int attempt = 0; attempt < 5 && voucherBuf[0] == '\0'; attempt++) {
-      char candidate[24];
+      char candidate[32];
       size_t p = 0;
       const char *pfx = prefix.c_str();
-      while (*pfx && p < sizeof(candidate) - 5) candidate[p++] = *pfx++;
-      for (int j = 0; j < 4 && p < sizeof(candidate) - 1; j++) {
+      size_t reserve = (size_t)codeLen + 1;
+      if (reserve > sizeof(candidate)) reserve = sizeof(candidate);
+      while (*pfx && p < sizeof(candidate) - reserve) candidate[p++] = *pfx++;
+      for (int j = 0; j < codeLen && p < sizeof(candidate) - 1; j++) {
         candidate[p++] = alphabet[ESP.random() % alphaLen];
       }
       candidate[p] = '\0';

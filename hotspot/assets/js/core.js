@@ -727,16 +727,24 @@ function paintVoucherHistory() {
 		box.appendChild(r);
 	});
 }
+function syncPortalModalScrollLock() {
+	try {
+		if (window.__histOpen || window.__bankOpen) { document.body.classList.add('portal-modal-open'); }
+		else { document.body.classList.remove('portal-modal-open'); }
+	} catch (e) {}
+}
 function showHistoryView() {
 	try { window.__histOpener = document.activeElement; } catch (e) {}
 	try { paintVoucherHistory(); } catch (e) {}
 	try { document.getElementById('view-history').style.display = "block"; } catch (e) {}
 	window.__histOpen = true;
+	syncPortalModalScrollLock();
 	try { document.getElementById('histBack').focus(); } catch (e) {}
 }
 function closeHistoryView() {
 	try { document.getElementById('view-history').style.display = "none"; } catch (e) {}
 	window.__histOpen = false;
+	syncPortalModalScrollLock();
 	try { if (window.__histOpener && document.contains(window.__histOpener)) { window.__histOpener.focus(); } window.__histOpener = null; } catch (e) {}
 }
 // Voucher bank: saved codes clients want quick recall for. No router verify;
@@ -838,11 +846,13 @@ function showBankView() {
 	try { paintVoucherBank(); } catch (e) {}
 	try { document.getElementById('view-bank').style.display = "block"; } catch (e) {}
 	window.__bankOpen = true;
+	syncPortalModalScrollLock();
 	try { document.getElementById('bankBack').focus(); } catch (e) {}
 }
 function closeBankView() {
 	try { document.getElementById('view-bank').style.display = "none"; } catch (e) {}
 	window.__bankOpen = false;
+	syncPortalModalScrollLock();
 	try { if (window.__bankOpener && document.contains(window.__bankOpener)) { window.__bankOpener.focus(); } window.__bankOpener = null; } catch (e) {}
 }
 // Keep Tab inside the history overlay while open (it lives inside #app,
@@ -1551,8 +1561,9 @@ function paintStateHaze(state) {
 	b.classList.add(state == "status" ? "haze-gold" : "haze-red");
 	// Address-bar color follows the same state tell as the haze.
 	try {
-		var meta = document.querySelector('meta[name="theme-color"]');
-		if (meta) { meta.setAttribute("content", state == "status" ? "#4cd137" : "#e74c3c"); }
+		var metas = document.querySelectorAll('meta[name="theme-color"]');
+		var tc = state == "status" ? "#4cd137" : "#e74c3c";
+		for (var mi = 0; mi < metas.length; mi++) { metas[mi].setAttribute("content", tc); }
 	} catch (e) {}
 }
 

@@ -95,6 +95,7 @@ int VOUCHER_LOGIN_OPTION = 0;
 int VOUCHER_VALIDITY_OPTION = 0;
 String VOUCHER_PROFILE = "default";
 String VOUCHER_PREFIX = "P";
+int VOUCHER_CODE_LENGTH = 5;
 
 int MAX_WAIT_COIN_SEC = 30000;
 int SETUP_FINISH = 0;
@@ -639,6 +640,13 @@ void loadAutoRestartConfig() {
   AUTO_RESTART_MINUTES = clampInt(data.toInt(), 0, 10080);
 }
 
+void loadVoucherCodeLengthConfig() {
+  String data = readFile("/admin/config/vouchercodelen.data");
+  data.trim();
+  VOUCHER_CODE_LENGTH = clampInt(data.toInt(), 1, 10);
+  if (VOUCHER_CODE_LENGTH <= 0) VOUCHER_CODE_LENGTH = 5;
+}
+
 void scheduleAutoRestart() {
   if (AUTO_RESTART_MINUTES > 0) {
     autoRestartAtMs = millis() + ((unsigned long)AUTO_RESTART_MINUTES * 60000UL);
@@ -682,6 +690,7 @@ void setup() {
 
   populateSystemConfiguration();
   loadAutoRestartConfig();
+  loadVoucherCodeLengthConfig();
   scheduleAutoRestart();
 
   pinMode(COIN_SELECTOR_PIN, INPUT_PULLUP);
@@ -767,6 +776,8 @@ void setup() {
   server.on("/admin/api/generateVouchers", HTTP_POST, handleGenerateVouchers);
   server.on("/admin/api/getAutoRestart", handleAdminGetAutoRestart);
   server.on("/admin/api/saveAutoRestart", HTTP_POST, handleAdminSaveAutoRestart);
+  server.on("/admin/api/getVoucherCodeLength", handleAdminGetVoucherCodeLength);
+  server.on("/admin/api/saveVoucherCodeLength", HTTP_POST, handleAdminSaveVoucherCodeLength);
   server.on("/admin/api/ping", handleAdminPanelPing);
   server.on("/admin/api/hotspotSummary", handleAdminHotspotSummary);
   server.on("/admin", HTTP_GET, handleAdminPage);
