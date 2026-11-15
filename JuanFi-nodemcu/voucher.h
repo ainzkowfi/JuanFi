@@ -142,20 +142,38 @@ void checkCoin() {
   }
 
   if (!acceptCoin) {
-    totalCoin += processCoin;
-    timeToAdd = calculateAddTime();
-    int droppedSnapshot = droppedPulsesThisSession;
-    const char *keys[] = {"status", "newCoin", "timeAdded", "totalCoin", "validity", "data", "droppedPulses"};
-    char coinStr[16]; itoa(processCoin, coinStr, 10);
-    char timeToAddStr[16]; itoa(timeToAdd, timeToAddStr, 10);
-    char totalCoinStr[16]; itoa(totalCoin, totalCoinStr, 10);
-    char validityStr[16]; itoa(currentValidity, validityStr, 10);
-    char currentDataLimitStr[16]; itoa(currentDataLimit, currentDataLimitStr, 10);
-    char droppedStr[16]; itoa(droppedSnapshot, droppedStr, 10);
-    const char *values[] = {"true", coinStr, timeToAddStr, totalCoinStr, validityStr, currentDataLimitStr, droppedStr};
-    activateCoinSlot();
-    setupCORSPolicy();
-    server.send(200, "application/json", toJson(keys, values, 7));
+    if (coinSlotArming && processCoin == 0) {
+      int droppedSnapshot = droppedPulsesThisSession;
+      const char *keys[] = {"status", "errorCode", "remainTime", "timeAdded", "totalCoin", "waitTime", "validity", "data", "droppedPulses"};
+      long armRemain = (long)coinSlotArmAtMs - (long)millis();
+      if (armRemain < 0) armRemain = 0;
+      long remain = armRemain + (long)MAX_WAIT_COIN_SEC;
+      char remainTimeStr[20]; itoa(remain, remainTimeStr, 10);
+      char timeToAddStr[16]; itoa(timeToAdd, timeToAddStr, 10);
+      char totalCoinStr[16]; itoa(totalCoin, totalCoinStr, 10);
+      char waitTimeStr[16]; itoa(MAX_WAIT_COIN_SEC, waitTimeStr, 10);
+      char validityStr[16]; itoa(currentValidity, validityStr, 10);
+      char currentDataLimitStr[16]; itoa(currentDataLimit, currentDataLimitStr, 10);
+      char droppedStr[16]; itoa(droppedSnapshot, droppedStr, 10);
+      const char *values[] = {"false", "coin.not.inserted", remainTimeStr, timeToAddStr, totalCoinStr, waitTimeStr, validityStr, currentDataLimitStr, droppedStr};
+      setupCORSPolicy();
+      server.send(200, "application/json", toJson(keys, values, 9));
+    } else {
+      totalCoin += processCoin;
+      timeToAdd = calculateAddTime();
+      int droppedSnapshot = droppedPulsesThisSession;
+      const char *keys[] = {"status", "newCoin", "timeAdded", "totalCoin", "validity", "data", "droppedPulses"};
+      char coinStr[16]; itoa(processCoin, coinStr, 10);
+      char timeToAddStr[16]; itoa(timeToAdd, timeToAddStr, 10);
+      char totalCoinStr[16]; itoa(totalCoin, totalCoinStr, 10);
+      char validityStr[16]; itoa(currentValidity, validityStr, 10);
+      char currentDataLimitStr[16]; itoa(currentDataLimit, currentDataLimitStr, 10);
+      char droppedStr[16]; itoa(droppedSnapshot, droppedStr, 10);
+      const char *values[] = {"true", coinStr, timeToAddStr, totalCoinStr, validityStr, currentDataLimitStr, droppedStr};
+      activateCoinSlot();
+      setupCORSPolicy();
+      server.send(200, "application/json", toJson(keys, values, 7));
+    }
   } else {
     int droppedSnapshot = droppedPulsesThisSession;
     const char *keys[] = {"status", "errorCode", "remainTime", "timeAdded", "totalCoin", "waitTime", "validity", "data", "droppedPulses"};
@@ -364,7 +382,7 @@ void topUp() {
 
 void handleGenerateVouchers() {
   if (!isAuthorized()) { handleNotAuthorize(); return; }
-  if (currentActiveVoucher.length() > 0 || coinSlotActive) {
+  if (currentActiveVoucher.length() > 0 || coinSlotActive || coinSlotArming) {
     server.send(409, "text/plain", "Coin session in progress; try again after the customer finishes.");
     return;
   }

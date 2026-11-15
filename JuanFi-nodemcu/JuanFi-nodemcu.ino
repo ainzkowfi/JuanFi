@@ -34,6 +34,8 @@ String currentActiveVoucher = "";
 int timeToAdd = 0;
 bool coinSlotActive = false;
 bool acceptCoin = false;
+bool coinSlotArming = false;
+unsigned long coinSlotArmAtMs = 0;
 unsigned long targetMilis = 0;
 bool coinExpired = false;
 bool mikrotikConnectionSuccess = false;
@@ -623,7 +625,7 @@ void scheduleAutoRestart() {
 }
 
 bool systemIsIdleForRestart() {
-  if (coinSlotActive || acceptCoin) return false;
+  if (coinSlotActive || acceptCoin || coinSlotArming) return false;
   if (coin != 0 || coinsChange != 0 || processCoin != 0) return false;
   if (totalCoin != 0 || timeToAdd != 0) return false;
   if (currentActiveVoucher.length() > 0) return false;
@@ -773,6 +775,10 @@ void loop() {
 
     if (autoRestartAtMs > 0 && (long)(currentMilis - autoRestartAtMs) >= 0 && systemIsIdleForRestart()) {
       ESP.restart();
+    }
+
+    if (coinSlotArming && (long)(currentMilis - coinSlotArmAtMs) >= 0) {
+      finishCoinSlotArm();
     }
 
     if (acceptCoin) {

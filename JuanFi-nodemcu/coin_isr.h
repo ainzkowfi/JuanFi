@@ -1,14 +1,14 @@
 #pragma once
 
 void disableCoinSlot() {
+  coinSlotArming = false;
   coinSlotActive = false;
+  acceptCoin = false;
   digitalWrite(COIN_SET_PIN, LOW);
   digitalWrite(INSERT_COIN_LED, evaluateTriggerOutput(TURN_OFF));
 }
 
-void activateCoinSlot() {
-  digitalWrite(COIN_SET_PIN, HIGH);
-  delay(200);
+void finishCoinSlotArm() {
   noInterrupts();
   coin = 0;
   coinsChange = 0;
@@ -19,6 +19,16 @@ void activateCoinSlot() {
   acceptCoin = true;
   coinSlotActive = true;
   targetMilis = millis() + (unsigned long)MAX_WAIT_COIN_SEC;
+  coinSlotArming = false;
   digitalWrite(INSERT_COIN_LED, evaluateTriggerOutput(TURN_ON));
+}
+
+void activateCoinSlot() {
+  coinSlotArming = true;
+  coinSlotActive = false;
+  acceptCoin = false;
+  digitalWrite(INSERT_COIN_LED, evaluateTriggerOutput(TURN_OFF));
+  digitalWrite(COIN_SET_PIN, HIGH);
+  coinSlotArmAtMs = millis() + 200;
 }
 
