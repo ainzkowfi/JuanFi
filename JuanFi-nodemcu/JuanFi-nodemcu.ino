@@ -114,6 +114,18 @@ unsigned long adminLockoutUntilMs = 0;
 const int ADMIN_MAX_FAILS = 5;
 const unsigned long ADMIN_LOCKOUT_MS = 30000UL;
 
+struct ConvertAttemptSlot {
+  uint32_t ip;
+  uint8_t fails;
+  unsigned long lockoutUntilMs;
+  unsigned long lastSeenMs;
+};
+const int CONVERT_MAX_FAILS = 5;
+const unsigned long CONVERT_LOCKOUT_MS = 60000UL;
+const unsigned long CONVERT_ATTEMPT_WINDOW_MS = 60000UL;
+const int CONVERT_ATTEMPT_SLOTS = 8;
+ConvertAttemptSlot convertAttemptSlots[CONVERT_ATTEMPT_SLOTS];
+
 IPAddress local_IP(10, 0, 0, 254);
 IPAddress gateway(10, 0, 0, 1);
 IPAddress subnet(255, 255, 255, 0);
@@ -250,13 +262,17 @@ void setupCORSPolicy() {
 
 void eeWriteIntNoCommit(int pos, int val) {
   byte *p = (byte *)&val;
-  EEPROM.write(pos, *p);
-  EEPROM.write(pos + 1, *(p + 1));
-  EEPROM.write(pos + 2, *(p + 2));
-  EEPROM.write(pos + 3, *(p + 3));
+  for (int i = 0; i < 4; i++) {
+    int a = pos + i;
+    if (a >= EEPROM_SIZE) break;
+    byte b = *(p + i);
+    if (EEPROM.read(a) != b) EEPROM.write(a, b);
+  }
 }
 
 void eeWriteInt(int pos, int val) {
+  int cur = eeGetInt(pos);
+  if (cur == val) return;
   eeWriteIntNoCommit(pos, val);
   EEPROM.commit();
 }
@@ -272,12 +288,18 @@ int eeGetInt(int pos) {
   return val;
 }
 
-void eeWriteString(int addr, const String &val) {
+void eeWriteStringNoCommit(int addr, const String &val) {
   int str_len = val.length() + 1;
   for (int i = 0; i < str_len; ++i) {
-    if (addr + i >= EEPROM_SIZE) break;
-    EEPROM.write(addr + i, (i < (int)val.length()) ? val.charAt(i) : '\0');
+    int a = addr + i;
+    if (a >= EEPROM_SIZE) break;
+    byte b = (i < (int)val.length()) ? (byte)val.charAt(i) : (byte)'\0';
+    if (EEPROM.read(a) != b) EEPROM.write(a, b);
   }
+}
+
+void eeWriteString(int addr, const String &val) {
+  eeWriteStringNoCommit(addr, val);
   EEPROM.commit();
 }
 
@@ -606,8 +628,9 @@ void backupSystemConfig() {
     Serial.println("Config backup skipped: system.data too large for EEPROM backup");
     return;
   }
-  eeWriteInt(BACKUP_CONFIG_LENGTH_INDEX, len);
-  eeWriteString(BACKUP_CONFIG_LENGTH_INDEX + 5, data);
+  eeWriteIntNoCommit(BACKUP_CONFIG_LENGTH_INDEX, len);
+  eeWriteStringNoCommit(BACKUP_CONFIG_LENGTH_INDEX + 5, data);
+  EEPROM.commit();
 }
 
 void loadAutoRestartConfig() {
@@ -745,6 +768,7 @@ void setup() {
   server.on("/admin/api/getAutoRestart", handleAdminGetAutoRestart);
   server.on("/admin/api/saveAutoRestart", HTTP_POST, handleAdminSaveAutoRestart);
   server.on("/admin/api/ping", handleAdminPanelPing);
+  server.on("/admin/api/setOtaKey", HTTP_POST, handleAdminSetOtaKey);
   server.on("/admin/api/hotspotSummary", handleAdminHotspotSummary);
   server.on("/admin", HTTP_GET, handleAdminPage);
   server.on("/admin/viewGeneratedVouchers", handleAdminGeneratedVoucherPage);

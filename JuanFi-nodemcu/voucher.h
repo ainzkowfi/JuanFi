@@ -249,7 +249,78 @@ void useVoucher() {
   server.send(200, "application/json", toJson(keys, values, 4));
 }
 
-void replyConvertRefused() {
+int findConvertAttemptSlot(uint32_t ip) {
+  unsigned long now = millis();
+  int freeIdx = -1;
+  int oldestIdx = 0;
+  for (int i = 0; i < CONVERT_ATTEMPT_SLOTS; i++) {
+    ConvertAttemptSlot &s = convertAttemptSlots[i];
+    if (s.ip == ip) return i;
+    bool expired = (s.ip != 0) && s.lockoutUntilMs == 0 && s.lastSeenMs != 0 && (unsigned long)(now - s.lastSeenMs) > CONVERT_ATTEMPT_WINDOW_MS;
+    if (expired) { s.ip = 0; s.fails = 0; s.lockoutUntilMs = 0; s.lastSeenMs = 0; }
+    if (s.ip == 0 && freeIdx < 0) freeIdx = i;
+    if (s.lastSeenMs <= convertAttemptSlots[oldestIdx].lastSeenMs) oldestIdx = i;
+  }
+  return (freeIdx >= 0) ? freeIdx : oldestIdx;
+}
+
+bool isConvertVoucherRateLimited() {
+  uint32_t ip = (uint32_t)server.client().remoteIP();
+  if (ip == 0) return false;
+  unsigned long now = millis();
+  int idx = findConvertAttemptSlot(ip);
+  ConvertAttemptSlot &s = convertAttemptSlots[idx];
+  if (s.ip != ip) return false;
+  if (s.lockoutUntilMs != 0 && (long)(s.lockoutUntilMs - now) > 0) return true;
+  if (s.lockoutUntilMs != 0 && (long)(s.lockoutUntilMs - now) <= 0) {
+    s.lockoutUntilMs = 0;
+    s.fails = 0;
+  }
+  if (s.lastSeenMs != 0 && (unsigned long)(now - s.lastSeenMs) > CONVERT_ATTEMPT_WINDOW_MS) {
+    s.fails = 0;
+  }
+  return false;
+}
+
+void recordConvertVoucherFailure() {
+  uint32_t ip = (uint32_t)server.client().remoteIP();
+  if (ip == 0) return;
+  unsigned long now = millis();
+  int idx = findConvertAttemptSlot(ip);
+  ConvertAttemptSlot &s = convertAttemptSlots[idx];
+  if (s.ip != ip) { s.ip = ip; s.fails = 0; s.lockoutUntilMs = 0; s.lastSeenMs = 0; }
+  if (s.lockoutUntilMs != 0 && (long)(s.lockoutUntilMs - now) <= 0) {
+    s.lockoutUntilMs = 0;
+    s.fails = 0;
+  }
+  if (s.lastSeenMs != 0 && (unsigned long)(now - s.lastSeenMs) > CONVERT_ATTEMPT_WINDOW_MS) {
+    s.fails = 0;
+  }
+  s.lastSeenMs = now;
+  if (s.fails < 255) s.fails++;
+  if (s.fails >= CONVERT_MAX_FAILS) {
+    s.fails = 0;
+    s.lockoutUntilMs = now + CONVERT_LOCKOUT_MS;
+  }
+}
+
+void clearConvertVoucherFailures() {
+  uint32_t ip = (uint32_t)server.client().remoteIP();
+  if (ip == 0) return;
+  int idx = findConvertAttemptSlot(ip);
+  ConvertAttemptSlot &s = convertAttemptSlots[idx];
+  if (s.ip == ip) { s.fails = 0; s.lockoutUntilMs = 0; s.lastSeenMs = millis(); }
+}
+
+void replyConvertRateLimited() {
+  const char *keys[] = {"status", "errorCode"};
+  const char *values[] = {"false", "convertVoucher.rateLimited"};
+  setupCORSPolicy();
+  server.send(429, "application/json", toJson(keys, values, 2));
+}
+
+void replyConvertRefused(bool countFailure = true) {
+  if (countFailure) recordConvertVoucherFailure();
   const char *keys[] = {"status", "errorCode"};
   const char *values[] = {"false", "convertVoucher.refused"};
   setupCORSPolicy();
@@ -261,6 +332,8 @@ void replyConvertRefused() {
 // generator draws from. Without this, spent codes stay behind as dead hotspot users
 // and the finite code space fills up with codes nobody can use.
 void convertVoucher() {
+  setupCORSPolicy();
+  if (isConvertVoucherRateLimited()) { replyConvertRateLimited(); return; }
   if (!checkIfSystemIsAvailable()) return;
 
   String active = sanitizeCommandToken(server.arg("voucher"), 24, "");
@@ -336,6 +409,7 @@ void convertVoucher() {
   char totalTimeStr[16]; ltoa(newLimit, totalTimeStr, 10);
   const char *keys[] = {"status", "timeAdded", "totalTime"};
   const char *values[] = {"true", timeAddedStr, totalTimeStr};
+  clearConvertVoucherFailures();
   setupCORSPolicy();
   server.send(200, "application/json", toJson(keys, values, 3));
 }
