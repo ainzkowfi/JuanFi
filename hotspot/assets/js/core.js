@@ -2343,9 +2343,14 @@ function cancelCoin() {
 }
 function cancelCoinForfeit() {
 	var forfeited = totalCoinReceived;
+	var wasLiveInsert = !!(insertingCoin || window.__coinInsertLive);
 	try { dbgLog("cancel: forfeited coins=" + forfeited); } catch (e) { }
 	checkCoinFailStreak = 0;
 	topUpGen++;
+	var noCoinCancelBan = false;
+	if (forfeited <= 0 && wasLiveInsert) {
+		try { noCoinCancelBan = !!recordPortalCoinslotNoCoinAttempt(); } catch (e) {}
+	}
 	clearInterval(timer);
 	timer = null;
 	checkCoinFailStreak = 0;
@@ -2363,6 +2368,11 @@ function cancelCoinForfeit() {
 	$("#loaderDiv").attr("class", "spinner hidden");try{$("#paidNote").text("");}catch(e){}
 	if (forfeited > 0) {
 		$.toast({ title: 'Cancelled', content: 'Coin insertion cancelled. ' + currencySym + forfeited + ' forfeited', type: 'info', delay: 3000 });
+	} else if (noCoinCancelBan || (typeof enableCoinslotBan !== "undefined" && enableCoinslotBan && wasLiveInsert)) {
+		var noCoinMsg = buildNoCoinAttemptMessage(noCoinCancelBan, "cancel");
+		try { $("#coinErr").text(noCoinMsg).show(); } catch (e) {}
+		$.toast({ title: noCoinCancelBan ? 'Coinslot cooldown' : 'Cancelled', content: noCoinMsg, type: noCoinCancelBan ? 'error' : 'warning', delay: 6000 });
+		try { if (noCoinCancelBan) { applyInsertCoinBanUi(); } } catch (e) {}
 	} else {
 		$.toast({ title: 'Cancelled', content: 'Coin insertion cancelled', type: 'info', delay: 3000 });
 	}
@@ -2990,10 +3000,10 @@ function isPortalCoinslotBanned() {
 	if (st.bannedUntil && Date.now() >= st.bannedUntil) clearPortalCoinslotBanState();
 	return false;
 }
-// Count an abuse attempt only when the insert-coin countdown/window expires with
-// no coin data received. Successful coin inserts must not count, so the streak
-// resets on any received coin.
-function recordPortalCoinslotNoCoinExpiry() {
+// Count an abuse attempt when an insert-coin session ends with no coin inserted
+// (countdown/window expiry, or user cancel). Successful coin inserts reset the
+// streak, so legitimate retries after inserting are not penalized.
+function recordPortalCoinslotNoCoinAttempt() {
 	if (typeof enableCoinslotBan === "undefined" || !enableCoinslotBan) return false;
 	var maxAttempts = parseInt(coinslotBanCount, 10);
 	var banMinutes = parseInt(coinslotBanMinutes, 10);
@@ -3008,6 +3018,10 @@ function recordPortalCoinslotNoCoinExpiry() {
 	}
 	setPortalCoinslotBanState(st);
 	return !!(st.bannedUntil && Date.now() < st.bannedUntil);
+}
+
+function recordPortalCoinslotNoCoinExpiry() {
+	return recordPortalCoinslotNoCoinAttempt();
 }
 
 function getPortalCoinslotBanRemainingMs() {
@@ -3035,18 +3049,24 @@ function describeCoinslotBanWait(ms) {
 	return totalSec + (totalSec === 1 ? " second" : " seconds");
 }
 
-function buildNoCoinExpiryMessage(triggeredBan) {
+function buildNoCoinAttemptMessage(triggeredBan, reason) {
 	var maxAttempts = parseInt(coinslotBanCount, 10);
 	if (!isFinite(maxAttempts) || maxAttempts < 1) maxAttempts = 3;
 	var st = getPortalCoinslotBanState();
 	var attempts = parseInt(st.attempts, 10) || 0;
 	var shownAttempts = attempts;
 	if (!triggeredBan && shownAttempts > maxAttempts) shownAttempts = maxAttempts;
-	var base = "Coin slot expired with no coin inserted. ";
+	var base = (reason === "cancel")
+		? "Insert coin was cancelled with no coin inserted. "
+		: "Coin slot expired with no coin inserted. ";
 	if (triggeredBan) {
 		return base + "This counted toward the coinslot ban. Cooldown active for " + describeCoinslotBanWait(getPortalCoinslotBanRemainingMs()) + ".";
 	}
 	return base + "Warning " + shownAttempts + "/" + maxAttempts + ": repeated no-coin attempts can trigger a coinslot cooldown.";
+}
+
+function buildNoCoinExpiryMessage(triggeredBan) {
+	return buildNoCoinAttemptMessage(triggeredBan, "expiry");
 }
 
 var __coinslotBanUiTimer = null;
