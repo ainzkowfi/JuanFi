@@ -3096,13 +3096,19 @@ function applyInsertCoinBanUi() {
 			}
 		}
 
-		// Extend uses the same coinslot/ban; block it during cooldown but keep its
-		// own label (countdown is shown on the login insert button only).
+		// Extend uses the same coinslot/ban; show just the cooldown counter instead
+		// of a blind wait, and restore its label when the cooldown ends.
 		if (extBtn) {
+			if (!extBtn.getAttribute("data-extend-default-html")) {
+				extBtn.setAttribute("data-extend-default-html", extBtn.innerHTML);
+			}
 			if (banned && rem > 0) {
 				extBtn.disabled = true;
 				extBtn.setAttribute("aria-disabled", "true");
+				extBtn.textContent = formatCoinslotBanCountdown(rem);
 			} else {
+				var extDef = extBtn.getAttribute("data-extend-default-html");
+				if (extDef) { extBtn.innerHTML = extDef; }
 				extBtn.disabled = false;
 				extBtn.removeAttribute("aria-disabled");
 			}
