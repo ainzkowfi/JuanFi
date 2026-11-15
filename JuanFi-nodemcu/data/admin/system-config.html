@@ -224,6 +224,7 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
             <div class="field"><label for="coinSlotWaitTime">Insert-wait time (seconds)</label><input type="number" id="coinSlotWaitTime" min="5" max="600" inputmode="numeric" placeholder="30"></div>
             <div class="field"><label for="autoRestartMinutes">Auto restart ESP/NODEMCU (if not busy)</label><input type="number" id="autoRestartMinutes" min="0" max="10080" inputmode="numeric" placeholder="0"></div>
             <div class="field"><label for="voucherPrefix">Voucher prefix</label><input type="text" id="voucherPrefix" value="P" maxlength="5" autocomplete="off" spellcheck="false"></div>
+            <div class="field"><label for="voucherProfile">Hotspot profile (global default)</label><input type="text" id="voucherProfile" value="default" autocomplete="off" spellcheck="false"><p class="hint" style="margin-top:4px">Used for new vouchers unless a promo rate sets its own profile.</p></div>
           </div>
           <input type="hidden" id="voucherLoginOption" value="0">
           <input type="hidden" id="voucherValidity" value="0">
@@ -235,7 +236,6 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
             <div class="field"><label for="systemReadyLEDPin">System ready LED pin</label><select id="systemReadyLEDPin"><option value="16">D0</option><option value="0" selected>D3</option><option value="2">D4</option><option value="14">D5</option><option value="12">D6</option><option value="13">D7</option><option value="15">D8</option><option value="3">RX</option></select></div>
             <div class="field"><label for="insertCoinLEDPin">Insert coin LED pin</label><select id="insertCoinLEDPin"><option value="16">D0</option><option value="0">D3</option><option value="2" selected>D4</option><option value="14">D5</option><option value="12">D6</option><option value="13">D7</option><option value="15">D8</option><option value="3">RX</option></select></div>
             <div class="field"><label for="ledTriggerType">LED/relay trigger level</label><select id="ledTriggerType"><option value="0">Low</option><option value="1" selected>High</option></select></div>
-            <div class="field"><label for="voucherProfile">Hotspot profile</label><input type="text" id="voucherProfile" value="default" autocomplete="off" spellcheck="false"></div>
           </div>
         </div>
 
