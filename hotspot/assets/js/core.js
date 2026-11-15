@@ -2370,7 +2370,6 @@ function cancelCoinForfeit() {
 		$.toast({ title: 'Cancelled', content: 'Coin insertion cancelled. ' + currencySym + forfeited + ' forfeited', type: 'info', delay: 3000 });
 	} else if (noCoinCancelBan || (typeof enableCoinslotBan !== "undefined" && enableCoinslotBan && wasLiveInsert)) {
 		var noCoinMsg = buildNoCoinAttemptMessage(noCoinCancelBan, "cancel");
-		try { $("#coinErr").text(noCoinMsg).show(); } catch (e) {}
 		$.toast({ title: noCoinCancelBan ? 'Coinslot cooldown' : 'Cancelled', content: noCoinMsg, type: noCoinCancelBan ? 'error' : 'warning', delay: 6000 });
 		try { if (noCoinCancelBan) { applyInsertCoinBanUi(); } } catch (e) {}
 	} else {
@@ -3523,7 +3522,6 @@ function checkCoin() {
 						// branch a poll later stays silent, and closeCoinModal()
 						// ends the panel before that poll ever happens.
 						var noCoinMsg = buildNoCoinExpiryMessage(triggeredBan);
-						try { $("#coinErr").text(noCoinMsg).show(); } catch (e) {}
 						try { $.toast({ title: triggeredBan ? "Coinslot cooldown" : "Coin slot expired", content: noCoinMsg, type: triggeredBan ? "error" : "warning", delay: 6000 }); } catch (e) {}
 						try { if (triggeredBan) { applyInsertCoinBanUi(); } } catch (e) {}
 						closeCoinModal();
@@ -3571,7 +3569,6 @@ function checkCoin() {
 					var triggeredBan = false;
 					try { triggeredBan = !!recordPortalCoinslotNoCoinExpiry(); } catch (e) {}
 					var noCoinMsg = buildNoCoinExpiryMessage(triggeredBan);
-					try { $("#coinErr").text(noCoinMsg).show(); } catch (e) {}
 					try { $.toast({ title: triggeredBan ? "Coinslot cooldown" : "Coin slot expired", content: noCoinMsg, type: triggeredBan ? "error" : "warning", delay: 6000 }); } catch (e) {}
 					try { if (triggeredBan) { applyInsertCoinBanUi(); } } catch (e) {}
 					closeCoinModal();
