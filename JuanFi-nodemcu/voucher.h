@@ -142,10 +142,10 @@ void checkCoin() {
   }
 
   if (!acceptCoin) {
-    if (coinSlotArming && processCoin == 0) {
+    if (coinSlotArming) {
       int droppedSnapshot = droppedPulsesThisSession;
       const char *keys[] = {"status", "errorCode", "remainTime", "timeAdded", "totalCoin", "waitTime", "validity", "data", "droppedPulses"};
-      long armRemain = (long)coinSlotArmAtMs - (long)millis();
+      long armRemain = (long)(coinSlotArmAtMs - millis());
       if (armRemain < 0) armRemain = 0;
       long remain = armRemain + (long)MAX_WAIT_COIN_SEC;
       char remainTimeStr[20]; itoa(remain, remainTimeStr, 10);
@@ -159,11 +159,13 @@ void checkCoin() {
       setupCORSPolicy();
       server.send(200, "application/json", toJson(keys, values, 9));
     } else {
-      totalCoin += processCoin;
+      int consumedCoin = processCoin;
+      processCoin = 0;
+      totalCoin += consumedCoin;
       timeToAdd = calculateAddTime();
       int droppedSnapshot = droppedPulsesThisSession;
       const char *keys[] = {"status", "newCoin", "timeAdded", "totalCoin", "validity", "data", "droppedPulses"};
-      char coinStr[16]; itoa(processCoin, coinStr, 10);
+      char coinStr[16]; itoa(consumedCoin, coinStr, 10);
       char timeToAddStr[16]; itoa(timeToAdd, timeToAddStr, 10);
       char totalCoinStr[16]; itoa(totalCoin, totalCoinStr, 10);
       char validityStr[16]; itoa(currentValidity, validityStr, 10);
