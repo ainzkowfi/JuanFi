@@ -35,20 +35,42 @@
     return true;
   }
   function injectScripts(scripts, i) {
-    if (i >= scripts.length) { checkLibs(); return; }
-    var s = scripts[i];
-    var el = document.createElement("script");
-    function next() { injectScripts(scripts, i + 1); }
-    if (s.src) {
-      el.src = s.src;
-      el.onload = next;
-      el.onerror = next;
-      document.body.appendChild(el);
-    } else {
-      el.text = s.textContent;
-      document.body.appendChild(el);
-      next();
+    while (i < scripts.length) {
+      var s = scripts[i];
+      if (!s.src) {
+        var el = document.createElement("script");
+        el.text = s.textContent;
+        document.body.appendChild(el);
+        i += 1;
+        continue;
+      }
+      // Download consecutive external scripts in parallel while preserving
+      // execution order (async=false), then continue after the group completes.
+      var group = [];
+      var j = i;
+      while (j < scripts.length && scripts[j].src) { group.push(scripts[j]); j += 1; }
+      var remaining = group.length;
+      var advanced = false;
+      function groupDone() {
+        if (advanced) { return; }
+        remaining -= 1;
+        if (remaining <= 0) {
+          advanced = true;
+          injectScripts(scripts, j);
+        }
+      }
+      for (var k = 0; k < group.length; k++) {
+        var gs = group[k];
+        var gel = document.createElement("script");
+        gel.async = false;
+        gel.src = gs.src;
+        gel.onload = groupDone;
+        gel.onerror = groupDone;
+        document.body.appendChild(gel);
+      }
+      return;
     }
+    checkLibs();
   }
   function inject(html) {
     var doc = new DOMParser().parseFromString(html, "text/html");

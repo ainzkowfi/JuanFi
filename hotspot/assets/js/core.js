@@ -2453,14 +2453,27 @@ function humanDuration(mins) {
 	return parts.join(" ");
 }
 
-function loadRates() {
+var __ratesCache = { vendor: "", data: null, promise: null };
+function loadRates(force) {
+	var vendor = String(vendorIpAddress || "");
+	if (!force && __ratesCache.data != null && __ratesCache.vendor === vendor) {
+		$("#ratesBody").html(__ratesCache.data);
+		var d = $.Deferred();
+		d.resolve(__ratesCache.data);
+		return d.promise();
+	}
+	if (!force && __ratesCache.promise && __ratesCache.vendor === vendor) {
+		return __ratesCache.promise;
+	}
 	$("#ratesBody").html("<p>Loading Wi-Fi rates…</p>");
-	return $.ajax({
+	__ratesCache.vendor = vendor;
+	__ratesCache.data = null;
+	__ratesCache.promise = $.ajax({
 		type: "GET",
 		url: "http://" + vendorIpAddress + "/getRates?date=" + (new Date().getTime()),
 		timeout: VENDO_TIMEOUT
 	}).done(function (data) {
-		try { dbgLog("getRates ok (" + String(data).length + " chars): " + String(data).slice(0, 120), "dbg-ok"); } catch (e) { }
+		try { dbgLog("getRates ok (" + String(data).length + " chars): " + String(data).slice(0, 120), "dbg-ok"); } catch (e) {}
 		var rows = String(data).split("|");
 		var usable = 0;
 		for (var r = 0; r < rows.length; r++) {
@@ -2468,34 +2481,39 @@ function loadRates() {
 			var c = rows[r].split("#");
 			if (c.length >= 4 && String(c[0]).trim() != "") { usable++; }
 		}
+		var html;
 		if (usable == 0) {
-			$("#ratesBody").html("<p>No Wi-Fi rates configured on this vendo yet.</p>");
-			return;
+			html = "<p>No Wi-Fi rates configured on this vendo yet.</p>";
+		} else {
+			html = "<div class='table-responsive'><table class='table table-striped'>";
+			html += "<thead><tr><th scope=\"col\">Rate</th><th scope=\"col\">Time</th><th scope=\"col\">Expiry</th>";
+			html += "</tr></thead><tbody>";
+			for (var r = 0; r < rows.length; r++) {
+				if (rows[r] == "") { continue; }
+				var c = rows[r].split("#");
+				if (c.length < 4 || String(c[0]).trim() == "") { continue; }
+				html += "<tr><td>" + escHtml(rateDisplay(c[0], c[1])) + "</td>";
+				html += "<td>" + humanDuration(c[2]) + "</td>";
+				html += "<td>" + humanDuration(c[3]) + "</td>";
+				html += "</tr>";
+			}
+			html += "</tbody></table></div>";
 		}
-		var html = "<div class='table-responsive'><table class='table table-striped'>";
-		html += "<thead><tr><th scope=\"col\">Rate</th><th scope=\"col\">Time</th><th scope=\"col\">Expiry</th>";
-		html += "</tr></thead><tbody>";
-		for (var r = 0; r < rows.length; r++) {
-			if (rows[r] == "") { continue; }
-			var c = rows[r].split("#");
-			if (c.length < 4 || String(c[0]).trim() == "") { continue; }
-			html += "<tr><td>" + escHtml(rateDisplay(c[0], c[1])) + "</td>";
-			html += "<td>" + humanDuration(c[2]) + "</td>";
-			html += "<td>" + humanDuration(c[3]) + "</td>";
-			html += "</tr>";
-		}
-		html += "</tbody></table></div>";
+		__ratesCache.data = html;
 		$("#ratesBody").html(html);
 	}).fail(function (xhr, status, err) {
+		__ratesCache.data = null;
 		// Timeout vs refuse vs HTTP error need different fixes (power,
 		// Customer-facing copy stays plain; the machine detail already goes to
 		// dbgAjaxErr below for whoever is debugging the box.
 		var why = "Rates are unavailable right now.";
 		$("#ratesBody").html('<p class="rates-err">' + why + "</p>");
 		dbgAjaxErr("getRates", xhr, status, err);
+	}).always(function () {
+		__ratesCache.promise = null;
 	});
+	return __ratesCache.promise;
 }
-
 function escHtml(s) {
 	return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
