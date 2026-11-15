@@ -311,12 +311,11 @@ bool handleFileRead(String path) {
 }
 
 bool handleFileWrite(const String &path, const String &content) {
-  if (!SPIFFS.exists(path)) return false;
   File file = SPIFFS.open(path, "w");
   if (!file) return false;
   size_t bytesWritten = file.print(content);
   file.close();
-  return bytesWritten > 0;
+  return (bytesWritten > 0) || (content.length() == 0);
 }
 
 String readFile(const String &path) {
