@@ -557,14 +557,22 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
     $('#generateVoucherBtn').on('click', generateVoucher);
     $('#uploadFwBtn').on('click', uploadMainBin);
     openDashboard();
-    function pingAdminPanel() {
+    var __lastAdminPingAt = 0;
+    function pingAdminPanel(force) {
       try {
-        fetch('/admin/api/ping?query=' + new Date().getTime(), { method: 'GET', cache: 'no-store', credentials: 'same-origin', keepalive: true }).catch(function () {});
+        var now = Date.now();
+        if (!force && (now - __lastAdminPingAt) < 15000) return;
+        __lastAdminPingAt = now;
+        fetch('/admin/api/ping?query=' + now, { method: 'GET', cache: 'no-store', credentials: 'same-origin', keepalive: true }).catch(function () {});
       } catch (e) {}
     }
-    pingAdminPanel();
-    setInterval(function () { if (document.visibilityState !== 'hidden') { pingAdminPanel(); } }, 30000);
-    document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { pingAdminPanel(); } });
+    pingAdminPanel(true);
+    // Avoid periodic reload/navigation risk while editing unsaved settings.
+    // Keep autorestart suppression fresh on visibility and user activity instead.
+    document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { pingAdminPanel(true); } });
+    ['click', 'input', 'change', 'keydown', 'touchstart'].forEach(function (evt) {
+      document.addEventListener(evt, function () { pingAdminPanel(false); }, { passive: true });
+    });
   });
 })();
 </script>
