@@ -246,12 +246,16 @@ void setupCORSPolicy() {
 
 // ---------- EEPROM / FS / config (mostly unchanged) ----------
 
-void eeWriteInt(int pos, int val) {
+void eeWriteIntNoCommit(int pos, int val) {
   byte *p = (byte *)&val;
   EEPROM.write(pos, *p);
   EEPROM.write(pos + 1, *(p + 1));
   EEPROM.write(pos + 2, *(p + 2));
   EEPROM.write(pos + 3, *(p + 3));
+}
+
+void eeWriteInt(int pos, int val) {
+  eeWriteIntNoCommit(pos, val);
   EEPROM.commit();
 }
 

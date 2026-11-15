@@ -42,9 +42,10 @@ int calculateAddTime() {
 }
 
 void updateStatistic() {
-  eeWriteInt(LIFETIME_COIN_COUNT_ADDRESS, eeGetInt(LIFETIME_COIN_COUNT_ADDRESS) + totalCoin);
-  eeWriteInt(COIN_COUNT_ADDRESS, eeGetInt(COIN_COUNT_ADDRESS) + totalCoin);
-  eeWriteInt(CUSTOMER_COUNT_ADDRESS, eeGetInt(CUSTOMER_COUNT_ADDRESS) + 1);
+  eeWriteIntNoCommit(LIFETIME_COIN_COUNT_ADDRESS, eeGetInt(LIFETIME_COIN_COUNT_ADDRESS) + totalCoin);
+  eeWriteIntNoCommit(COIN_COUNT_ADDRESS, eeGetInt(COIN_COUNT_ADDRESS) + totalCoin);
+  eeWriteIntNoCommit(CUSTOMER_COUNT_ADDRESS, eeGetInt(CUSTOMER_COUNT_ADDRESS) + 1);
+  EEPROM.commit();
 }
 
 void handleHealth() { setupCORSPolicy(); server.send(200, "text/plain", "ok"); }

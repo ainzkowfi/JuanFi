@@ -124,9 +124,10 @@ void handleAdminGetSystemConfig() { if (!isAuthorized()) { handleNotAuthorize();
 void handleAdminResetStats() {
   if (!isAuthorized()) { handleNotAuthorize(); return; }
   String type = server.arg("type");
-  if (type == "lifeTimeCount") eeWriteInt(LIFETIME_COIN_COUNT_ADDRESS, 0);
-  else if (type == "coinCount") eeWriteInt(COIN_COUNT_ADDRESS, 0);
-  else if (type == "customerCount") eeWriteInt(CUSTOMER_COUNT_ADDRESS, 0);
+  if (type == "lifeTimeCount") eeWriteIntNoCommit(LIFETIME_COIN_COUNT_ADDRESS, 0);
+  else if (type == "coinCount") eeWriteIntNoCommit(COIN_COUNT_ADDRESS, 0);
+  else if (type == "customerCount") eeWriteIntNoCommit(CUSTOMER_COUNT_ADDRESS, 0);
+  EEPROM.commit();
   server.send(200, "text/plain", "ok");
 }
 
