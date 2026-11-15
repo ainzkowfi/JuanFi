@@ -179,7 +179,7 @@ void checkCoin() {
   } else {
     int droppedSnapshot = droppedPulsesThisSession;
     const char *keys[] = {"status", "errorCode", "remainTime", "timeAdded", "totalCoin", "waitTime", "validity", "data", "droppedPulses"};
-    char remainTimeStr[20]; long remain = (long)targetMilis - (long)millis(); itoa(remain, remainTimeStr, 10);
+    char remainTimeStr[20]; long remain = (long)(targetMilis - millis()); itoa(remain, remainTimeStr, 10);
     char timeToAddStr[16]; itoa(timeToAdd, timeToAddStr, 10);
     char totalCoinStr[16]; itoa(totalCoin, totalCoinStr, 10);
     char waitTimeStr[16]; itoa(MAX_WAIT_COIN_SEC, waitTimeStr, 10);
