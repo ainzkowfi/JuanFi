@@ -1,18 +1,7 @@
 name: Build firmware
 
 on:
-  push:
-    branches: [master]
-    paths:
-      - "JuanFi-nodemcu/**"
-      - ".github/workflows/build-firmware.yml"
-  pull_request:
-    paths:
-      - "JuanFi-nodemcu/**"
-      - ".github/workflows/build-firmware.yml"
   workflow_dispatch:
-  release:
-    types: [published]
 
 permissions:
   contents: write
@@ -154,10 +143,3 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Attach binaries to release
-        if: github.event_name == 'release'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          gh release upload "${{ github.event.release.tag_name }}" out/* --clobber

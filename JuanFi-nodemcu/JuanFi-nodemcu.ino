@@ -44,6 +44,8 @@ String currentIpAddress = "";
 const String HARDWARE_TYPE = "ESP8266";
 int AUTO_RESTART_MINUTES = 0;
 unsigned long autoRestartAtMs = 0;
+unsigned long lastAdminPanelSeenMs = 0;
+const unsigned long ADMIN_PANEL_ACTIVE_WINDOW_MS = 120000;
 
 typedef struct {
   String rateName;
@@ -621,6 +623,7 @@ bool systemIsIdleForRestart() {
   if (coin != 0 || coinsChange != 0 || processCoin != 0) return false;
   if (totalCoin != 0 || timeToAdd != 0) return false;
   if (currentActiveVoucher.length() > 0) return false;
+  if (lastAdminPanelSeenMs != 0 && (long)(millis() - lastAdminPanelSeenMs) < (long)ADMIN_PANEL_ACTIVE_WINDOW_MS) return false;
   return true;
 }
 
@@ -735,6 +738,7 @@ void setup() {
   server.on("/admin/api/generateVouchers", HTTP_POST, handleGenerateVouchers);
   server.on("/admin/api/getAutoRestart", handleAdminGetAutoRestart);
   server.on("/admin/api/saveAutoRestart", HTTP_POST, handleAdminSaveAutoRestart);
+  server.on("/admin/api/ping", handleAdminPanelPing);
   server.on("/admin/api/hotspotSummary", handleAdminHotspotSummary);
   server.on("/admin", HTTP_GET, handleAdminPage);
   server.on("/admin/viewGeneratedVouchers", handleAdminGeneratedVoucherPage);

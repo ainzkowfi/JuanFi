@@ -175,6 +175,12 @@ void handleAdminSaveAutoRestart() {
   server.send(200, "text/plain", "ok");
 }
 
+void handleAdminPanelPing() {
+  if (!isAuthorized()) { handleNotAuthorize(); return; }
+  lastAdminPanelSeenMs = millis();
+  server.send(200, "text/plain", "ok");
+}
+
 
 bool hasUploadError = false;
 

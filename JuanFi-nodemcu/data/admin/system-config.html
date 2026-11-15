@@ -235,8 +235,8 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
             <div class="field"><label for="systemReadyLEDPin">System ready LED pin</label><select id="systemReadyLEDPin"><option value="16">D0</option><option value="0" selected>D3</option><option value="2">D4</option><option value="14">D5</option><option value="12">D6</option><option value="13">D7</option><option value="15">D8</option><option value="3">RX</option></select></div>
             <div class="field"><label for="insertCoinLEDPin">Insert coin LED pin</label><select id="insertCoinLEDPin"><option value="16">D0</option><option value="0">D3</option><option value="2" selected>D4</option><option value="14">D5</option><option value="12">D6</option><option value="13">D7</option><option value="15">D8</option><option value="3">RX</option></select></div>
             <div class="field"><label for="ledTriggerType">LED/relay trigger level</label><select id="ledTriggerType"><option value="0">Low</option><option value="1" selected>High</option></select></div>
+            <div class="field"><label for="voucherProfile">Hotspot profile</label><input type="text" id="voucherProfile" value="default" autocomplete="off" spellcheck="false"></div>
           </div>
-          <div class="field" style="margin-top:16px"><label for="voucherProfile">Hotspot profile</label><input type="text" id="voucherProfile" value="default" autocomplete="off" spellcheck="false"></div>
         </div>
 
         <input type="hidden" value="1" id="setupDoneFlag">
@@ -557,6 +557,10 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
     $('#generateVoucherBtn').on('click', generateVoucher);
     $('#uploadFwBtn').on('click', uploadMainBin);
     openDashboard();
+    function pingAdminPanel() { $.get('admin/api/ping?query=' + new Date().getTime()).fail(function () {}); }
+    pingAdminPanel();
+    setInterval(function () { if (document.visibilityState !== 'hidden') { pingAdminPanel(); } }, 30000);
+    document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { pingAdminPanel(); } });
   });
 })();
 </script>
