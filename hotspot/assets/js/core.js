@@ -3072,19 +3072,43 @@ var __coinslotBanUiTimer = null;
 function applyInsertCoinBanUi() {
 	try {
 		var btn = document.getElementById("insertBtn");
-		if (!btn) return;
-		if (!btn.getAttribute("data-insertcoin-default-html")) {
-			btn.setAttribute("data-insertcoin-default-html", btn.innerHTML);
-		}
+		var extBtn = document.getElementById("extendBtn");
 		var banned = isPortalCoinslotBanned();
 		var rem = getPortalCoinslotBanRemainingMs();
+
+		if (btn) {
+			if (!btn.getAttribute("data-insertcoin-default-html")) {
+				btn.setAttribute("data-insertcoin-default-html", btn.innerHTML);
+			}
+			if (banned && rem > 0) {
+				// Show cooldown countdown on the login-page insert button label only.
+				btn.disabled = true;
+				btn.setAttribute("aria-disabled", "true");
+				var label = btn.querySelector(".coin-label");
+				var text = "COOLDOWN " + formatCoinslotBanCountdown(rem);
+				if (label) { label.textContent = text; }
+				else { btn.textContent = text; }
+			} else {
+				var def = btn.getAttribute("data-insertcoin-default-html");
+				if (def) { btn.innerHTML = def; }
+				btn.disabled = false;
+				btn.removeAttribute("aria-disabled");
+			}
+		}
+
+		// Extend uses the same coinslot/ban; block it during cooldown but keep its
+		// own label (countdown is shown on the login insert button only).
+		if (extBtn) {
+			if (banned && rem > 0) {
+				extBtn.disabled = true;
+				extBtn.setAttribute("aria-disabled", "true");
+			} else {
+				extBtn.disabled = false;
+				extBtn.removeAttribute("aria-disabled");
+			}
+		}
+
 		if (banned && rem > 0) {
-			btn.disabled = true;
-			btn.setAttribute("aria-disabled", "true");
-			var label = btn.querySelector(".coin-label");
-			var text = "COOLDOWN " + formatCoinslotBanCountdown(rem);
-			if (label) { label.textContent = text; }
-			else { btn.textContent = text; }
 			if (!__coinslotBanUiTimer) {
 				__coinslotBanUiTimer = setInterval(function () {
 					if (!isPortalCoinslotBanned() || getPortalCoinslotBanRemainingMs() <= 0) {
@@ -3097,10 +3121,6 @@ function applyInsertCoinBanUi() {
 			}
 		} else {
 			if (__coinslotBanUiTimer) { clearInterval(__coinslotBanUiTimer); __coinslotBanUiTimer = null; }
-			var def = btn.getAttribute("data-insertcoin-default-html");
-			if (def) { btn.innerHTML = def; }
-			btn.disabled = false;
-			btn.removeAttribute("aria-disabled");
 		}
 	} catch (e) {}
 }
