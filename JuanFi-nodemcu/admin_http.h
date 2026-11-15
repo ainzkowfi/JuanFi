@@ -1,7 +1,5 @@
 #pragma once
 
-#include <bearssl/bearssl.h>
-
 String generateSessionToken() {
   String t = "";
   const char *hex = "0123456789abcdef";
@@ -185,90 +183,11 @@ void handleAdminPanelPing() {
 }
 
 
-void handleAdminSetOtaKey() {
-  if (!isAuthorized()) { handleNotAuthorize(); return; }
-  String keyHex = server.arg("key");
-  keyHex.trim();
-  uint8_t key[32];
-  if (!hexToBytes32(keyHex, key)) {
-    server.send(400, "text/plain", "Invalid OTA key: expected 64 hex characters (32 bytes)");
-    return;
-  }
-  File f = SPIFFS.open("/admin/config/ota.key", "w");
-  if (!f) { server.send(500, "text/plain", "Failed to write OTA key"); return; }
-  f.print(keyHex);
-  f.close();
-  server.send(200, "text/plain", "ok");
-}
-
-
 bool hasUploadError = false;
-String otaUploadErrorMsg = "";
-bool otaSigRequired = false;
-bool otaSigVerified = false;
-br_hmac_context otaHmacCtx;
-bool otaHmacActive = false;
-uint8_t otaExpectedHmac[32];
-
-int hexNibble(char c) {
-  if (c >= '0' && c <= '9') return c - '0';
-  if (c >= 'a' && c <= 'f') return 10 + (c - 'a');
-  if (c >= 'A' && c <= 'F') return 10 + (c - 'A');
-  return -1;
-}
-
-bool hexToBytes32(const String &hex, uint8_t out[32]) {
-  if ((int)hex.length() != 64) return false;
-  for (int i = 0; i < 32; i++) {
-    int hi = hexNibble(hex.charAt(i * 2));
-    int lo = hexNibble(hex.charAt(i * 2 + 1));
-    if (hi < 0 || lo < 0) return false;
-    out[i] = (uint8_t)((hi << 4) | lo);
-  }
-  return true;
-}
-
-bool constantTimeEq32(const uint8_t a[32], const uint8_t b[32]) {
-  uint8_t diff = 0;
-  for (int i = 0; i < 32; i++) diff |= (uint8_t)(a[i] ^ b[i]);
-  return diff == 0;
-}
-
-bool loadOtaKeyBytes(uint8_t keyOut[32]) {
-  File f = SPIFFS.open("/admin/config/ota.key", "r");
-  if (!f) return false;
-  String hex = f.readString();
-  f.close();
-  hex.trim();
-  return hexToBytes32(hex, keyOut);
-}
-
-bool initOtaSignatureVerification() {
-  otaSigRequired = false;
-  otaSigVerified = false;
-  otaHmacActive = false;
-  uint8_t key[32];
-  if (!loadOtaKeyBytes(key)) {
-    return true; // no key configured: handled by policy in caller
-  }
-  String sigHex = server.arg("otaSig");
-  sigHex.trim();
-  if (!hexToBytes32(sigHex, otaExpectedHmac)) {
-    otaUploadErrorMsg = "OTA signature required (otaSig)";
-    return false;
-  }
-  br_hmac_key_context kc;
-  br_hmac_key_init(&kc, &br_sha256_vtable, key, sizeof(key));
-  br_hmac_init(&otaHmacCtx, &kc, 0);
-  otaHmacActive = true;
-  otaSigRequired = true;
-  return true;
-}
 
 void handleFileUploadRequest() {
   if (Update.hasError() || hasUploadError) {
-    String msg = otaUploadErrorMsg.length() ? otaUploadErrorMsg : String("Upload failed");
-    server.send(400, "text/plain", msg);
+    server.send(200, "text/html", "Upload failed");
   } else {
     server.client().setNoDelay(true);
     server.send_P(200, PSTR("text/html"), "Upload done");
@@ -283,63 +202,28 @@ void handleFileUploadStream() {
   if (upload.status == UPLOAD_FILE_START) {
     if (!isAuthorized()) { handleNotAuthorize(); hasUploadError = true; return; }
     hasUploadError = false;
-    otaUploadErrorMsg = "";
-    otaSigRequired = false;
-    otaSigVerified = false;
-    otaHmacActive = false;
-
-    uint8_t probeKey[32];
-    bool hasKey = loadOtaKeyBytes(probeKey);
-    if (!hasKey) {
-      hasUploadError = true;
-      otaUploadErrorMsg = "OTA signing key not configured (/admin/config/ota.key). Set an OTA key before uploading.";
-      return;
-    }
-    if (!initOtaSignatureVerification()) {
-      hasUploadError = true;
-      if (!otaUploadErrorMsg.length()) otaUploadErrorMsg = "Invalid OTA signature";
-      return;
-    }
-
     if (upload.name == "filesystem") {
       backupSystemConfig();
       close_all_fs();
       size_t fsSize = ((size_t)&_FS_end - (size_t)&_FS_start);
-      if (!Update.begin(fsSize, U_FS)) { hasUploadError = true; otaUploadErrorMsg = "Update begin failed (filesystem)"; }
+      if (!Update.begin(fsSize, U_FS)) hasUploadError = true;
     } else {
       uint32_t maxSketchSpace = (ESP.getFreeSketchSpace() - 0x1000) & 0xFFFFF000;
-      if (!Update.begin(maxSketchSpace, U_FLASH)) { hasUploadError = true; otaUploadErrorMsg = "Update begin failed (sketch)"; }
+      if (!Update.begin(maxSketchSpace, U_FLASH)) hasUploadError = true;
     }
   } else if (upload.status == UPLOAD_FILE_WRITE && !hasUploadError) {
-    if (otaHmacActive) {
-      br_hmac_update(&otaHmacCtx, upload.buf, upload.currentSize);
-    }
     if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
       hasUploadError = true;
-      otaUploadErrorMsg = "Update write failed";
     }
   } else if (upload.status == UPLOAD_FILE_END) {
     if (!hasUploadError) {
-      if (otaHmacActive) {
-        uint8_t got[32];
-        br_hmac_out(&otaHmacCtx, got);
-        otaHmacActive = false;
-        if (!constantTimeEq32(got, otaExpectedHmac)) {
-          hasUploadError = true;
-          otaUploadErrorMsg = "OTA signature verification failed";
-          Update.end();
-          return;
-        }
-        otaSigVerified = true;
-      }
-      if (!Update.end(true)) { hasUploadError = true; otaUploadErrorMsg = "Update finalize failed"; }
+      if (!Update.end(true)) hasUploadError = true;
     } else {
       Update.end();
     }
   } else if (upload.status == UPLOAD_FILE_ABORTED) {
     Update.end();
     hasUploadError = true;
-    if (!otaUploadErrorMsg.length()) otaUploadErrorMsg = "Upload aborted";
   }
   delay(0);
 }

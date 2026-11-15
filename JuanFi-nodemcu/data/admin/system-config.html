@@ -282,17 +282,9 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
           <div class="grid two">
             <div class="field"><label for="binFileType">Binary type</label><select id="binFileType"><option value="sketch">Bin 1 — sketch (.bin)</option><option value="filesystem">Bin 2 — filesystem (.bin)</option></select></div>
             <div class="field"><label for="mainBin">Firmware file</label><input type="file" id="mainBin" accept=".bin"></div>
-            <div class="field"><label for="otaSig">OTA signature (HMAC-SHA256 hex)</label><input type="text" id="otaSig" autocomplete="off" spellcheck="false" placeholder="64 hex chars for selected .bin"></div>
-            <div class="field"><label for="otaKey">OTA signing key (32-byte hex, stored on device)</label><div class="pw-wrap"><input type="password" id="otaKey" autocomplete="off" spellcheck="false" placeholder="64 hex chars"><button type="button" class="pw-toggle" aria-label="Show key" data-pw-toggle="otaKey"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></button></div></div>
           </div>
-          <p class="hint" style="margin-top:8px">Signed OTA required: the device verifies HMAC-SHA256 of the uploaded binary using the OTA key stored in <code>/admin/config/ota.key</code>. Set/save the key once, then compute the signature for each .bin (HMAC-SHA256, key and message = raw file bytes, hex-encoded) before upload.</p>
           <div class="note warn" style="margin-top:12px">Upload one file at a time. If updating both, flash filesystem (Bin 2) first, then sketch (Bin 1). A filesystem update resets promo rates; back them up first.</div>
-          <div class="actions">
-            <button type="button" class="btn" id="genOtaKeyBtn">Generate key</button>
-            <button type="button" class="btn" id="saveOtaKeyBtn">Save OTA key</button>
-            <button type="button" class="btn" id="signOtaBtn">Compute signature</button>
-            <button type="button" class="btn primary" id="uploadFwBtn">Upload firmware</button>
-          </div>
+          <div class="actions"><button type="button" class="btn primary" id="uploadFwBtn">Upload firmware</button></div>
         </div>
       </section>
 
@@ -532,50 +524,11 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
   }
   function downloadText(filename, text) { var blob=new Blob([text],{type:'text/plain'}), a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);},1000); }
   function validateFileSize(f, type) { var sizeMb=f.size/1024/1024; if(type==='filesystem'){ if(sizeMb<0.5){ alert('Filesystem binary looks too small.'); return false; } } else { if(sizeMb>1.5){ alert('Sketch binary looks too large.'); return false; } } return true; }
-  function bytesToHex(buf) { var b=new Uint8Array(buf), h=''; for (var i=0;i<b.length;i++){ var s=b[i].toString(16); h += (s.length===1?'0':'')+s; } return h; }
-  function hexToBytes(hex) { hex=String(hex||'').trim(); if(!/^[0-9a-fA-F]{64}$/.test(hex)) return null; var out=new Uint8Array(32); for (var i=0;i<32;i++){ out[i]=parseInt(hex.substr(i*2,2),16); } return out; }
-  function generateOtaKey() {
-    try {
-      var b=new Uint8Array(32); crypto.getRandomValues(b);
-      $('#otaKey').val(bytesToHex(b.buffer));
-      alert('Random OTA key generated. Click "Save OTA key" to store it on the device, then keep a secure backup of this key for signing future updates.');
-    } catch(e){ alert('Failed to generate key: ' + (e && e.message || e)); }
-  }
-  function saveOtaKey() {
-    var key=String($('#otaKey').val()||'').trim();
-    if(!/^[0-9a-fA-F]{64}$/.test(key)){ alert('OTA key must be exactly 64 hex characters (32 bytes).'); return; }
-    $.post('/admin/api/setOtaKey', 'key=' + encodeURIComponent(key)).done(function(){ alert('OTA signing key saved on device. Keep a secure backup of this key; it is required to sign firmware/filesystem uploads.'); }).fail(function(xhr){ alert('Failed to save OTA key: ' + (xhr.responseText || xhr.statusText || 'unknown error')); });
-  }
-  function computeOtaSignature() {
-    var files=$('#mainBin')[0].files; if(!files||!files.length){ alert('Choose a .bin file first.'); return; }
-    var keyHex=String($('#otaKey').val()||'').trim();
-    var keyBytes=hexToBytes(keyHex);
-    if(!keyBytes){ alert('Enter a valid 64-hex OTA signing key to compute the signature.'); return; }
-    if(!(window.crypto && crypto.subtle)){ alert('Web Crypto API not available in this browser. Compute HMAC-SHA256 of the raw .bin with the OTA key externally and paste the 64-hex signature.'); return; }
-    var reader=new FileReader();
-    reader.onload=function(e){
-      try {
-        var data=e.target.result;
-        crypto.subtle.importKey('raw', keyBytes, {name:'HMAC', hash:'SHA-256'}, false, ['sign']).then(function(ckey){
-          return crypto.subtle.sign('HMAC', ckey, data);
-        }).then(function(sig){
-          $('#otaSig').val(bytesToHex(sig));
-          alert('OTA signature computed for the selected file.');
-        }).catch(function(err){ alert('Failed to compute signature: ' + (err && err.message || err)); });
-      } catch(err){ alert('Failed to compute signature: ' + (err && err.message || err)); }
-    };
-    reader.onerror=function(){ alert('Failed to read firmware file.'); };
-    reader.readAsArrayBuffer(files[0]);
-  }
   function uploadMainBin() {
     var files=$('#mainBin')[0].files; if(!files||!files.length){ alert('Choose a .bin file to upload.'); return; }
     var binFileType=$('#binFileType').val(); if(!validateFileSize(files[0], binFileType)) return;
-    var otaSig=String($('#otaSig').val()||'').trim();
-    if(!/^[0-9a-fA-F]{64}$/.test(otaSig)){ alert('OTA signature is required (64 hex characters). Use "Compute signature" with the device OTA key, or provide a precomputed HMAC-SHA256 of the raw .bin.'); return; }
-    var fd=new FormData();
-    fd.append('otaSig', otaSig);
-    fd.append(binFileType, files[0]);
-    $.ajax({url:'/admin/updateMainBin', type:'POST', data:fd, contentType:false, processData:false}).done(function(r){ alert(r?('Upload complete: '+r):'Upload complete. Device will restart.'); }).fail(function(xhr){ alert('Upload failed: '+(xhr.responseText||xhr.statusText||'unknown error')); });
+    var fd=new FormData(); fd.append(binFileType, files[0]);
+    $.ajax({url:'/admin/updateMainBin', type:'POST', data:fd, contentType:false, processData:false}).done(function(r){ alert(r?('Upload complete: '+r):'File was not uploaded.'); }).fail(function(xhr){ alert('Upload failed: '+(xhr.responseText||xhr.statusText||'unknown error')); });
   }
   function logout() { if(!confirm('Sign out of the admin panel?')) return; $.post('/admin/api/logout').always(function(){ window.location.href='/admin/login'; }); }
   $(function () {
@@ -602,9 +555,6 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
     $(document).on('click','[data-del-rate]', function(){ $('#rateRow'+$(this).data('del-rate')).remove(); });
     $(document).on('input change','#promoRateBody input', function(){ var m=String(this.id).match(/(\d+)$/); if(m) updateRatePreview(m[1]); });
     $('#generateVoucherBtn').on('click', generateVoucher);
-    $('#genOtaKeyBtn').on('click', generateOtaKey);
-    $('#saveOtaKeyBtn').on('click', saveOtaKey);
-    $('#signOtaBtn').on('click', computeOtaSignature);
     $('#uploadFwBtn').on('click', uploadMainBin);
     openDashboard();
     var __lastAdminPingAt = 0;

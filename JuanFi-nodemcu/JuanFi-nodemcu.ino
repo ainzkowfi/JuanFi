@@ -768,7 +768,6 @@ void setup() {
   server.on("/admin/api/getAutoRestart", handleAdminGetAutoRestart);
   server.on("/admin/api/saveAutoRestart", HTTP_POST, handleAdminSaveAutoRestart);
   server.on("/admin/api/ping", handleAdminPanelPing);
-  server.on("/admin/api/setOtaKey", HTTP_POST, handleAdminSetOtaKey);
   server.on("/admin/api/hotspotSummary", handleAdminHotspotSummary);
   server.on("/admin", HTTP_GET, handleAdminPage);
   server.on("/admin/viewGeneratedVouchers", handleAdminGeneratedVoucherPage);
