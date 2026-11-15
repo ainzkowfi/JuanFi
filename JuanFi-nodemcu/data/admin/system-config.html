@@ -557,7 +557,11 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
     $('#generateVoucherBtn').on('click', generateVoucher);
     $('#uploadFwBtn').on('click', uploadMainBin);
     openDashboard();
-    function pingAdminPanel() { $.get('admin/api/ping?query=' + new Date().getTime()).fail(function () {}); }
+    function pingAdminPanel() {
+      try {
+        fetch('/admin/api/ping?query=' + new Date().getTime(), { method: 'GET', cache: 'no-store', credentials: 'same-origin', keepalive: true }).catch(function () {});
+      } catch (e) {}
+    }
     pingAdminPanel();
     setInterval(function () { if (document.visibilityState !== 'hidden') { pingAdminPanel(); } }, 30000);
     document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') { pingAdminPanel(); } });
