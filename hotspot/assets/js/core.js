@@ -1381,6 +1381,7 @@ function bootRest() {
 		try { dbgLog("boot state=" + state); } catch (e) { }
 		bootStateKnown = true;
 		render(state);
+		try { applyInsertCoinBanUi(); } catch (e) {}
 		// Paused: show the view first, then verify it is still resumable.
 		// Waiting on every job here meant a dead ESP held the customer behind
 		// the loader for 5s for a page they were only trying to look at.
@@ -1408,6 +1409,7 @@ function bootRest() {
 		setTimeout(hideBoot, 120);
 		$.when.apply($, jobs).always(function () {
 			try { dbgLog("boot ready (" + __stepSecs(bootT0) + ")"); } catch (e) { }
+			try { applyInsertCoinBanUi(); } catch (e) {}
 		});
 	});
 }
@@ -2427,6 +2429,7 @@ function setPortalState(s) {
 		window.__validityFor = voucher;
 		showValidity();
 	}
+	try { applyInsertCoinBanUi(); } catch (e) {}
 }
 
 // Promo rates. Inline section, no modal.
@@ -2988,10 +2991,94 @@ function recordPortalCoinslotNoCoinExpiry() {
 	return !!(st.bannedUntil && Date.now() < st.bannedUntil);
 }
 
+function getPortalCoinslotBanRemainingMs() {
+	try {
+		if (!isPortalCoinslotBanned()) return 0;
+		var st = getPortalCoinslotBanState();
+		var rem = (parseInt(st.bannedUntil, 10) || 0) - Date.now();
+		return rem > 0 ? rem : 0;
+	} catch (e) { return 0; }
+}
+
+function formatCoinslotBanCountdown(ms) {
+	var totalSec = Math.max(0, Math.ceil((parseInt(ms, 10) || 0) / 1000));
+	var min = Math.floor(totalSec / 60);
+	var sec = totalSec % 60;
+	return String(min) + ":" + (sec < 10 ? "0" : "") + String(sec);
+}
+
+function describeCoinslotBanWait(ms) {
+	var totalSec = Math.max(1, Math.ceil((parseInt(ms, 10) || 0) / 1000));
+	if (totalSec >= 60) {
+		var mins = Math.ceil(totalSec / 60);
+		return mins + (mins === 1 ? " minute" : " minutes");
+	}
+	return totalSec + (totalSec === 1 ? " second" : " seconds");
+}
+
+function buildNoCoinExpiryMessage(triggeredBan) {
+	var maxAttempts = parseInt(coinslotBanCount, 10);
+	if (!isFinite(maxAttempts) || maxAttempts < 1) maxAttempts = 3;
+	var st = getPortalCoinslotBanState();
+	var attempts = parseInt(st.attempts, 10) || 0;
+	var shownAttempts = attempts;
+	if (!triggeredBan && shownAttempts > maxAttempts) shownAttempts = maxAttempts;
+	var base = "Coin slot expired with no coin inserted. ";
+	if (triggeredBan) {
+		return base + "This counted toward the coinslot ban. Cooldown active for " + describeCoinslotBanWait(getPortalCoinslotBanRemainingMs()) + ".";
+	}
+	return base + "Warning " + shownAttempts + "/" + maxAttempts + ": repeated no-coin attempts can trigger a coinslot cooldown.";
+}
+
+var __coinslotBanUiTimer = null;
+function applyInsertCoinBanUi() {
+	try {
+		var btn = document.getElementById("insertBtn");
+		if (!btn) return;
+		if (!btn.getAttribute("data-insertcoin-default-html")) {
+			btn.setAttribute("data-insertcoin-default-html", btn.innerHTML);
+		}
+		var banned = isPortalCoinslotBanned();
+		var rem = getPortalCoinslotBanRemainingMs();
+		if (banned && rem > 0) {
+			btn.disabled = true;
+			btn.setAttribute("aria-disabled", "true");
+			var label = btn.querySelector(".coin-label");
+			var text = "COOLDOWN " + formatCoinslotBanCountdown(rem);
+			if (label) { label.textContent = text; }
+			else { btn.textContent = text; }
+			if (!__coinslotBanUiTimer) {
+				__coinslotBanUiTimer = setInterval(function () {
+					if (!isPortalCoinslotBanned() || getPortalCoinslotBanRemainingMs() <= 0) {
+						try { clearPortalCoinslotBanState(); } catch (e) {}
+						applyInsertCoinBanUi();
+						return;
+					}
+					applyInsertCoinBanUi();
+				}, 1000);
+			}
+		} else {
+			if (__coinslotBanUiTimer) { clearInterval(__coinslotBanUiTimer); __coinslotBanUiTimer = null; }
+			var def = btn.getAttribute("data-insertcoin-default-html");
+			if (def) { btn.innerHTML = def; }
+			btn.disabled = false;
+			btn.removeAttribute("aria-disabled");
+		}
+	} catch (e) {}
+}
+
 
 function insertBtnAction() {
 	if (isPortalCoinslotBanned()) {
-		notifyCoinSlotError("coin.slot.banned");
+		var rem = getPortalCoinslotBanRemainingMs();
+		var msg = "Coinslot cooldown active. Try again in " + describeCoinslotBanWait(rem) + ".";
+		try {
+			$("#coinErr").text(msg).show();
+			var cp = $("#coinPanel");
+			if (cp && cp.is(":visible")) { $("#coinErr").focus(); }
+		} catch (e) {}
+		try { $.toast({ title: "Cooldown active", content: msg, type: "error", delay: 5000 }); } catch (e) {}
+		try { applyInsertCoinBanUi(); } catch (e) {}
 		return false;
 	}
 	// No double-submit: one coin session at a time (second tap = busy error).
@@ -3381,11 +3468,15 @@ function checkCoin() {
 					} else {
 						try { dbgLog("checkCoin: wait expired, no coins", "dbg-err"); } catch (e) { }
 						// Count only a countdown expiry with no coin data as an abuse attempt.
-						try { recordPortalCoinslotNoCoinExpiry(); } catch (e) {}
+						var triggeredBan = false;
+						try { triggeredBan = !!recordPortalCoinslotNoCoinExpiry(); } catch (e) {}
 						// ponytail: one message for one event. The coinslot.busy
 						// branch a poll later stays silent, and closeCoinModal()
 						// ends the panel before that poll ever happens.
-						notifyCoinSlotError('coins.wait.expired');
+						var noCoinMsg = buildNoCoinExpiryMessage(triggeredBan);
+						try { $("#coinErr").text(noCoinMsg).show(); } catch (e) {}
+						try { $.toast({ title: triggeredBan ? "Coinslot cooldown" : "Coin slot expired", content: noCoinMsg, type: triggeredBan ? "error" : "warning", delay: 6000 }); } catch (e) {}
+						try { if (triggeredBan) { applyInsertCoinBanUi(); } } catch (e) {}
 						closeCoinModal();
 					}
 				} else {
@@ -3428,8 +3519,12 @@ function checkCoin() {
 				timer = null;
 				if (totalCoinReceived <= 0) {
 					// Count only a countdown/window expiry with no coin data as an abuse attempt.
-					try { recordPortalCoinslotNoCoinExpiry(); } catch (e) {}
-					notifyCoinSlotError('coins.wait.expired');
+					var triggeredBan = false;
+					try { triggeredBan = !!recordPortalCoinslotNoCoinExpiry(); } catch (e) {}
+					var noCoinMsg = buildNoCoinExpiryMessage(triggeredBan);
+					try { $("#coinErr").text(noCoinMsg).show(); } catch (e) {}
+					try { $.toast({ title: triggeredBan ? "Coinslot cooldown" : "Coin slot expired", content: noCoinMsg, type: triggeredBan ? "error" : "warning", delay: 6000 }); } catch (e) {}
+					try { if (triggeredBan) { applyInsertCoinBanUi(); } } catch (e) {}
 					closeCoinModal();
 				} else {
 					notifyCoinSlotError('coins.wait.expired');
