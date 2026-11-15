@@ -90,10 +90,9 @@ function loadSettings() {
 		try {
 			$.ajax({
 				type: "GET",
-				url: url + "?t=" + new Date().getTime(),
+				url: url,
 				dataType: "text",
-				timeout: ROUTER_TIMEOUT,
-				cache: false
+				timeout: ROUTER_TIMEOUT
 			})
 			.done(function (text) { __settingsText = text; d.resolve(text); })
 			.fail(function () { if (next) { next(); } else { d.resolve(""); } });
@@ -2349,6 +2348,8 @@ function cancelCoinForfeit() {
 	topUpGen++;
 	clearInterval(timer);
 	timer = null;
+	checkCoinFailStreak = 0;
+	nextCheckCoinAtMs = 0;
 	insertingCoin = false;
 	window.__coinInsertLive = false;
 	paintCoinLiveNote();
@@ -3209,6 +3210,8 @@ function callTopupAPI(retryCount, gen) {
 				insertingCoin = true;
 				$('#codeGenerated').text(voucher);
 				if (timer == null) {
+					checkCoinFailStreak = 0;
+					nextCheckCoinAtMs = 0;
 					timer = setInterval(checkCoin, 1000);
 				}
 				if (isMultiVendo) {
@@ -3406,6 +3409,12 @@ function autoLoginAfterUseVoucher() {
 }
 
 var checkCoinFailStreak = 0;
+var nextCheckCoinAtMs = 0;
+function coinPollBackoffMs() {
+	if (checkCoinFailStreak >= 5) { return 3000; }
+	if (checkCoinFailStreak >= 3) { return 2000; }
+	return 0;
+}
 var currentTopUpXhr = null;
 var currentCheckCoinXhr = null;
 var coinToastKey = null;
@@ -3420,6 +3429,7 @@ function checkCoin() {
 	// Skip the tick while a poll is still in flight, aborting it can kill
 	// the very response carrying status:true/newCoin (ESP is single-threaded
 	if (currentCheckCoinXhr) { return; }
+	if (nextCheckCoinAtMs && Date.now() < nextCheckCoinAtMs) { return; }
 	currentCheckCoinXhr = $.ajax({
 		type: "POST",
 		url: "http://" + vendorIpAddress + "/checkCoin",
@@ -3427,6 +3437,7 @@ function checkCoin() {
 		data: { voucher: voucher },
 		success: function (data) {
 			checkCoinFailStreak = 0;
+			nextCheckCoinAtMs = 0;
 			if (data.status == "true") {
 			try { dbgLog("checkCoin COIN +" + data.newCoin + " total=" + data.totalCoin + " timeAdded=" + data.timeAdded + "s", "dbg-ok"); } catch (e) { }
 			totalCoinReceived = (isFinite(parseInt(data.totalCoin, 10)) ? parseInt(data.totalCoin, 10) : 0);
@@ -3553,6 +3564,7 @@ function checkCoin() {
 		}, error: function (xhr, status, err) {
 			if (status === "abort") return;
 			checkCoinFailStreak++;
+			nextCheckCoinAtMs = Date.now() + coinPollBackoffMs();
 			dbgAjaxErr("checkCoin streak=" + checkCoinFailStreak, xhr, status, err);
 			if (checkCoinFailStreak === 5) {
 				coinToastOnce("unreachable", { title: 'Connection lost', content: 'ESP unreachable. Check power & WiFi, then tap Cancel to retry.', type: 'warning', delay: 4000 });
@@ -3583,6 +3595,8 @@ function closeCoinModal() {
 	coinToastKey = null;
 	clearInterval(timer);
 	timer = null;
+	checkCoinFailStreak = 0;
+	nextCheckCoinAtMs = 0;
 	insertingCoin = false;
 	window.__useVoucherBusy = false;
 	window.__cancelVoucher = null;
