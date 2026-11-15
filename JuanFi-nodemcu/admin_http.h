@@ -94,8 +94,18 @@ void handleLogout() {
 void handleAdminPage() { if (!isAuthorized()) { server.sendHeader("Location", "/admin/login", true); server.send(302, "text/plain", ""); return; } handleFileRead("/admin/system-config.html"); }
 void handleAdminGeneratedVoucherPage() { if (!isAuthorized()) { server.sendHeader("Location", "/admin/login", true); server.send(302, "text/plain", ""); return; } handleFileRead("/admin/voucher-generate.html"); }
 void handleJquerySript() { handleFileRead("/admin/js/jquery.min.js"); }
-void handleUserGetRates() { setupCORSPolicy(); handleFileRead("/admin/config/rates.data"); }
-void handleAdminGetRates() { if (!isAuthorized()) { handleNotAuthorize(); return; } handleFileRead("/admin/config/rates.data"); }
+void handleUserGetRates() {
+  setupCORSPolicy();
+  if (!handleFileRead("/admin/config/rates.data")) {
+    server.send(404, "text/plain", "rates.data not found");
+  }
+}
+void handleAdminGetRates() {
+  if (!isAuthorized()) { handleNotAuthorize(); return; }
+  if (!handleFileRead("/admin/config/rates.data")) {
+    server.send(404, "text/plain", "rates.data not found");
+  }
+}
 
 void handleAdminSaveRates() {
   if (!isAuthorized()) { handleNotAuthorize(); return; }
@@ -119,7 +129,12 @@ void handleAdminSaveSystemConfig() {
   ESP.restart();
 }
 
-void handleAdminGetSystemConfig() { if (!isAuthorized()) { handleNotAuthorize(); return; } handleFileRead("/admin/config/system.data"); }
+void handleAdminGetSystemConfig() {
+  if (!isAuthorized()) { handleNotAuthorize(); return; }
+  if (!handleFileRead("/admin/config/system.data")) {
+    server.send(404, "text/plain", "system.data not found");
+  }
+}
 
 void handleAdminResetStats() {
   if (!isAuthorized()) { handleNotAuthorize(); return; }
