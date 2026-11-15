@@ -97,13 +97,13 @@ void handleJquerySript() { handleFileRead("/admin/js/jquery.min.js"); }
 void handleUserGetRates() {
   setupCORSPolicy();
   if (!handleFileRead("/admin/config/rates.data")) {
-    server.send(404, "text/plain", "rates.data not found");
+    server.send(200, "text/plain", "P1#1#12#0##|P5#5#90#0##|P10#10#210#0##|P20#20#480#0##");
   }
 }
 void handleAdminGetRates() {
   if (!isAuthorized()) { handleNotAuthorize(); return; }
   if (!handleFileRead("/admin/config/rates.data")) {
-    server.send(404, "text/plain", "rates.data not found");
+    server.send(200, "text/plain", "P1#1#12#0##|P5#5#90#0##|P10#10#210#0##|P20#20#480#0##");
   }
 }
 

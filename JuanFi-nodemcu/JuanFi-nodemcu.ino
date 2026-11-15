@@ -386,14 +386,22 @@ int split(String rows[], int maxRows, const String &data, char delimeter) {
   return count;
 }
 
+static const char DEFAULT_RATES_DATA[] = "P1#1#12#0##|P5#5#90#0##|P10#10#210#0##|P20#20#480#0##";
+
 void populateRates() {
   ratesCount = 0;
   String data = readFile("/admin/config/rates.data");
-  if (data.length() == 0) return;
-  // Parse "name#price#minutes#validity#dataLimit#profile" straight off the file buffer:
+  const char *s = nullptr;
+  int len = 0;
+  if (data.length() > 0) {
+    s = data.c_str();
+    len = (int)data.length();
+  } else {
+    s = DEFAULT_RATES_DATA;
+    len = (int)strlen(DEFAULT_RATES_DATA);
+  }
+  // Parse "name#price#minutes#validity#dataLimit#profile" straight off the buffer:
   // the old version took a substring per column, i.e. six heap allocations per rate row.
-  const char *s = data.c_str();
-  int len = (int)data.length();
   int start = 0;
   while (start <= len && ratesCount < 100) {
     int end = start;
