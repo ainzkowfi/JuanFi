@@ -497,6 +497,91 @@ void handleAdminHotspotSummary() {
   server.send(200, "text/plain", resp);
 }
 
+// Parse RouterOS time strings to seconds: "1w2d3h4m5s", "03:04:05", "1d03:04:05", "0s".
+// Works on a trimmed copy in a fixed buffer: this runs on every voucher extend/convert,
+// and the old String-based version allocated several temporaries per call.
+long parseRosTimeToSeconds(const String &in) {
+  char s[40];
+  const char *src = in.c_str();
+  size_t start = 0;
+  size_t end = in.length();
+  while (start < end && (src[start] == ' ' || src[start] == '\t' || src[start] == '\r' || src[start] == '\n')) start++;
+  while (end > start && (src[end - 1] == ' ' || src[end - 1] == '\t' || src[end - 1] == '\r' || src[end - 1] == '\n')) end--;
+  size_t n = end - start;
+  if (n >= sizeof(s)) n = sizeof(s) - 1;
+  if (n > 0) memcpy(s, src + start, n);
+  s[n] = '\0';
+  if (n == 0) return 0;
+
+  if (strchr(s, ':') != nullptr) {
+    long total = 0;
+    char *dayPos = strchr(s, 'd');
+    char *rest = s;
+    if (dayPos && dayPos > s) {
+      bool digits = true;
+      for (char *p = s; p < dayPos; p++) if (*p < '0' || *p > '9') { digits = false; break; }
+      if (digits) {
+        *dayPos = '\0';
+        total += atol(s) * 86400L;
+        rest = dayPos + 1;
+      }
+    }
+    const char *parts[3];
+    int pc = 0;
+    char *cursor = rest;
+    for (char *p = rest; *p && pc < 3; p++) {
+      if (*p == ':') { *p = '\0'; parts[pc++] = cursor; cursor = p + 1; }
+    }
+    if (pc < 3) parts[pc++] = cursor;
+    if (pc == 3) total += (long)atol(parts[0]) * 3600L + (long)atol(parts[1]) * 60L + atol(parts[2]);
+    else if (pc == 2) total += (long)atol(parts[0]) * 60L + atol(parts[1]);
+    else if (pc == 1) total += atol(parts[0]);
+    return total < 0 ? 0 : total;
+  }
+
+  long total = 0;
+  long val = 0;
+  bool haveDigits = false;
+  bool sawUnit = false;
+  for (const char *p = s; *p; p++) {
+    char c = *p;
+    if (c >= '0' && c <= '9') {
+      val = val * 10 + (c - '0');
+      haveDigits = true;
+      continue;
+    }
+    if (c == 'w') total += val * 604800L;
+    else if (c == 'd') total += val * 86400L;
+    else if (c == 'h') total += val * 3600L;
+    else if (c == 'm') total += val * 60L;
+    else if (c == 's') total += val;
+    val = 0;
+    haveDigits = false;
+    sawUnit = true;
+  }
+  if (haveDigits && !sawUnit) total += val;
+  return total < 0 ? 0 : total;
+}
+
+String formatRosTimeSeconds(long seconds) {
+  if (seconds < 0) seconds = 0;
+  // RouterOS accepts compact "1w2d3h4m5s" time values.
+  long w = seconds / 604800L; seconds %= 604800L;
+  long d = seconds / 86400L; seconds %= 86400L;
+  long h = seconds / 3600L; seconds %= 3600L;
+  long m = seconds / 60L; long sec = seconds % 60L;
+  char buf[32];
+  size_t p = 0;
+  if (w > 0) p += (size_t)snprintf(buf + p, sizeof(buf) - p, "%ldw", w);
+  if (d > 0 && p < sizeof(buf)) p += (size_t)snprintf(buf + p, sizeof(buf) - p, "%ldd", d);
+  if (h > 0 && p < sizeof(buf)) p += (size_t)snprintf(buf + p, sizeof(buf) - p, "%ldh", h);
+  if (m > 0 && p < sizeof(buf)) p += (size_t)snprintf(buf + p, sizeof(buf) - p, "%ldm", m);
+  if ((sec > 0 || p == 0) && p < sizeof(buf)) p += (size_t)snprintf(buf + p, sizeof(buf) - p, "%lds", sec);
+  if (p >= sizeof(buf)) p = sizeof(buf) - 1;
+  buf[p] = '\0';
+  return String(buf);
+}
+
 // ---------- Admin: hotspot active sessions & user management (RAM-only, no ESP writes) ----------
 
 static void apiJsonEscapeAppend(String &out, const char *in) {
@@ -740,91 +825,6 @@ void handleAdminHotspotUserAction() {
   server.send(200, "application/json", "{\"ok\":true}");
 }
 
-
-// Parse RouterOS time strings to seconds: "1w2d3h4m5s", "03:04:05", "1d03:04:05", "0s".
-// Works on a trimmed copy in a fixed buffer: this runs on every voucher extend/convert,
-// and the old String-based version allocated several temporaries per call.
-long parseRosTimeToSeconds(const String &in) {
-  char s[40];
-  const char *src = in.c_str();
-  size_t start = 0;
-  size_t end = in.length();
-  while (start < end && (src[start] == ' ' || src[start] == '\t' || src[start] == '\r' || src[start] == '\n')) start++;
-  while (end > start && (src[end - 1] == ' ' || src[end - 1] == '\t' || src[end - 1] == '\r' || src[end - 1] == '\n')) end--;
-  size_t n = end - start;
-  if (n >= sizeof(s)) n = sizeof(s) - 1;
-  if (n > 0) memcpy(s, src + start, n);
-  s[n] = '\0';
-  if (n == 0) return 0;
-
-  if (strchr(s, ':') != nullptr) {
-    long total = 0;
-    char *dayPos = strchr(s, 'd');
-    char *rest = s;
-    if (dayPos && dayPos > s) {
-      bool digits = true;
-      for (char *p = s; p < dayPos; p++) if (*p < '0' || *p > '9') { digits = false; break; }
-      if (digits) {
-        *dayPos = '\0';
-        total += atol(s) * 86400L;
-        rest = dayPos + 1;
-      }
-    }
-    const char *parts[3];
-    int pc = 0;
-    char *cursor = rest;
-    for (char *p = rest; *p && pc < 3; p++) {
-      if (*p == ':') { *p = '\0'; parts[pc++] = cursor; cursor = p + 1; }
-    }
-    if (pc < 3) parts[pc++] = cursor;
-    if (pc == 3) total += (long)atol(parts[0]) * 3600L + (long)atol(parts[1]) * 60L + atol(parts[2]);
-    else if (pc == 2) total += (long)atol(parts[0]) * 60L + atol(parts[1]);
-    else if (pc == 1) total += atol(parts[0]);
-    return total < 0 ? 0 : total;
-  }
-
-  long total = 0;
-  long val = 0;
-  bool haveDigits = false;
-  bool sawUnit = false;
-  for (const char *p = s; *p; p++) {
-    char c = *p;
-    if (c >= '0' && c <= '9') {
-      val = val * 10 + (c - '0');
-      haveDigits = true;
-      continue;
-    }
-    if (c == 'w') total += val * 604800L;
-    else if (c == 'd') total += val * 86400L;
-    else if (c == 'h') total += val * 3600L;
-    else if (c == 'm') total += val * 60L;
-    else if (c == 's') total += val;
-    val = 0;
-    haveDigits = false;
-    sawUnit = true;
-  }
-  if (haveDigits && !sawUnit) total += val;
-  return total < 0 ? 0 : total;
-}
-
-String formatRosTimeSeconds(long seconds) {
-  if (seconds < 0) seconds = 0;
-  // RouterOS accepts compact "1w2d3h4m5s" time values.
-  long w = seconds / 604800L; seconds %= 604800L;
-  long d = seconds / 86400L; seconds %= 86400L;
-  long h = seconds / 3600L; seconds %= 3600L;
-  long m = seconds / 60L; long sec = seconds % 60L;
-  char buf[32];
-  size_t p = 0;
-  if (w > 0) p += (size_t)snprintf(buf + p, sizeof(buf) - p, "%ldw", w);
-  if (d > 0 && p < sizeof(buf)) p += (size_t)snprintf(buf + p, sizeof(buf) - p, "%ldd", d);
-  if (h > 0 && p < sizeof(buf)) p += (size_t)snprintf(buf + p, sizeof(buf) - p, "%ldh", h);
-  if (m > 0 && p < sizeof(buf)) p += (size_t)snprintf(buf + p, sizeof(buf) - p, "%ldm", m);
-  if ((sec > 0 || p == 0) && p < sizeof(buf)) p += (size_t)snprintf(buf + p, sizeof(buf) - p, "%lds", sec);
-  if (p >= sizeof(buf)) p = sizeof(buf) - 1;
-  buf[p] = '\0';
-  return String(buf);
-}
 
 bool registerNewVoucher(const String &voucher, bool *existedBefore = nullptr) {
   if (existedBefore) *existedBefore = false;
