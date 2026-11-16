@@ -823,12 +823,14 @@ void handleAdminHotspotUserAction() {
     err = apiLast.trapMessage.length() ? apiLast.trapMessage : String("Failed to add time");
     if (ok) {
       // Best-effort: extend OnLogin scheduler expiry and session validity data (no active-session kick).
+      // Consistent with OnLogin extend: interval += added; if (limit-uptime > interval) interval = limit-uptime.
       String schedNextRun = "";
-      String sq[2]; sq[0] = "?name=" + sname; sq[1] = "=.proplist=.id,interval,next-run";
+      String sq[2]; sq[0] = "?name=" + sname; sq[1] = "=.proplist=.id,interval";
       if (apiTransact("/system/scheduler/print", sq, 2, 7000) && apiLast.records > 0 && apiLast.reId.length() > 0) {
         String sid = apiLast.reId;
         long curInt = parseRosTimeToSeconds(apiLast.reInterval);
         long newInt = curInt + (long)addMinutes * 60L;
+        if (newUptime > newInt) newInt = newUptime;
         if (newInt < 0) newInt = 0;
         String si[2]; si[0] = "=.id=" + sid; si[1] = "=interval=" + formatRosTimeSeconds(newInt);
         if (apiTransact("/system/scheduler/set", si, 2, 7000)) {
@@ -839,21 +841,58 @@ void handleAdminHotspotUserAction() {
         }
       }
       if (schedNextRun.length() > 0) {
-        for (int i = 0; i < 5; i++) {
-          String aq[2]; aq[0] = "?user=" + sname; aq[1] = "=.proplist=mac-address";
-          if (!apiTransact("/ip/hotspot/active/print", aq, 2, 5000) || apiLast.records == 0 || apiLast.reMacAddress.length() == 0) break;
-          String mac = apiLast.reMacAddress; mac.replace(":", ""); mac.replace("-", ""); mac.toUpperCase();
-          if (mac.length() > 0) {
-            String contents = sname + "#" + schedNextRun;
-            String fattrs[2];
-            fattrs[0] = "=numbers=hotspot/data/" + mac + ".txt"; fattrs[1] = "=contents=" + contents;
-            if (!apiTransact("/file/set", fattrs, 2, 5000)) {
-              fattrs[0] = "=numbers=flash/hotspot/data/" + mac + ".txt";
-              apiTransact("/file/set", fattrs, 2, 5000);
+        // Update session validity file for all active sessions of this user (best-effort).
+        if (apiClient.connected()) {
+          apiResetResult();
+          if (apiWriteWord("/ip/hotspot/active/print") &&
+              apiWriteWord("=.proplist=mac-address") &&
+              apiWriteWord("?user=" + sname) &&
+              apiEndSentence()) {
+            ApiReplyType current = ApiReplyType::NONE;
+            bool finished = false;
+            unsigned long deadline = millis() + 7000;
+            char curMac[24] = {0};
+            String macs[8];
+            int macCount = 0;
+            while (!finished) {
+              if ((long)(millis() - deadline) >= 0) { apiLast.fatal = true; break; }
+              char word[192];
+              unsigned long remain = deadline - millis(); if (remain < 1) remain = 1;
+              if (!apiReadWordTo(word, sizeof(word), remain)) { apiLast.fatal = true; break; }
+              if (word[0] == '\0') {
+                if (current == ApiReplyType::RE) {
+                  if (curMac[0] != '\0' && macCount < 8) { macs[macCount++] = String(curMac); }
+                  curMac[0] = '\0';
+                } else if (current == ApiReplyType::DONE) { apiLast.gotDone = true; finished = true; }
+                else if (current == ApiReplyType::FATAL) { finished = true; }
+                current = ApiReplyType::NONE;
+                continue;
+              }
+              if (!strcmp(word, "!re")) { current = ApiReplyType::RE; curMac[0] = '\0'; }
+              else if (!strcmp(word, "!done")) { current = ApiReplyType::DONE; }
+              else if (!strcmp(word, "!trap")) { current = ApiReplyType::TRAP; }
+              else if (!strcmp(word, "!fatal")) { current = ApiReplyType::FATAL; apiLast.fatal = true; }
+              else if (word[0] == '=' && current == ApiReplyType::RE) {
+                char *key = word + 1; char *val = (char*)""; char *eq = strchr(key, '=');
+                if (eq) { *eq = '\0'; val = eq + 1; }
+                if (!strcmp(key, "mac-address")) snprintf(curMac, sizeof(curMac), "%s", val);
+              }
             }
+            if (apiLast.fatal) apiClient.stop();
+            for (int i = 0; i < macCount; i++) {
+              String mac = macs[i]; mac.replace(":", ""); mac.replace("-", ""); mac.toUpperCase();
+              if (mac.length() == 0) continue;
+              String contents = sname + "#" + schedNextRun;
+              String fattrs[2];
+              fattrs[0] = "=numbers=hotspot/data/" + mac + ".txt"; fattrs[1] = "=contents=" + contents;
+              if (!apiTransact("/file/set", fattrs, 2, 5000)) {
+                fattrs[0] = "=numbers=flash/hotspot/data/" + mac + ".txt";
+                apiTransact("/file/set", fattrs, 2, 5000);
+              }
+            }
+          } else {
+            apiLast.fatal = true; apiClient.stop();
           }
-          // this loop will re-read the first active record; sufficient for typical single-session users.
-          break;
         }
       }
     }
