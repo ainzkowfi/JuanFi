@@ -733,19 +733,53 @@ function syncPortalModalScrollLock() {
 		else { document.body.classList.remove('portal-modal-open'); }
 	} catch (e) {}
 }
-function showHistoryView() {
-	try { window.__histOpener = document.activeElement; } catch (e) {}
-	try { paintVoucherHistory(); } catch (e) {}
-	try { document.getElementById('view-history').style.display = "block"; } catch (e) {}
-	window.__histOpen = true;
+function openPortalDialog(id, focusId, openerKey) {
+	try { window[openerKey] = document.activeElement; } catch (e) {}
+	var el = null;
+	try { el = document.getElementById(id); } catch (e) {}
+	if (!el) { return; }
+	try { if (el.__closeTimer) { clearTimeout(el.__closeTimer); el.__closeTimer = null; } } catch (e) {}
+	try { el.style.display = "block"; } catch (e) {}
+	try { el.classList.remove('portal-dialog-open'); } catch (e) {}
+	try { void el.offsetWidth; } catch (e) {}
+	try {
+		if (window.requestAnimationFrame) {
+			window.requestAnimationFrame(function () { try { el.classList.add('portal-dialog-open'); } catch (e) {} });
+		} else {
+			el.classList.add('portal-dialog-open');
+		}
+	} catch (e) { try { el.classList.add('portal-dialog-open'); } catch (ex) {} }
+	if (id === 'view-history') { window.__histOpen = true; } else { window.__bankOpen = true; }
 	syncPortalModalScrollLock();
-	try { document.getElementById('histBack').focus(); } catch (e) {}
+	try { if (focusId) { var f = document.getElementById(focusId); if (f && f.focus) { f.focus(); } } } catch (e) {}
+}
+function closePortalDialog(id, openerKey) {
+	var el = null;
+	try { el = document.getElementById(id); } catch (e) {}
+	if (el) {
+		try { if (el.__closeTimer) { clearTimeout(el.__closeTimer); el.__closeTimer = null; } } catch (e) {}
+		try { el.classList.remove('portal-dialog-open'); } catch (e) {}
+		var finalize = function () {
+			try { el.__closeTimer = null; } catch (e) {}
+			if (id === 'view-history') { if (window.__histOpen) { return; } }
+			else { if (window.__bankOpen) { return; } }
+			try { el.style.display = "none"; } catch (e) {}
+		};
+		var reduced = false;
+		try { reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) {}
+		if (reduced) { finalize(); }
+		else { try { el.__closeTimer = setTimeout(finalize, 220); } catch (e) { finalize(); } }
+	}
+	if (id === 'view-history') { window.__histOpen = false; } else { window.__bankOpen = false; }
+	syncPortalModalScrollLock();
+	try { if (window[openerKey] && document.contains(window[openerKey])) { window[openerKey].focus(); } window[openerKey] = null; } catch (e) {}
+}
+function showHistoryView() {
+	try { paintVoucherHistory(); } catch (e) {}
+	openPortalDialog('view-history', 'histBack', '__histOpener');
 }
 function closeHistoryView() {
-	try { document.getElementById('view-history').style.display = "none"; } catch (e) {}
-	window.__histOpen = false;
-	syncPortalModalScrollLock();
-	try { if (window.__histOpener && document.contains(window.__histOpener)) { window.__histOpener.focus(); } window.__histOpener = null; } catch (e) {}
+	closePortalDialog('view-history', '__histOpener');
 }
 // Voucher bank: saved codes clients want quick recall for. No router verify;
 // adding a code must never log the device in or touch the current session.
@@ -842,18 +876,11 @@ function paintVoucherBank() {
 	try { paintConvertBank(); } catch (e) {}
 }
 function showBankView() {
-	try { window.__bankOpener = document.activeElement; } catch (e) {}
 	try { paintVoucherBank(); } catch (e) {}
-	try { document.getElementById('view-bank').style.display = "block"; } catch (e) {}
-	window.__bankOpen = true;
-	syncPortalModalScrollLock();
-	try { document.getElementById('bankBack').focus(); } catch (e) {}
+	openPortalDialog('view-bank', 'bankBack', '__bankOpener');
 }
 function closeBankView() {
-	try { document.getElementById('view-bank').style.display = "none"; } catch (e) {}
-	window.__bankOpen = false;
-	syncPortalModalScrollLock();
-	try { if (window.__bankOpener && document.contains(window.__bankOpener)) { window.__bankOpener.focus(); } window.__bankOpener = null; } catch (e) {}
+	closePortalDialog('view-bank', '__bankOpener');
 }
 // Keep Tab inside the history overlay while open (it lives inside #app,
 // so inert on #app would trap the overlay itself).
@@ -2339,12 +2366,15 @@ function cancelCoin() {
 	// suppressed in CNA sheets, which used to strand paid credit (a stray
 	if (totalCoinReceived > 0) {
 		try {
+			var $fb = $("#forfeitBar");
 			$("#forfeitText").text(currencySym + totalCoinReceived + " inserted. Cancelling forfeits it.");
-			$("#forfeitBar").show();
+			$fb.show().removeClass("is-open");
+			try { void $fb[0].offsetWidth; } catch (e) {}
+			try { if (window.requestAnimationFrame) { window.requestAnimationFrame(function () { $fb.addClass("is-open"); }); } else { $fb.addClass("is-open"); } } catch (e) { $fb.addClass("is-open"); }
 			try { $("#forfeitYes").focus(); } catch (e) {}
-			$("#forfeitYes").off("click").on("click", function () { try { $("#forfeitBar").hide(); } catch (e) {} cancelCoinForfeit(); });
+			$("#forfeitYes").off("click").on("click", function () { try { $("#forfeitBar").removeClass("is-open").hide(); } catch (e) {} cancelCoinForfeit(); });
 			$("#forfeitNo").off("click").on("click", function () {
-				try { $("#forfeitBar").hide(); } catch (e) {}
+				try { $("#forfeitBar").removeClass("is-open").hide(); } catch (e) {}
 				try { dbgLog("cancel: kept session with coins=" + totalCoinReceived); } catch (e) { }
 			});
 		} catch (e) { cancelCoinForfeit(); }

@@ -904,6 +904,16 @@ hr.foot-hr {
     padding: 16px 12px calc(16px + env(safe-area-inset-bottom));
     overflow-y: auto;
     overscroll-behavior: contain;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 220ms cubic-bezier(.23, 1, .32, 1), transform 220ms cubic-bezier(.23, 1, .32, 1);
+    pointer-events: none;
+}
+#view-history.portal-dialog-open,
+#view-bank.portal-dialog-open {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
 }
 .histhead {
     display: flex;
@@ -1224,13 +1234,8 @@ body.coin-focus #coinPanel .hero .sub { margin-top: 0; }
 .bank-del:active { transform: scale(.94); background: #333d48; }
 #memberSection .member-toggle:active { transform: scale(.99); background: rgba(255, 255, 255, .07); }
 
-/* -- 3. Overlays (history / bank). The shared `[id^="view-"]` entrance gave
-      them a 140ms invisible wait on every open. Own, quicker, no delay. */
-body.haze-in #view-history,
-body.haze-in #view-bank {
-    animation: sheetIn 260ms cubic-bezier(.22, 1, .36, 1) backwards;
-}
-@keyframes sheetIn { from { opacity: 0; transform: translateY(14px); } }
+/* -- 3. Overlays (history / bank). Per-open/close transitions (toggled via
+      .portal-dialog-open in JS) replace the old boot-only sheet entrance. */
 
 /* -- 4. Collapsibles open with a short fade-drop instead of snapping, and the
       member chevron turns instead of swapping glyphs (see toggleBlock). */
@@ -1267,10 +1272,20 @@ body.haze-in #ratesSection { animation: riseIn 350ms cubic-bezier(.22, 1, .36, 1
 #ratesBody .table-responsive { animation: fadeIn 260ms ease-out backwards; }
 @keyframes fadeIn { from { opacity: 0; } }
 
+#forfeitBar {
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 180ms cubic-bezier(.23, 1, .32, 1), transform 180ms cubic-bezier(.23, 1, .32, 1);
+}
+#forfeitBar.is-open {
+    opacity: 1;
+    transform: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
-    body.haze-in #view-history, body.haze-in #view-bank,
-    #memberSectionBody, #convertBody,
+    #view-history, #view-bank, #forfeitBar,
     body.coin-focus #coinDim,
-    body.haze-in #ratesSection, #ratesBody .table-responsive { animation: none !important; }
+    body.haze-in #ratesSection, #ratesBody .table-responsive { transition: none !important; animation: none !important; }
+    #memberSectionBody, #convertBody { animation: none !important; }
     #memberSection .member-chev, .memfield { transition: none !important; }
 }
