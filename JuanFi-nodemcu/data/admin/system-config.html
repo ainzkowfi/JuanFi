@@ -579,6 +579,7 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
       for (var i=0;i<items.length;i++) {
         var it = items[i] || {};
         var who = escHtml(it.user || '-');
+        var rawUser = String(it.user || '');
         var where = escHtml((it.address || '-') + (it.mac ? ' · ' + it.mac : ''));
         var up = escHtml(it.uptime || '-');
         var left = escHtml(it.timeLeft || '-');
@@ -587,7 +588,9 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
           '<td style="padding:8px;border-bottom:1px solid var(--border);overflow-wrap:anywhere">' + where + '</td>' +
           '<td style="padding:8px;border-bottom:1px solid var(--border)">' + up + '</td>' +
           '<td style="padding:8px;border-bottom:1px solid var(--border)">' + left + '</td>' +
-          '<td style="padding:8px;border-bottom:1px solid var(--border);text-align:right"><button type="button" class="btn sm danger" data-act="disconnect" data-id="' + id + '">Disconnect</button></td></tr>';
+          '<td style="padding:8px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap">' +
+          '<button type="button" class="btn sm" data-act="addTime" data-name="' + escHtml(rawUser) + '">Add time</button> ' +
+          '<button type="button" class="btn sm danger" data-act="disconnect" data-id="' + id + '">Disconnect</button></td></tr>';
       }
       $('#activeUsersBody').html(html);
       if(cb) cb();
