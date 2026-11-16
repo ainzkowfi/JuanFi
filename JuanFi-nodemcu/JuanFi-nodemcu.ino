@@ -71,8 +71,13 @@ const int COIN_COUNT_ADDRESS = 5;
 const int CUSTOMER_COUNT_ADDRESS = 10;
 const int BACKUP_CONFIG_LENGTH_INDEX = 20;
 const int EEPROM_SIZE = 512;
+volatile unsigned long lastCoinIrqUs = 0;
+const unsigned long COIN_DEBOUNCE_US = 25000UL;
 
 void ICACHE_RAM_ATTR coinInserted() {
+  unsigned long nowUs = micros();
+  if ((unsigned long)(nowUs - lastCoinIrqUs) < COIN_DEBOUNCE_US) return;
+  lastCoinIrqUs = nowUs;
   if (coinSlotActive) {
     if (pulsesThisSession < MAX_PULSE_PER_SESSION) {
       pulsesThisSession++;
@@ -95,7 +100,7 @@ int VOUCHER_LOGIN_OPTION = 0;
 int VOUCHER_VALIDITY_OPTION = 0;
 String VOUCHER_PROFILE = "default";
 String VOUCHER_PREFIX = "P";
-int VOUCHER_CODE_LENGTH = 5;
+int VOUCHER_CODE_LENGTH = 6;
 
 int MAX_WAIT_COIN_SEC = 30000;
 int SETUP_FINISH = 0;
@@ -143,6 +148,7 @@ const int WIFI_CONNECT_DELAY = 500;
 const String INTERNET_CHECK_URL = "http://ifconfig.me";
 
 bool networkConnected = false;
+bool pendingRestartAfterSave = false;
 
 // ---------- Utilities ----------
 
@@ -652,7 +658,7 @@ void loadVoucherCodeLengthConfig() {
   String data = readFile("/admin/config/vouchercodelen.data");
   data.trim();
   VOUCHER_CODE_LENGTH = clampInt(data.toInt(), 1, 10);
-  if (VOUCHER_CODE_LENGTH <= 0) VOUCHER_CODE_LENGTH = 5;
+  if (VOUCHER_CODE_LENGTH <= 0) VOUCHER_CODE_LENGTH = 6;
 }
 
 void scheduleAutoRestart() {
@@ -755,7 +761,7 @@ void setup() {
   } else {
     WiFi.mode(WIFI_AP);
     WiFi.softAPConfig(apIP, apIP, IPAddress(255, 255, 255, 0));
-    WiFi.softAP("JuanFi Setup");
+    WiFi.softAP("JuanFi Setup", "juanfi1234");
     dnsServer.start(DNS_PORT, "*", apIP);
     currentIpAddress = apIP.toString();
     currentMacAddress = WiFi.softAPmacAddress();
@@ -815,6 +821,9 @@ void loop() {
       }
     }
 
+    if (pendingRestartAfterSave && systemIsIdleForRestart()) {
+      ESP.restart();
+    }
     if (autoRestartAtMs > 0 && (long)(currentMilis - autoRestartAtMs) >= 0 && systemIsIdleForRestart()) {
       ESP.restart();
     }
@@ -824,7 +833,7 @@ void loop() {
     }
 
     if (acceptCoin) {
-      if (targetMilis > currentMilis) {
+      if ((long)(targetMilis - currentMilis) > 0) {
         coinExpired = false;
         if (coinsChange > 0) {
           delay(50);

@@ -218,6 +218,7 @@ void useVoucher() {
     return;
   }
   disableCoinSlot();
+  acceptCoin = false;
   if (timeToAdd > 0) {
     bool existedBefore = false;
     bool regOk = registerNewVoucher(currentActiveVoucher, &existedBefore);
@@ -225,21 +226,24 @@ void useVoucher() {
     if (extOk) {
       updateStatistic();
     } else {
-      // Roll back a newly-created voucher so coins are not lost to a dead code.
+      // Roll back a newly-created voucher so a dead/partial user is not left behind.
       if (regOk && !existedBefore) {
         String rollbackTarget = sanitizeCommandToken(currentActiveVoucher, 24, "");
         if (rollbackTarget.length() > 0) {
           removeVoucherUser(rollbackTarget);
         }
+        isNewVoucher = true;
       }
-      // Do not commit stats/state on failure; keep voucher context out but report error
+      // Do not commit stats or clear session on failure: keep voucher/coins/time so the
+      // portal can retry /useVoucher safely after router connectivity recovers.
       const char *keys[] = {"status", "errorCode"};
       const char *values[] = {"false", "coin.slot.notavailable"};
       setupCORSPolicy();
       server.send(200, "application/json", toJson(keys, values, 2));
-      resetGlobalVariables();
-      acceptCoin = false;
       mikrotikConnectionSuccess = apiClient.connected();
+      if (!mikrotikConnectionSuccess) {
+        digitalWrite(SYSTEM_READY_LED, evaluateTriggerOutput(TURN_OFF));
+      }
       return;
     }
   }
@@ -250,7 +254,6 @@ void useVoucher() {
   const char *values[] = {"true", totalCoinStr, timeToAddStr, validityStr};
   resetGlobalVariables();
   setupCORSPolicy();
-  acceptCoin = false;
   server.send(200, "application/json", toJson(keys, values, 4));
 }
 

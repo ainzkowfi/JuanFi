@@ -1,5 +1,7 @@
 #pragma once
 
+extern bool pendingRestartAfterSave;
+
 String generateSessionToken() {
   String t = "";
   const char *hex = "0123456789abcdef";
@@ -14,10 +16,16 @@ bool hasValidAdminSession() {
   String cookie = server.header("Cookie");
   if (cookie.length() == 0) return false;
   String needle = "jf_admin=" + adminSessionToken;
-  int p = cookie.indexOf(needle);
-  if (p < 0) return false;
-  int end = p + needle.length();
-  return (end == (int)cookie.length() || cookie.charAt(end) == ';');
+  int start = 0;
+  while (start <= (int)cookie.length()) {
+    int sep = cookie.indexOf(';', start);
+    if (sep < 0) sep = cookie.length();
+    String part = cookie.substring(start, sep);
+    part.trim();
+    if (part == needle) return true;
+    start = sep + 1;
+  }
+  return false;
 }
 
 bool isAuthorized() {
@@ -120,13 +128,17 @@ void handleAdminSaveRates() {
 
 void handleAdminSaveSystemConfig() {
   if (!isAuthorized()) { handleNotAuthorize(); return; }
-  // See handleAdminSaveRates: keep a reference so the config body is not copied twice.
   const String &data = server.arg("data");
   if (data.length() > 4096) { server.send(413, "text/plain", "too large"); return; }
   if (!handleFileWrite("/admin/config/system.data", data)) { server.send(500, "text/plain", "write failed"); return; }
-  server.send(200, "text/plain", "ok");
-  delay(1000);
-  ESP.restart();
+  if (systemIsIdleForRestart()) {
+    server.send(200, "text/plain", "ok");
+    delay(1000);
+    ESP.restart();
+  } else {
+    pendingRestartAfterSave = true;
+    server.send(200, "text/plain", "ok-restart-pending");
+  }
 }
 
 void handleAdminGetSystemConfig() {
@@ -222,10 +234,17 @@ void handleFileUploadRequest() {
     server.send(200, "text/html", "Upload failed");
   } else {
     server.client().setNoDelay(true);
-    server.send_P(200, PSTR("text/html"), "Upload done");
-    delay(100);
-    server.client().stop();
-    ESP.restart();
+    if (systemIsIdleForRestart()) {
+      server.send_P(200, PSTR("text/html"), "Upload done");
+      delay(100);
+      server.client().stop();
+      ESP.restart();
+    } else {
+      pendingRestartAfterSave = true;
+      server.send_P(200, PSTR("text/html"), "Upload done. Restart pending (device busy); it will restart when idle.");
+      delay(100);
+      server.client().stop();
+    }
   }
 }
 

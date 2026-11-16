@@ -41,7 +41,7 @@
     :if ($rosV = "7") do={ :set ntpCmd ("/system ntp client set enabled=yes servers=" . $NTP1 . "," . $NTP2) } else={ :set ntpCmd ("/system ntp client set enabled=yes primary-ntp=" . $NTP1 . " secondary-ntp=" . $NTP2) };
     :do { :local ntpFn [:parse $ntpCmd]; $ntpFn } on-error={ :log warning "setup: NTP not configurable" };
     :do { /system clock set time-zone-name=Asia/Manila } on-error={};
-    :do { /ip hotspot profile set [find name=$PROF] login-by=http-chap,http-pap,trial trial-uptime=5m/1d trial-user-profile=default } on-error={ :log warning ("setup: no hotspot profile named " . $PROF) };
+    :do { /ip hotspot profile set [find name=$PROF] login-by=http-chap,http-pap } on-error={ :log warning ("setup: no hotspot profile named " . $PROF) };
     :do { /ip hotspot user profile set [find name="default"] idle-timeout=none keepalive-timeout=30s status-autorefresh=1m } on-error={};
     :if ([:len [/ip firewall filter find comment="hotspot before fasttrack"]] = 0) do={
       :do { /ip firewall filter add chain=forward action=accept protocol=tcp dst-port=80,443 src-address=10.0.0.0/16 comment="hotspot before fasttrack" } on-error={ :log warning "setup: fasttrack rule not added" };

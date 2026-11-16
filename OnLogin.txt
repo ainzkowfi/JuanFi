@@ -78,7 +78,10 @@
   };
 # --- # Save Data File ------------------------------------------------------
   :if ([/file find name="$HSFilePath/data"]="") do={
-    :do {/tool fetch dst-path=("$HSFilePath/data/.") url="https://127.0.0.1/"} on-error={ };
+    :do { /file print file=("$HSFilePath/data/.keep") where name="dummyfile" } on-error={};
+    :local _mk 3;
+    :while (($_mk>0) and ([/file find name=("$HSFilePath/data/.keep")]="")) do={ :set _mk ($_mk-1); :delay 1s };
+    :do { /file remove ("$HSFilePath/data/.keep") } on-error={};
   }
   :local iValidUntil [/system scheduler get $user next-run];
   :if ([/system scheduler find name=$user]!="") do={
@@ -117,7 +120,10 @@
   :local jfSess ($HSFilePath . "/data/" . $macNoCol . ".txt");
   :if ([:len [/file find name=$jfSess]]=0) do={
     :if ([/file find name="$HSFilePath/data"]="") do={
-      :do {/tool fetch dst-path=("$HSFilePath/data/.") url="https://127.0.0.1/"} on-error={ };
+      :do { /file print file=("$HSFilePath/data/.keep") where name="dummyfile" } on-error={};
+      :local _mk 3;
+      :while (($_mk>0) and ([/file find name=("$HSFilePath/data/.keep")]="")) do={ :set _mk ($_mk-1); :delay 1s };
+      :do { /file remove ("$HSFilePath/data/.keep") } on-error={};
     }
     /file print file="$jfSess" where name="dummyfile";
     :local x 10;:while (($x>0) and ([/file find name="$jfSess"]="")) do={:set x ($x-1);:delay 1s};
