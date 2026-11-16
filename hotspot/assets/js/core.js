@@ -1904,6 +1904,27 @@ window.__softSessionRefresh = function () {
 		.fail(function () { /* stay; next tick retries */ });
 };
 
+
+(function ensureSoftRefreshFallback() {
+	try {
+		if (window.__softRefreshFallbackTimer) return;
+		window.__softRefreshFallbackTimer = setInterval(function () {
+			try {
+				if (typeof STATE === 'undefined' || STATE !== "status") return;
+				if (typeof insertingCoin !== 'undefined' && insertingCoin) return;
+				if (window.__histOpen || window.__bankOpen) return;
+				var pending = "";
+				try { pending = sessionStorage.getItem("__logoutPending") || localStorage.getItem("__logoutPending") || ""; } catch (e) { }
+				if (pending) {
+					var pAge = Math.floor(Date.now() / 1000) - parseInt(pending, 10);
+					if (isFinite(pAge) && pAge >= 0 && pAge <= 120) return;
+				}
+				if (typeof window.__softSessionRefresh === "function") { window.__softSessionRefresh(); }
+			} catch (e) {}
+		}, 60000);
+	} catch (e) {}
+})();
+
 function previewUrgencyHook() {
 	try {
 		var m = new RegExp("[?&]urgency=(warn|low)").exec(location.search || "");

@@ -797,6 +797,15 @@ void handleAdminHotspotUserAction() {
     String sattrs[2]; sattrs[0] = "=.id=" + uid; sattrs[1] = "=limit-uptime=" + formatRosTimeSeconds(newUptime);
     ok = apiTransact("/ip/hotspot/user/set", sattrs, 2, 7000);
     err = apiLast.trapMessage.length() ? apiLast.trapMessage : String("Failed to add time");
+    if (ok) {
+      // Kick active session(s) so updated limit-uptime applies on re-login/cookie re-auth.
+      for (int i = 0; i < 5; i++) {
+        String aq[2]; aq[0] = "?user=" + sname; aq[1] = "=.proplist=.id";
+        if (!apiTransact("/ip/hotspot/active/print", aq, 2, 5000) || apiLast.records == 0 || apiLast.reId.length() == 0) break;
+        String aid[1]; aid[0] = "=.id=" + apiLast.reId;
+        apiTransact("/ip/hotspot/active/remove", aid, 1, 5000);
+      }
+    }
   } else if (action == "remove" || action == "disable" || action == "enable") {
     String sname = sanitizeCommandToken(name, 32, "");
     if (sname.length() == 0) { apiSendJsonErr(400, "Missing user name"); return; }
