@@ -127,9 +127,7 @@
     }
     /file print file="$jfSess" where name="dummyfile";
     :local x 10;:while (($x>0) and ([/file find name="$jfSess"]="")) do={:set x ($x-1);:delay 1s};
-    :local jfEnd [/system clock get time];
-    :set jfEnd ($jfEnd + [:totime $iTimeMin]);
-    /file set "$jfSess" contents=("$user#$jfEnd");
-    :log info ("On-Login(" . $user . "): no-scheduler session file [" . $jfSess . "] valid=[" . $jfEnd . "]");
+    /file set "$jfSess" contents=("$user#none");
+    :log info ("On-Login(" . $user . "): no-scheduler session file [" . $jfSess . "] valid=[none]");
   }
 }
