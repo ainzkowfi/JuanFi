@@ -50,7 +50,8 @@
   :if (($iUserReg!="") and ($iExtCode=1)) do={
     :local iTimeInt [/system scheduler get $user interval];
     :set iTimeInt ($iTimeInt+$iUsrTime);
-    :if ($iTimeMin>$iTimeInt) do={ :set iTimeInt ($iTimeMin+$iUsrTime) };
+    # Use limit-uptime as a floor without re-adding iUsrTime (avoids over-extending scheduler vs portal/actual added time).
+    :if ($iTimeMin>$iTimeInt) do={ :set iTimeInt $iTimeMin };
     /system scheduler set $user interval=$iTimeInt;
   }
 # --- # ADD User ------------------------------------------------------------
