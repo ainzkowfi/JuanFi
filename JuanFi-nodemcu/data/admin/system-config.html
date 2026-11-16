@@ -148,6 +148,7 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
   <div class="layout">
     <nav class="nav" aria-label="Sections">
       <button type="button" class="tablinks active" data-tab="Dashboard"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg><span>Dashboard</span></button>
+      <button type="button" class="tablinks" data-tab="Users"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Users</span></button>
       <button type="button" class="tablinks" data-tab="SystemConfigration"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg><span>System config</span></button>
       <button type="button" class="tablinks" data-tab="PromoRate"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><span>Promo rates</span></button>
       <button type="button" class="tablinks" data-tab="VoucherGenerate"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg><span>Vouchers</span></button>
@@ -189,6 +190,25 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
             <p class="hint" style="margin:0 0 8px">Active IP · session time left</p>
             <div class="hs-list" id="hsUserList"><div class="hint">Not loaded</div></div>
           </div>
+        </div>
+      </section>
+
+      <section id="Users" class="tabcontent" aria-labelledby="users-h">
+        <div class="page-head"><div><h2 id="users-h">MikroTik users</h2><p>Manage hotspot sessions and users via RouterOS API (no ESP flash writes)</p></div><div class="actions" style="margin-top:0"><button type="button" class="btn sm" id="refreshUsersBtn">Refresh</button></div></div>
+        <div class="card">
+          <h3>Active sessions</h3>
+          <p class="desc">Currently connected hotspot clients. Disconnect removes the active session only.</p>
+          <div class="table-wrap" style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:0.875rem"><thead><tr><th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">User</th><th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">IP / MAC</th><th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">Uptime</th><th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">Time left</th><th style="text-align:right;padding:8px;border-bottom:1px solid var(--border)">Action</th></tr></thead><tbody id="activeUsersBody"><tr><td colspan="5" class="hint" style="padding:10px">Not loaded</td></tr></tbody></table></div>
+        </div>
+        <div class="card">
+          <h3>Hotspot users</h3>
+          <p class="desc">Search by exact username (leave empty to list up to 20). Actions apply on the MikroTik router.</p>
+          <div class="grid two" style="margin-bottom:12px">
+            <div class="field"><label for="userSearchInput">Username</label><input type="text" id="userSearchInput" autocomplete="off" spellcheck="false" placeholder="Exact username (optional)"></div>
+            <div class="field" style="align-self:end"><button type="button" class="btn" id="searchUsersBtn">Search / list</button></div>
+          </div>
+          <div class="table-wrap" style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:0.875rem"><thead><tr><th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">Name</th><th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">Profile</th><th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">Uptime / Limit</th><th style="text-align:left;padding:8px;border-bottom:1px solid var(--border)">Status</th><th style="text-align:right;padding:8px;border-bottom:1px solid var(--border)">Actions</th></tr></thead><tbody id="hotspotUsersBody"><tr><td colspan="5" class="hint" style="padding:10px">Not loaded</td></tr></tbody></table></div>
+          <p class="hint" style="margin-top:8px">Remove deletes the hotspot user on the router. Disable/enable toggles the user without deleting it.</p>
         </div>
       </section>
 
@@ -557,7 +577,80 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
       $in.attr('type', show ? 'text' : 'password');
       $(this).attr('aria-label', show ? 'Hide password' : 'Show password').html(show ? pwEyeOff : pwEye);
     });
-    $('.tablinks').on('click', function () { var tab=$(this).data('tab'); if(tab==='Dashboard') openDashboard(); else if(tab==='SystemConfigration') openSystemConfig(); else if(tab==='PromoRate') openPromoRates(); else openTab(tab); });
+    $('.tablinks').on('click', function () { var tab=$(this).data('tab'); if(tab==='Dashboard') openDashboard(); else if(tab==='SystemConfigration') openSystemConfig(); else if(tab==='PromoRate') openPromoRates(); else if(tab==='Users') openUsersTab(); else openTab(tab); });
+
+  function escHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function loadActiveUsers() {
+    $('#activeUsersBody').html('<tr><td colspan="5" class="hint" style="padding:10px">Loading…</td></tr>');
+    $.getJSON('admin/api/hotspotActiveList?query=' + new Date().getTime()).done(function (res) {
+      var items = (res && res.items) || [];
+      if (!items.length) { $('#activeUsersBody').html('<tr><td colspan="5" class="hint" style="padding:10px">No active sessions</td></tr>'); return; }
+      var html = '';
+      for (var i=0;i<items.length;i++) {
+        var it = items[i] || {};
+        var who = escHtml(it.user || '-');
+        var where = escHtml((it.address || '-') + (it.mac ? ' · ' + it.mac : ''));
+        var up = escHtml(it.uptime || '-');
+        var left = escHtml(it.timeLeft || '-');
+        var id = escHtml(it.id || '');
+        html += '<tr><td style="padding:8px;border-bottom:1px solid var(--border);overflow-wrap:anywhere">' + who + '</td>' +
+          '<td style="padding:8px;border-bottom:1px solid var(--border);overflow-wrap:anywhere">' + where + '</td>' +
+          '<td style="padding:8px;border-bottom:1px solid var(--border)">' + up + '</td>' +
+          '<td style="padding:8px;border-bottom:1px solid var(--border)">' + left + '</td>' +
+          '<td style="padding:8px;border-bottom:1px solid var(--border);text-align:right"><button type="button" class="btn sm danger" data-act="disconnect" data-id="' + id + '">Disconnect</button></td></tr>';
+      }
+      $('#activeUsersBody').html(html);
+    }).fail(function (xhr) {
+      var msg = 'Unavailable';
+      try { var j = xhr.responseJSON || JSON.parse(xhr.responseText||''); if (j && j.error) msg = j.error; } catch(e){}
+      $('#activeUsersBody').html('<tr><td colspan="5" class="hint" style="padding:10px">' + escHtml(msg) + '</td></tr>');
+    });
+  }
+  function loadHotspotUsers() {
+    var q = $.trim($('#userSearchInput').val() || '');
+    $('#hotspotUsersBody').html('<tr><td colspan="5" class="hint" style="padding:10px">Loading…</td></tr>');
+    $.getJSON('admin/api/hotspotUsers?query=' + new Date().getTime() + '&q=' + encodeURIComponent(q)).done(function (res) {
+      var items = (res && res.items) || [];
+      if (!items.length) { $('#hotspotUsersBody').html('<tr><td colspan="5" class="hint" style="padding:10px">No users found</td></tr>'); return; }
+      var html = '';
+      for (var i=0;i<items.length;i++) {
+        var it = items[i] || {};
+        var name = escHtml(it.name || '-');
+        var rawName = String(it.name || '');
+        var prof = escHtml(it.profile || '-');
+        var lim = escHtml((it.uptime || '-') + ' / ' + (it.limitUptime || '-'));
+        var disabled = String(it.disabled || '').toLowerCase() === 'true' || String(it.disabled || '') === 'yes';
+        var status = disabled ? '<span style="color:var(--danger)">Disabled</span>' : '<span style="color:var(--success)">Enabled</span>';
+        var toggle = disabled ? 'enable' : 'disable';
+        var toggleLabel = disabled ? 'Enable' : 'Disable';
+        html += '<tr><td style="padding:8px;border-bottom:1px solid var(--border);overflow-wrap:anywhere">' + name + '</td>' +
+          '<td style="padding:8px;border-bottom:1px solid var(--border)">' + prof + '</td>' +
+          '<td style="padding:8px;border-bottom:1px solid var(--border)">' + lim + '</td>' +
+          '<td style="padding:8px;border-bottom:1px solid var(--border)">' + status + '</td>' +
+          '<td style="padding:8px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap">' +
+          '<button type="button" class="btn sm" data-act="' + toggle + '" data-name="' + escHtml(rawName) + '">' + toggleLabel + '</button> ' +
+          '<button type="button" class="btn sm danger" data-act="remove" data-name="' + escHtml(rawName) + '">Remove</button></td></tr>';
+      }
+      $('#hotspotUsersBody').html(html);
+    }).fail(function (xhr) {
+      var msg = 'Unavailable';
+      try { var j = xhr.responseJSON || JSON.parse(xhr.responseText||''); if (j && j.error) msg = j.error; } catch(e){}
+      $('#hotspotUsersBody').html('<tr><td colspan="5" class="hint" style="padding:10px">' + escHtml(msg) + '</td></tr>');
+    });
+  }
+  function openUsersTab() { openTab('Users'); loadActiveUsers(); loadHotspotUsers(); }
+  function runUserAction(action, payload, confirmMsg) {
+    if (confirmMsg && !confirm(confirmMsg)) return;
+    $.post('admin/api/hotspotUserAction', payload).done(function () {
+      loadActiveUsers(); loadHotspotUsers();
+      try { loadHotspotSummary(); } catch(e){}
+    }).fail(function (xhr) {
+      var msg = 'Action failed';
+      try { var j = xhr.responseJSON || JSON.parse(xhr.responseText||''); if (j && j.error) msg = j.error; else if (xhr.responseText) msg = xhr.responseText; } catch(e){}
+      alert(msg);
+    });
+  }
+
     $('#logoutBtn').on('click', logout);
     $(document).on('click','[data-reset]', function(){ resetStats($(this).data('reset')); });
     $('#ipAddressMode').on('change', ipAddressModeChange);
@@ -574,6 +667,14 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
     $(document).on('input change','#promoRateBody input', function(){ var m=String(this.id).match(/(\d+)$/); if(m) updateRatePreview(m[1]); });
     $('#generateVoucherBtn').on('click', generateVoucher);
     $('#uploadFwBtn').on('click', uploadMainBin);
+    $('#refreshUsersBtn').on('click', function(){ loadActiveUsers(); loadHotspotUsers(); });
+    $('#searchUsersBtn').on('click', loadHotspotUsers);
+    $('#userSearchInput').on('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); loadHotspotUsers(); } });
+    $(document).on('click', '[data-act="disconnect"]', function(){ runUserAction('disconnect', {action:'disconnect', id: $(this).data('id')}, 'Disconnect this active session?'); });
+    $(document).on('click', '[data-act="disable"]', function(){ var n=$(this).data('name'); runUserAction('disable', {action:'disable', name:n}, 'Disable user "'+n+'"?'); });
+    $(document).on('click', '[data-act="enable"]', function(){ var n=$(this).data('name'); runUserAction('enable', {action:'enable', name:n}, null); });
+    $(document).on('click', '[data-act="remove"]', function(){ var n=$(this).data('name'); runUserAction('remove', {action:'remove', name:n}, 'Remove hotspot user "'+n+'" from MikroTik? This cannot be undone.'); });
+
     openDashboard();
     var __lastAdminPingAt = 0;
     function pingAdminPanel(force) {

@@ -794,6 +794,9 @@ void setup() {
   server.on("/admin/api/saveVoucherCodeLength", HTTP_POST, handleAdminSaveVoucherCodeLength);
   server.on("/admin/api/ping", handleAdminPanelPing);
   server.on("/admin/api/hotspotSummary", handleAdminHotspotSummary);
+  server.on("/admin/api/hotspotActiveList", handleAdminHotspotActiveList);
+  server.on("/admin/api/hotspotUsers", handleAdminHotspotUsersList);
+  server.on("/admin/api/hotspotUserAction", HTTP_POST, handleAdminHotspotUserAction);
   server.on("/admin", HTTP_GET, handleAdminPage);
   server.on("/admin/viewGeneratedVouchers", handleAdminGeneratedVoucherPage);
   server.on("/admin/updateMainBin", HTTP_POST, handleFileUploadRequest, handleFileUploadStream);

@@ -497,6 +497,232 @@ void handleAdminHotspotSummary() {
   server.send(200, "text/plain", resp);
 }
 
+// ---------- Admin: hotspot active sessions & user management (RAM-only, no ESP writes) ----------
+
+static void apiJsonEscapeAppend(String &out, const char *in) {
+  if (!in) return;
+  for (const char *p = in; *p; ++p) {
+    unsigned char c = (unsigned char)*p;
+    if (c == '\\' || c == '"') { out += '\\'; out += (char)c; }
+    else if (c == '\n') out += "\\n";
+    else if (c == '\r') out += "\\r";
+    else if (c == '\t') out += "\\t";
+    else if (c < 0x20) out += ' ';
+    else out += (char)c;
+  }
+}
+
+static void apiSendJsonErr(int code, const char *msg) {
+  String out = "{\"ok\":false,\"error\":\"";
+  apiJsonEscapeAppend(out, msg ? msg : "error");
+  out += "\"}";
+  server.send(code, "application/json", out);
+}
+
+void handleAdminHotspotActiveList() {
+  if (!isAuthorized()) { handleNotAuthorize(); return; }
+  if (!ensureMikrotikConnection()) { apiSendJsonErr(503, "MikroTik not connected"); return; }
+  apiResetResult();
+  if (!apiClient.connected()) { apiSendJsonErr(503, "MikroTik not connected"); return; }
+  if (!apiWriteWord("/ip/hotspot/active/print")) { apiLast.fatal = true; apiClient.stop(); apiSendJsonErr(500, "API write failed"); return; }
+  if (!apiWriteWord("=.proplist=.id,user,address,mac-address,uptime,session-time-left")) { apiLast.fatal = true; apiClient.stop(); apiSendJsonErr(500, "API write failed"); return; }
+  if (!apiEndSentence()) { apiLast.fatal = true; apiClient.stop(); apiSendJsonErr(500, "API write failed"); return; }
+
+  String out;
+  out.reserve(1024);
+  out = "{\"ok\":true,\"items\":[";
+  ApiReplyType current = ApiReplyType::NONE;
+  bool finished = false;
+  unsigned long deadline = millis() + 8000;
+  char curId[24] = {0}, curUser[40] = {0}, curAddr[24] = {0}, curMac[24] = {0}, curUp[24] = {0}, curLeft[24] = {0};
+  int emitted = 0;
+  const int MAX_ITEMS = 20;
+
+  while (!finished) {
+    if ((long)(millis() - deadline) >= 0) { apiLast.fatal = true; apiClient.stop(); apiSendJsonErr(504, "MikroTik timeout"); return; }
+    char word[192];
+    unsigned long remain = deadline - millis(); if (remain < 1) remain = 1;
+    if (!apiReadWordTo(word, sizeof(word), remain)) { apiLast.fatal = true; apiClient.stop(); apiSendJsonErr(500, "API read failed"); return; }
+    if (word[0] == '\0') {
+      if (current == ApiReplyType::RE) {
+        if (emitted < MAX_ITEMS) {
+          if (emitted > 0) out += ',';
+          out += "{\"id\":\""; apiJsonEscapeAppend(out, curId);
+          out += "\",\"user\":\""; apiJsonEscapeAppend(out, curUser);
+          out += "\",\"address\":\""; apiJsonEscapeAppend(out, curAddr);
+          out += "\",\"mac\":\""; apiJsonEscapeAppend(out, curMac);
+          out += "\",\"uptime\":\""; apiJsonEscapeAppend(out, curUp);
+          out += "\",\"timeLeft\":\""; apiJsonEscapeAppend(out, curLeft);
+          out += "\"}";
+          emitted++;
+        }
+        curId[0]=curUser[0]=curAddr[0]=curMac[0]=curUp[0]=curLeft[0]='\0';
+      } else if (current == ApiReplyType::DONE) { apiLast.gotDone = true; finished = true; }
+      else if (current == ApiReplyType::TRAP) { /* trailing !done */ }
+      else if (current == ApiReplyType::FATAL) { finished = true; }
+      current = ApiReplyType::NONE;
+      continue;
+    }
+    if (!strcmp(word, "!re")) { current = ApiReplyType::RE; curId[0]=curUser[0]=curAddr[0]=curMac[0]=curUp[0]=curLeft[0]='\0'; }
+    else if (!strcmp(word, "!done")) { current = ApiReplyType::DONE; }
+    else if (!strcmp(word, "!trap")) { current = ApiReplyType::TRAP; }
+    else if (!strcmp(word, "!fatal")) { current = ApiReplyType::FATAL; apiLast.fatal = true; }
+    else if (!strcmp(word, "!empty")) { current = ApiReplyType::EMPTY; }
+    else if (word[0] == '=') {
+      char *key = word + 1; char *val = (char*)""; char *eq = strchr(key, '=');
+      if (eq) { *eq = '\0'; val = eq + 1; }
+      if (current == ApiReplyType::TRAP || current == ApiReplyType::FATAL) {
+        if (!strcmp(key, "message") && apiLast.trapMessage.length() == 0) apiLast.trapMessage = val;
+      } else if (current == ApiReplyType::RE) {
+        if (!strcmp(key, ".id")) snprintf(curId, sizeof(curId), "%s", val);
+        else if (!strcmp(key, "user")) snprintf(curUser, sizeof(curUser), "%s", val);
+        else if (!strcmp(key, "address")) snprintf(curAddr, sizeof(curAddr), "%s", val);
+        else if (!strcmp(key, "mac-address")) snprintf(curMac, sizeof(curMac), "%s", val);
+        else if (!strcmp(key, "uptime")) snprintf(curUp, sizeof(curUp), "%s", val);
+        else if (!strcmp(key, "session-time-left")) snprintf(curLeft, sizeof(curLeft), "%s", val);
+      }
+    }
+  }
+  if (apiLast.fatal) { apiClient.stop(); apiSendJsonErr(500, apiLast.trapMessage.length() ? apiLast.trapMessage.c_str() : "API error"); return; }
+  if (apiLast.trapMessage.length()) { apiSendJsonErr(500, apiLast.trapMessage.c_str()); return; }
+  out += "],\"count\":";
+  out += String(emitted);
+  out += "}";
+  server.send(200, "application/json", out);
+}
+
+void handleAdminHotspotUsersList() {
+  if (!isAuthorized()) { handleNotAuthorize(); return; }
+  String q = server.hasArg("q") ? server.arg("q") : "";
+  q.trim();
+  if (!ensureMikrotikConnection()) { apiSendJsonErr(503, "MikroTik not connected"); return; }
+  apiResetResult();
+  if (!apiClient.connected()) { apiSendJsonErr(503, "MikroTik not connected"); return; }
+  // fetch limited users; optional exact name query supported by MikroTik
+  String cmdAttrs[3];
+  int an = 0;
+  if (!apiWriteWord("/ip/hotspot/user/print")) { apiLast.fatal = true; apiClient.stop(); apiSendJsonErr(500, "API write failed"); return; }
+  if (!apiWriteWord("=.proplist=.id,name,profile,limit-uptime,uptime,disabled,comment")) { apiLast.fatal = true; apiClient.stop(); apiSendJsonErr(500, "API write failed"); return; }
+  if (q.length() > 0) {
+    String safe = sanitizeCommandToken(q, 32, "");
+    if (safe.length() > 0) {
+      if (!apiWriteWord("?name=" + safe)) { apiLast.fatal = true; apiClient.stop(); apiSendJsonErr(500, "API write failed"); return; }
+    }
+  }
+  if (!apiEndSentence()) { apiLast.fatal = true; apiClient.stop(); apiSendJsonErr(500, "API write failed"); return; }
+
+  String out;
+  out.reserve(1400);
+  out = "{\"ok\":true,\"items\":[";
+  ApiReplyType current = ApiReplyType::NONE;
+  bool finished = false;
+  unsigned long deadline = millis() + 9000;
+  char curId[24]={0}, curName[40]={0}, curProf[24]={0}, curLim[24]={0}, curUp[24]={0}, curDis[8]={0}, curCom[48]={0};
+  int emitted = 0;
+  const int MAX_ITEMS = 20;
+
+  while (!finished) {
+    if ((long)(millis() - deadline) >= 0) { apiLast.fatal = true; apiClient.stop(); apiSendJsonErr(504, "MikroTik timeout"); return; }
+    char word[192];
+    unsigned long remain = deadline - millis(); if (remain < 1) remain = 1;
+    if (!apiReadWordTo(word, sizeof(word), remain)) { apiLast.fatal = true; apiClient.stop(); apiSendJsonErr(500, "API read failed"); return; }
+    if (word[0] == '\0') {
+      if (current == ApiReplyType::RE) {
+        if (emitted < MAX_ITEMS) {
+          if (emitted > 0) out += ',';
+          out += "{\"id\":\""; apiJsonEscapeAppend(out, curId);
+          out += "\",\"name\":\""; apiJsonEscapeAppend(out, curName);
+          out += "\",\"profile\":\""; apiJsonEscapeAppend(out, curProf);
+          out += "\",\"limitUptime\":\""; apiJsonEscapeAppend(out, curLim);
+          out += "\",\"uptime\":\""; apiJsonEscapeAppend(out, curUp);
+          out += "\",\"disabled\":\""; apiJsonEscapeAppend(out, curDis);
+          out += "\",\"comment\":\""; apiJsonEscapeAppend(out, curCom);
+          out += "\"}";
+          emitted++;
+        }
+        curId[0]=curName[0]=curProf[0]=curLim[0]=curUp[0]=curDis[0]=curCom[0]='\0';
+      } else if (current == ApiReplyType::DONE) { apiLast.gotDone = true; finished = true; }
+      else if (current == ApiReplyType::TRAP) { }
+      else if (current == ApiReplyType::FATAL) { finished = true; }
+      current = ApiReplyType::NONE;
+      continue;
+    }
+    if (!strcmp(word, "!re")) { current = ApiReplyType::RE; curId[0]=curName[0]=curProf[0]=curLim[0]=curUp[0]=curDis[0]=curCom[0]='\0'; }
+    else if (!strcmp(word, "!done")) { current = ApiReplyType::DONE; }
+    else if (!strcmp(word, "!trap")) { current = ApiReplyType::TRAP; }
+    else if (!strcmp(word, "!fatal")) { current = ApiReplyType::FATAL; apiLast.fatal = true; }
+    else if (!strcmp(word, "!empty")) { current = ApiReplyType::EMPTY; }
+    else if (word[0] == '=') {
+      char *key = word + 1; char *val = (char*)""; char *eq = strchr(key, '=');
+      if (eq) { *eq = '\0'; val = eq + 1; }
+      if (current == ApiReplyType::TRAP || current == ApiReplyType::FATAL) {
+        if (!strcmp(key, "message") && apiLast.trapMessage.length() == 0) apiLast.trapMessage = val;
+      } else if (current == ApiReplyType::RE) {
+        if (!strcmp(key, ".id")) snprintf(curId, sizeof(curId), "%s", val);
+        else if (!strcmp(key, "name")) snprintf(curName, sizeof(curName), "%s", val);
+        else if (!strcmp(key, "profile")) snprintf(curProf, sizeof(curProf), "%s", val);
+        else if (!strcmp(key, "limit-uptime")) snprintf(curLim, sizeof(curLim), "%s", val);
+        else if (!strcmp(key, "uptime")) snprintf(curUp, sizeof(curUp), "%s", val);
+        else if (!strcmp(key, "disabled")) snprintf(curDis, sizeof(curDis), "%s", val);
+        else if (!strcmp(key, "comment")) snprintf(curCom, sizeof(curCom), "%s", val);
+      }
+    }
+  }
+  if (apiLast.fatal) { apiClient.stop(); apiSendJsonErr(500, apiLast.trapMessage.length() ? apiLast.trapMessage.c_str() : "API error"); return; }
+  if (apiLast.trapMessage.length()) { apiSendJsonErr(500, apiLast.trapMessage.c_str()); return; }
+  out += "],\"count\":";
+  out += String(emitted);
+  out += "}";
+  server.send(200, "application/json", out);
+}
+
+void handleAdminHotspotUserAction() {
+  if (!isAuthorized()) { handleNotAuthorize(); return; }
+  if (server.method() != HTTP_POST) { apiSendJsonErr(405, "POST required"); return; }
+  String action = server.hasArg("action") ? server.arg("action") : "";
+  String id = server.hasArg("id") ? server.arg("id") : "";
+  String name = server.hasArg("name") ? server.arg("name") : "";
+  action.trim(); id.trim(); name.trim();
+  if (!ensureMikrotikConnection()) { apiSendJsonErr(503, "MikroTik not connected"); return; }
+
+  bool ok = false;
+  String err = "Invalid action";
+  if (action == "disconnect") {
+    // remove active session by .id
+    String sid = sanitizeRouterText(id, 24);
+    if (sid.length() == 0) { apiSendJsonErr(400, "Missing session id"); return; }
+    String attrs[1]; attrs[0] = "=.id=" + sid;
+    ok = apiTransact("/ip/hotspot/active/remove", attrs, 1, 7000);
+    err = apiLast.trapMessage.length() ? apiLast.trapMessage : String("Disconnect failed");
+  } else if (action == "remove" || action == "disable" || action == "enable") {
+    String sname = sanitizeCommandToken(name, 32, "");
+    if (sname.length() == 0) { apiSendJsonErr(400, "Missing user name"); return; }
+    // resolve user .id by name
+    String q[2]; q[0] = "?name=" + sname; q[1] = "=.proplist=.id";
+    if (!apiTransact("/ip/hotspot/user/print", q, 2, 7000) || apiLast.records == 0 || apiLast.reId.length() == 0) {
+      apiSendJsonErr(404, apiLast.trapMessage.length() ? apiLast.trapMessage.c_str() : "User not found");
+      return;
+    }
+    String uid = apiLast.reId;
+    if (action == "remove") {
+      String attrs[1]; attrs[0] = "=.id=" + uid;
+      ok = apiTransact("/ip/hotspot/user/remove", attrs, 1, 7000);
+      err = apiLast.trapMessage.length() ? apiLast.trapMessage : String("Remove failed");
+    } else {
+      String attrs[2]; attrs[0] = "=.id=" + uid; attrs[1] = (action == "disable") ? "=disabled=yes" : "=disabled=no";
+      ok = apiTransact("/ip/hotspot/user/set", attrs, 2, 7000);
+      err = apiLast.trapMessage.length() ? apiLast.trapMessage : String("Update failed");
+    }
+  } else {
+    apiSendJsonErr(400, "Unknown action");
+    return;
+  }
+
+  if (!ok) { apiSendJsonErr(500, err.c_str()); return; }
+  server.send(200, "application/json", "{\"ok\":true}");
+}
+
+
 // Parse RouterOS time strings to seconds: "1w2d3h4m5s", "03:04:05", "1d03:04:05", "0s".
 // Works on a trimmed copy in a fixed buffer: this runs on every voucher extend/convert,
 // and the old String-based version allocated several temporaries per call.
