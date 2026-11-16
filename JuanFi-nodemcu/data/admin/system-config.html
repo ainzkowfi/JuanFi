@@ -133,6 +133,10 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
 @media (prefers-reduced-motion:no-preference){.spinner{animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition-duration:.01ms!important;animation-duration:.01ms!important;scroll-behavior:auto!important}}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px;z-index:1000}
+.modal-card{width:100%;max-width:420px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.modal-card h3{margin:0 0 4px;font-size:1rem;font-weight:500}
+
 </style>
 </head>
 <body>
@@ -336,6 +340,24 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
   </div>
 </div>
 <script src="/admin/js/jquery.min.js"></script>
+<div id="addTimeModal" class="modal-backdrop" style="display:none">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="addTimeModalTitle">
+    <h3 id="addTimeModalTitle">Add time</h3>
+    <p id="addTimeModalUser" class="hint" style="margin:0 0 10px"></p>
+    <div class="grid" style="grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:12px">
+      <div class="field" style="margin:0"><label for="addTimeDays">Days</label><input type="number" id="addTimeDays" min="0" value="0" inputmode="numeric"></div>
+      <div class="field" style="margin:0"><label for="addTimeHours">Hours</label><input type="number" id="addTimeHours" min="0" value="0" inputmode="numeric"></div>
+      <div class="field" style="margin:0"><label for="addTimeMins">Minutes</label><input type="number" id="addTimeMins" min="0" value="0" inputmode="numeric"></div>
+    </div>
+    <p class="hint" style="margin:0 0 12px">Extends hotspot uptime on MikroTik. No sales or customer stats are added.</p>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button type="button" class="btn ghost sm" id="addTimeCancelBtn">Cancel</button>
+      <button type="button" class="btn sm" id="addTimeSubmitBtn">Add time</button>
+    </div>
+  </div>
+</div>
+
+
 <script>
 
 (function () {
@@ -677,7 +699,32 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
     $(document).on('click', '[data-act="disable"]', function(){ var n=$(this).data('name'); runUserAction('disable', {action:'disable', name:n}, 'Disable user "'+n+'"?'); });
     $(document).on('click', '[data-act="enable"]', function(){ var n=$(this).data('name'); runUserAction('enable', {action:'enable', name:n}, null); });
     $(document).on('click', '[data-act="remove"]', function(){ var n=$(this).data('name'); runUserAction('remove', {action:'remove', name:n}, 'Remove hotspot user "'+n+'" from MikroTik? This cannot be undone.'); });
-    $(document).on('click', '[data-act="addTime"]', function(){ var n=$(this).data('name'); var mins = prompt('Add how many minutes to "'+n+'"? (extends uptime on MikroTik, no sales/customer stats)', '60'); if (mins === null) return; mins = parseInt(mins, 10); if (!isFinite(mins) || mins <= 0) { alert('Enter a valid number of minutes greater than 0.'); return; } runUserAction('addTime', {action:'addTime', name:n, minutes: mins}, null); });
+    var __addTimeUser = '';
+    function openAddTimeModal(name) {
+      __addTimeUser = String(name || '');
+      $('#addTimeModalUser').text(__addTimeUser ? ('User: ' + __addTimeUser) : '');
+      $('#addTimeDays').val('0');
+      $('#addTimeHours').val('1');
+      $('#addTimeMins').val('0');
+      $('#addTimeModal').css('display', 'flex');
+      $('#addTimeHours').trigger('focus');
+    }
+    function closeAddTimeModal() { $('#addTimeModal').hide(); __addTimeUser = ''; }
+    $(document).on('click', '[data-act="addTime"]', function(){ openAddTimeModal($(this).data('name')); });
+    $('#addTimeCancelBtn').on('click', closeAddTimeModal);
+    $('#addTimeModal').on('click', function(e){ if (e.target === this) closeAddTimeModal(); });
+    $('#addTimeSubmitBtn').on('click', function(){
+      if (!__addTimeUser) { closeAddTimeModal(); return; }
+      var d = parseInt($('#addTimeDays').val(), 10) || 0;
+      var h = parseInt($('#addTimeHours').val(), 10) || 0;
+      var m = parseInt($('#addTimeMins').val(), 10) || 0;
+      if (d < 0 || h < 0 || m < 0) { alert('Enter non-negative values for days, hours, and minutes.'); return; }
+      var mins = (d * 1440) + (h * 60) + m;
+      if (!isFinite(mins) || mins <= 0) { alert('Enter a time greater than 0.'); return; }
+      var n = __addTimeUser;
+      closeAddTimeModal();
+      runUserAction('addTime', {action:'addTime', name:n, minutes: mins}, null);
+    });
 
     openDashboard();
     var __lastAdminPingAt = 0;
