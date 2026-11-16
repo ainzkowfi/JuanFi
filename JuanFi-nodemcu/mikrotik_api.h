@@ -630,7 +630,7 @@ void handleAdminHotspotActiveList() {
     if (!apiReadWordTo(word, sizeof(word), remain)) { apiLast.fatal = true; apiClient.stop(); apiSendJsonErr(500, "API read failed"); return; }
     if (word[0] == '\0') {
       if (current == ApiReplyType::RE) {
-        if (emitted < MAX_ITEMS) {
+        if ((!commentsOnly || curCom[0] != '\0') && emitted < MAX_ITEMS) {
           if (emitted > 0) out += ',';
           out += "{\"id\":\""; apiJsonEscapeAppend(out, curId);
           out += "\",\"user\":\""; apiJsonEscapeAppend(out, curUser);
@@ -680,12 +680,11 @@ void handleAdminHotspotUsersList() {
   if (!isAuthorized()) { handleNotAuthorize(); return; }
   String q = server.hasArg("q") ? server.arg("q") : "";
   q.trim();
+  bool commentsOnly = server.hasArg("commentsOnly") && (server.arg("commentsOnly") == "1" || server.arg("commentsOnly") == "true");
   if (!ensureMikrotikConnection()) { apiSendJsonErr(503, "MikroTik not connected"); return; }
   apiResetResult();
   if (!apiClient.connected()) { apiSendJsonErr(503, "MikroTik not connected"); return; }
   // fetch limited users; optional exact name query supported by MikroTik
-  String cmdAttrs[3];
-  int an = 0;
   if (!apiWriteWord("/ip/hotspot/user/print")) { apiLast.fatal = true; apiClient.stop(); apiSendJsonErr(500, "API write failed"); return; }
   if (!apiWriteWord("=.proplist=.id,name,profile,limit-uptime,uptime,disabled,comment")) { apiLast.fatal = true; apiClient.stop(); apiSendJsonErr(500, "API write failed"); return; }
   if (q.length() > 0) {
@@ -704,7 +703,7 @@ void handleAdminHotspotUsersList() {
   unsigned long deadline = millis() + 9000;
   char curId[24]={0}, curName[40]={0}, curProf[24]={0}, curLim[24]={0}, curUp[24]={0}, curDis[8]={0}, curCom[48]={0};
   int emitted = 0;
-  const int MAX_ITEMS = 20;
+  const int MAX_ITEMS = commentsOnly ? 50 : 20;
 
   while (!finished) {
     if ((long)(millis() - deadline) >= 0) { apiLast.fatal = true; apiClient.stop(); apiSendJsonErr(504, "MikroTik timeout"); return; }
@@ -713,7 +712,7 @@ void handleAdminHotspotUsersList() {
     if (!apiReadWordTo(word, sizeof(word), remain)) { apiLast.fatal = true; apiClient.stop(); apiSendJsonErr(500, "API read failed"); return; }
     if (word[0] == '\0') {
       if (current == ApiReplyType::RE) {
-        if (emitted < MAX_ITEMS) {
+        if ((!commentsOnly || curCom[0] != '\0') && emitted < MAX_ITEMS) {
           if (emitted > 0) out += ',';
           out += "{\"id\":\""; apiJsonEscapeAppend(out, curId);
           out += "\",\"name\":\""; apiJsonEscapeAppend(out, curName);
@@ -772,7 +771,23 @@ void handleAdminHotspotUserAction() {
 
   bool ok = false;
   String err = "Invalid action";
-  if (action == "disconnect") {
+  if (action == "add") {
+    String sname = sanitizeCommandToken(name, 32, "");
+    int addMinutes = server.hasArg("minutes") ? server.arg("minutes").toInt() : 0;
+    if (sname.length() == 0) { apiSendJsonErr(400, "Missing user name"); return; }
+    if (addMinutes <= 0) { apiSendJsonErr(400, "Time must be greater than 0"); return; }
+    String prof = sanitizeCommandToken(VOUCHER_PROFILE, 24, "");
+    String comment = String(addMinutes) + "m,0,0,Manual";
+    String a[6];
+    int n = 0;
+    a[n++] = "=name=" + sname;
+    a[n++] = "=limit-uptime=" + formatRosTimeSeconds((long)addMinutes * 60L);
+    a[n++] = "=comment=" + comment;
+    if (VOUCHER_LOGIN_OPTION == 1) a[n++] = "=password=" + sname;
+    if (prof.length() > 0 && prof != "default") a[n++] = "=profile=" + prof;
+    ok = apiTransact("/ip/hotspot/user/add", a, n, 7000);
+    err = apiLast.trapMessage.length() ? apiLast.trapMessage : String("Failed to add user");
+  } else if (action == "disconnect") {
     // remove active session by .id
     String sid = sanitizeRouterText(id, 24);
     if (sid.length() == 0) { apiSendJsonErr(400, "Missing session id"); return; }
