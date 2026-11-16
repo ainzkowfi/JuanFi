@@ -18,6 +18,9 @@ struct ApiResult {
   String reBytesOut;
   String reComment;
   String reProfile;
+  String reInterval;
+  String reNextRun;
+  String reMacAddress;
 };
 
 ApiResult apiLast;
@@ -38,6 +41,9 @@ void apiResetResult() {
   apiLast.reBytesOut = "";
   apiLast.reComment = "";
   apiLast.reProfile = "";
+  apiLast.reInterval = "";
+  apiLast.reNextRun = "";
+  apiLast.reMacAddress = "";
 }
 
 bool parseU64(const String &in, unsigned long long &out) {
@@ -242,6 +248,9 @@ bool apiTransact(const String &cmd, const String attrs[], int attrCount, unsigne
         else if (!strcmp(key, "bytes-out") && apiLast.reBytesOut.length() == 0) apiLast.reBytesOut = val;
         else if (!strcmp(key, "comment") && apiLast.reComment.length() == 0) apiLast.reComment = val;
         else if (!strcmp(key, "profile") && apiLast.reProfile.length() == 0) apiLast.reProfile = val;
+        else if (!strcmp(key, "interval") && apiLast.reInterval.length() == 0) apiLast.reInterval = val;
+        else if (!strcmp(key, "next-run") && apiLast.reNextRun.length() == 0) apiLast.reNextRun = val;
+        else if (!strcmp(key, "mac-address") && apiLast.reMacAddress.length() == 0) apiLast.reMacAddress = val;
       }
     }
   }
@@ -812,6 +821,42 @@ void handleAdminHotspotUserAction() {
     String sattrs[2]; sattrs[0] = "=.id=" + uid; sattrs[1] = "=limit-uptime=" + formatRosTimeSeconds(newUptime);
     ok = apiTransact("/ip/hotspot/user/set", sattrs, 2, 7000);
     err = apiLast.trapMessage.length() ? apiLast.trapMessage : String("Failed to add time");
+    if (ok) {
+      // Best-effort: extend OnLogin scheduler expiry and session validity data (no active-session kick).
+      String schedNextRun = "";
+      String sq[2]; sq[0] = "?name=" + sname; sq[1] = "=.proplist=.id,interval,next-run";
+      if (apiTransact("/system/scheduler/print", sq, 2, 7000) && apiLast.records > 0 && apiLast.reId.length() > 0) {
+        String sid = apiLast.reId;
+        long curInt = parseRosTimeToSeconds(apiLast.reInterval);
+        long newInt = curInt + (long)addMinutes * 60L;
+        if (newInt < 0) newInt = 0;
+        String si[2]; si[0] = "=.id=" + sid; si[1] = "=interval=" + formatRosTimeSeconds(newInt);
+        if (apiTransact("/system/scheduler/set", si, 2, 7000)) {
+          String rq[2]; rq[0] = "?.id=" + sid; rq[1] = "=.proplist=next-run";
+          if (apiTransact("/system/scheduler/print", rq, 2, 7000) && apiLast.reNextRun.length() > 0) {
+            schedNextRun = apiLast.reNextRun;
+          }
+        }
+      }
+      if (schedNextRun.length() > 0) {
+        for (int i = 0; i < 5; i++) {
+          String aq[2]; aq[0] = "?user=" + sname; aq[1] = "=.proplist=mac-address";
+          if (!apiTransact("/ip/hotspot/active/print", aq, 2, 5000) || apiLast.records == 0 || apiLast.reMacAddress.length() == 0) break;
+          String mac = apiLast.reMacAddress; mac.replace(":", ""); mac.replace("-", ""); mac.toUpperCase();
+          if (mac.length() > 0) {
+            String contents = sname + "#" + schedNextRun;
+            String fattrs[2];
+            fattrs[0] = "=numbers=hotspot/data/" + mac + ".txt"; fattrs[1] = "=contents=" + contents;
+            if (!apiTransact("/file/set", fattrs, 2, 5000)) {
+              fattrs[0] = "=numbers=flash/hotspot/data/" + mac + ".txt";
+              apiTransact("/file/set", fattrs, 2, 5000);
+            }
+          }
+          // this loop will re-read the first active record; sufficient for typical single-session users.
+          break;
+        }
+      }
+    }
   } else if (action == "remove" || action == "disable" || action == "enable") {
     String sname = sanitizeCommandToken(name, 32, "");
     if (sname.length() == 0) { apiSendJsonErr(400, "Missing user name"); return; }
