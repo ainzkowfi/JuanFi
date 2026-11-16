@@ -234,17 +234,10 @@ void handleFileUploadRequest() {
     server.send(200, "text/html", "Upload failed");
   } else {
     server.client().setNoDelay(true);
-    if (systemIsIdleForRestart()) {
-      server.send_P(200, PSTR("text/html"), "Upload done");
-      delay(100);
-      server.client().stop();
-      ESP.restart();
-    } else {
-      pendingRestartAfterSave = true;
-      server.send_P(200, PSTR("text/html"), "Upload done. Restart pending (device busy); it will restart when idle.");
-      delay(100);
-      server.client().stop();
-    }
+    server.send_P(200, PSTR("text/html"), "Upload done");
+    delay(100);
+    server.client().stop();
+    ESP.restart();
   }
 }
 
