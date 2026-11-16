@@ -61,7 +61,7 @@ var trialNoExtend = true;
 // filled-in MAC makes it register that MAC as the hotspot user. The
 // namespace becomes 48 bits instead of 8,999 codes. Typeable codes are
 // not lost - the input stays editable and doLogin reads it first.
-var macAsVoucherCode = false;
+var macAsVoucherCode = true;
 // Add time from a second voucher without inserting coins. The coin box
 // does the merge itself and only answers on builds that expose
 // /convertVoucher, so this is opt-out per site.
@@ -3206,8 +3206,15 @@ function insertBtnAction() {
 	// voucher, so no auto-connect may substitute an older one.
 	window.__voucherTouched = true;
 	try { cancelAutoLogin(); } catch (e) {}
-	$("#saveVoucherButton").attr('data-save-type', STATE == "status" ? "extend" : "purchase");
-	try { dbgLog("insert: type=" + $("#saveVoucherButton").attr('data-save-type') + " page=" + PAGE); } catch (e) { }
+	var inputVoucher = "";
+	try { inputVoucher = String($("#voucherInput").val() || "").replace(/^\s+|\s+$/g, ""); } catch (e) { inputVoucher = ""; }
+	if (inputVoucher) { voucher = inputVoucher; try { setActiveVoucher(voucher); } catch (e) {} }
+	// Reuse a typed/kept voucher (e.g. expired) by topping it up instead of
+	// generating a different code, but keep the normal fresh-purchase flow when
+	// no voucher is entered or when MAC-as-voucher mode manages the code.
+	var reuseTypedVoucher = !!(inputVoucher && STATE != "status" && typeof macAsVoucherCode !== "undefined" && !macAsVoucherCode);
+	$("#saveVoucherButton").attr('data-save-type', (STATE == "status" || reuseTypedVoucher) ? "extend" : "purchase");
+	try { dbgLog("insert: type=" + $("#saveVoucherButton").attr('data-save-type') + " page=" + PAGE + " reuse=" + (reuseTypedVoucher ? "1" : "0")); } catch (e) { }
 	$("#progressDiv").css('width', '100%');
 	$("#progressDiv").attr("aria-valuenow", 100).attr("aria-valuetext", "Waiting for coins");
 	$("#progressDiv").removeClass("time-half time-low").addClass("time-ok");
