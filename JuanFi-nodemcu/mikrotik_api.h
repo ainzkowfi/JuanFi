@@ -885,17 +885,23 @@ void handleAdminHotspotUserAction() {
               }
             }
             if (apiLast.fatal) apiClient.stop();
-            // File set requires existing file in some RouterOS setups; best-effort try set in both locations.
+            // Best-effort: refresh/create validity file in hotspot/data (or flash/hotspot/data) for each active MAC.
             if (!apiLast.fatal || macCount > 0) {
               for (int i = 0; i < macCount; i++) {
                 String mac = macs[i]; mac.replace(":", ""); mac.replace("-", ""); mac.toUpperCase();
                 if (mac.length() == 0) continue;
                 String contents = sname + "#" + schedNextRun;
-                String fattrs[2];
-                fattrs[0] = "=numbers=hotspot/data/" + mac + ".txt"; fattrs[1] = "=contents=" + contents;
-                if (!apiTransact("/file/set", fattrs, 2, 5000)) {
-                  fattrs[0] = "=numbers=flash/hotspot/data/" + mac + ".txt";
-                  apiTransact("/file/set", fattrs, 2, 5000);
+                bool wrote = false;
+                const char* bases[2] = {"hotspot", "flash/hotspot"};
+                for (int b = 0; b < 2 && !wrote; b++) {
+                  String fpath = String(bases[b]) + "/data/" + mac + ".txt";
+                  String fattrs[2];
+                  fattrs[0] = "=numbers=" + fpath; fattrs[1] = "=contents=" + contents;
+                  if (apiTransact("/file/set", fattrs, 2, 5000)) { wrote = true; break; }
+                  // File may be missing; try to create it, then set contents.
+                  String pattrs[1]; pattrs[0] = "=file=" + fpath;
+                  apiTransact("/file/print", pattrs, 1, 5000);
+                  if (apiTransact("/file/set", fattrs, 2, 5000)) { wrote = true; break; }
                 }
               }
             }
