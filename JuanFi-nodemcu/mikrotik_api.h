@@ -887,13 +887,23 @@ void handleAdminHotspotUserAction() {
             if (apiLast.fatal) apiClient.stop();
             // Best-effort: refresh/create validity file in hotspot/data (or flash/hotspot/data) for each active MAC.
             if (!apiLast.fatal || macCount > 0) {
+              const char* bases[2] = {"hotspot", "flash/hotspot"};
+              bool baseReady[2] = {false, false};
               for (int i = 0; i < macCount; i++) {
                 String mac = macs[i]; mac.replace(":", ""); mac.replace("-", ""); mac.toUpperCase();
                 if (mac.length() == 0) continue;
                 String contents = sname + "#" + schedNextRun;
                 bool wrote = false;
-                const char* bases[2] = {"hotspot", "flash/hotspot"};
                 for (int b = 0; b < 2 && !wrote; b++) {
+                  if (!baseReady[b]) {
+                    // Ensure data directory exists (similar to OnLogin), best-effort.
+                    String keepPath = String(bases[b]) + "/data/.keep";
+                    String kattrs[1]; kattrs[0] = "=file=" + keepPath;
+                    apiTransact("/file/print", kattrs, 1, 5000);
+                    String rmattrs[1]; rmattrs[0] = "=numbers=" + keepPath;
+                    apiTransact("/file/remove", rmattrs, 1, 5000);
+                    baseReady[b] = true;
+                  }
                   String fpath = String(bases[b]) + "/data/" + mac + ".txt";
                   String fattrs[2];
                   fattrs[0] = "=numbers=" + fpath; fattrs[1] = "=contents=" + contents;
