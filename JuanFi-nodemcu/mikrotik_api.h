@@ -841,7 +841,7 @@ void handleAdminHotspotUserAction() {
         }
       }
       if (schedNextRun.length() > 0) {
-        // Update session validity file for all active sessions of this user (best-effort).
+        // Update session validity file for all active sessions of this user (best-effort, no kick/date parsing).
         if (apiClient.connected()) {
           apiResetResult();
           if (apiWriteWord("/ip/hotspot/active/print") &&
@@ -861,9 +861,15 @@ void handleAdminHotspotUserAction() {
               if (!apiReadWordTo(word, sizeof(word), remain)) { apiLast.fatal = true; break; }
               if (word[0] == '\0') {
                 if (current == ApiReplyType::RE) {
-                  if (curMac[0] != '\0' && macCount < 8) { macs[macCount++] = String(curMac); }
+                  if (curMac[0] != '\0' && macCount < 8) {
+                    bool seen = false;
+                    String m = String(curMac);
+                    for (int i = 0; i < macCount; i++) { if (macs[i] == m) { seen = true; break; } }
+                    if (!seen) macs[macCount++] = m;
+                  }
                   curMac[0] = '\0';
                 } else if (current == ApiReplyType::DONE) { apiLast.gotDone = true; finished = true; }
+                else if (current == ApiReplyType::TRAP) { /* consume trailing !done */ }
                 else if (current == ApiReplyType::FATAL) { finished = true; }
                 current = ApiReplyType::NONE;
                 continue;
@@ -879,15 +885,18 @@ void handleAdminHotspotUserAction() {
               }
             }
             if (apiLast.fatal) apiClient.stop();
-            for (int i = 0; i < macCount; i++) {
-              String mac = macs[i]; mac.replace(":", ""); mac.replace("-", ""); mac.toUpperCase();
-              if (mac.length() == 0) continue;
-              String contents = sname + "#" + schedNextRun;
-              String fattrs[2];
-              fattrs[0] = "=numbers=hotspot/data/" + mac + ".txt"; fattrs[1] = "=contents=" + contents;
-              if (!apiTransact("/file/set", fattrs, 2, 5000)) {
-                fattrs[0] = "=numbers=flash/hotspot/data/" + mac + ".txt";
-                apiTransact("/file/set", fattrs, 2, 5000);
+            // File set requires existing file in some RouterOS setups; best-effort try set in both locations.
+            if (!apiLast.fatal || macCount > 0) {
+              for (int i = 0; i < macCount; i++) {
+                String mac = macs[i]; mac.replace(":", ""); mac.replace("-", ""); mac.toUpperCase();
+                if (mac.length() == 0) continue;
+                String contents = sname + "#" + schedNextRun;
+                String fattrs[2];
+                fattrs[0] = "=numbers=hotspot/data/" + mac + ".txt"; fattrs[1] = "=contents=" + contents;
+                if (!apiTransact("/file/set", fattrs, 2, 5000)) {
+                  fattrs[0] = "=numbers=flash/hotspot/data/" + mac + ".txt";
+                  apiTransact("/file/set", fattrs, 2, 5000);
+                }
               }
             }
           } else {
