@@ -2602,7 +2602,6 @@ function clearStalePause(msg) {
 		removePausedFlag();
 		insertingCoin = false;
 		voucher = "";
-		try { $("#voucherInput").val(""); } catch (e) {}
 		if (msg && !getSessionValue("__stalePauseWarned")) {
 			try { setSessionValue("__stalePauseWarned", "1"); } catch (e) {}
 			$.toast({ title: 'Session ended', content: msg, type: 'warning', delay: 6000 });
@@ -2728,7 +2727,6 @@ function resumeSession() {
 			removeActiveVoucher();
 			voucher = "";
 			try { removePausedFlag(); } catch (e) {}
-			try { $("#voucherInput").val(""); } catch (e) {}
 			try { dbgLog("resume: uptime/traffic exhausted, voucher cleared", "dbg-err"); } catch (e) { }
 			$.toast({ title: 'Expired', content: (spentVoucher ? ("Your " + spentVoucher + " time has all been used") : "This code has used up all its time"), type: 'error', delay: 5000 });
 		} else if (em.indexOf("invalid username or password") !== -1 || em.indexOf("invalid-username") !== -1 || em.indexOf("wrong password") !== -1) {
@@ -2922,6 +2920,10 @@ function formatExpiryLeft(t) {
 	var hours = Math.floor(mins / 60);
 	if (hours < 48) { return hours + (hours == 1 ? " hour left" : " hours left"); }
 	var days = Math.floor(hours / 24);
+	var remHours = hours % 24;
+	if (remHours > 0) {
+		return days + (days == 1 ? " day " : " days ") + remHours + (remHours == 1 ? " hour left" : " hours left");
+	}
 	return days + (days == 1 ? " day left" : " days left");
 }
 

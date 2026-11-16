@@ -1,11 +1,7 @@
 :put "=== JuanFiV2 setup ==="
 
 :do { /system script remove [find name="juanfi-setup"] } on-error={};
-:do { /system script remove [find name="juanfi-netstatus"] } on-error={};
-:do { /system script remove [find name="juanfi-sweep"] } on-error={};
 :do { /system scheduler remove [find name="juanfi-setup-daily"] } on-error={};
-:do { /system scheduler remove [find name="juanfi-sweep-daily"] } on-error={};
-:do { /system scheduler remove [find name="juanfi-netstatus-1m"] } on-error={};
 
 :do {
   /system script add name="juanfi-setup" policy=read,write,test,policy,ftp source={
@@ -78,106 +74,7 @@
 :foreach u in=[/user find] do={ :do { :if ([/user get $u group] = "juanfi-api") do={ :set apiUserCount ($apiUserCount + 1) } } on-error={} };
 :if ($apiUserCount = 0) do={ :put "WARNING: no user in group juanfi-api - create one and enter the same name/password in the ESP admin page"; :log warning "setup: no user in group juanfi-api yet" } else={ :put ("juanfi-api users = " . $apiUserCount) };
 
-:do {
-  /system script add name="juanfi-netstatus" policy=read,write,test source={
-    :local HSFilePath "";
-    :foreach c in={"flash/hotspot"; "hotspot"} do={
-      :if ($HSFilePath = "") do={
-        :foreach f in={"portal.html"; "login.html"; "status.html"} do={
-          :if (($HSFilePath = "") and ([/file find name=($c . "/" . $f)] != "")) do={ :set HSFilePath $c };
-        };
-      };
-    };
-    :if ($HSFilePath = "") do={
-      :do {
-        :local pf [:pick [/ip hotspot profile print as-value] 0];
-        :if (($pf != "") and (($pf->"html-directory") != "")) do={ :set HSFilePath ($pf->"html-directory") };
-      } on-error={};
-    };
-    :if ($HSFilePath = "") do={ :set HSFilePath "hotspot" };
-    :local dataDir ($HSFilePath . "/data");
-    :local f ($dataDir . "/netstatus.txt");
-    :local state "down";
-    :if ([/ping 8.8.8.8 count=1 interval=1s] > 0) do={ :set state "up" };
-    :local old "";
-    :do { :set old [/file get [find name=$f] contents] } on-error={ :set old "" };
-    :if ($old != $state) do={
-      :if ([/file find name=$f] = "") do={
-        :do { /file print file=$f where name="dummyfile" } on-error={};
-        :local x 3;
-        :while (($x>0) and ([/file find name=$f] = "")) do={ :set x ($x-1); :delay 1s };
-      };
-      :do { /file set $f contents=$state } on-error={ :log warning ("netstatus: " . $f . " not written") };
-    };
-  };
-} on-error={ :log warning "setup: juanfi-netstatus not created" };
-
-:do { /system script run juanfi-netstatus } on-error={ :log warning "setup: netstatus.txt not written" };
-
-:do {
-  /system script add name="juanfi-sweep" policy=read,write,test source={
-    :local GRACE 3;
-    :local MD {31;28;31;30;31;30;31;31;30;31;30;31};
-    :local today [:pick [/system clock get date-time] 0 10];
-    :local Y [:tonum [:pick $today 0 4]];
-    :local M [:tonum [:pick $today 5 2]];
-    :local leap 0;
-    :if ((($Y % 4) = 0) and ((($Y % 100) != 0) or (($Y % 400) = 0))) do={ :set leap 1 };
-    :local doy [:tonum [:pick $today 8 2]];
-    :local k 1;
-    :while ($k < $M) do={
-      :set doy ($doy + [:pick $MD ($k - 1)]);
-      :if (($leap = 1) and ($k = 2)) do={ :set doy ($doy + 1) };
-      :set k ($k + 1);
-    };
-    :local todayNo ((($Y - 1970) * 365) + (($Y - 1) / 4 - ($Y - 1) / 100 + ($Y - 1) / 400) - 479 + $doy);
-    :local stamped 0;
-    :local removed 0;
-    :foreach u in=[/ip hotspot user find] do={
-      :local note [/ip hotspot user get $u comment];
-      :if ([:len $note] > 0) do={
-        :local name [/ip hotspot user get $u name];
-        :if ([:len [/system scheduler find name=$name]] = 0) do={
-          :if ([:len [/ip hotspot active find user=$name]] = 0) do={
-            :local f [:toarray $note];
-            :local seen "";
-            :if ([:len $f] > 4) do={ :set seen ($f->4) };
-            :if ($seen = "") do={
-              :do { /ip hotspot user set $u comment=($note . "," . $today) } on-error={};
-              :set stamped ($stamped + 1);
-            } else={
-              :local sY [:tonum [:pick $seen 0 4]];
-              :local sM [:tonum [:pick $seen 5 2]];
-              :local sLeap 0;
-              :if ((($sY % 4) = 0) and ((($sY % 100) != 0) or (($sY % 400) = 0))) do={ :set sLeap 1 };
-              :local sDoy [:tonum [:pick $seen 8 2]];
-              :local j 1;
-              :while ($j < $sM) do={
-                :set sDoy ($sDoy + [:pick $MD ($j - 1)]);
-                :if (($sLeap = 1) and ($j = 2)) do={ :set sDoy ($sDoy + 1) };
-                :set j ($j + 1);
-              };
-              :local seenNo ((($sY - 1970) * 365) + (($sY - 1) / 4 - ($sY - 1) / 100 + ($sY - 1) / 400) - 479 + $sDoy);
-              :if (($todayNo - $seenNo) > $GRACE) do={
-                :do { /ip hotspot active remove [find user=$name] } on-error={};
-                :do { /ip hotspot user remove $u } on-error={};
-                :set removed ($removed + 1);
-              };
-            };
-          };
-        };
-      };
-    };
-    :log info ("juanfi-sweep: grace=" . $GRACE . "d stamped=" . $stamped . " removed=" . $removed);
-    :put ("juanfi-sweep: grace=" . $GRACE . "d stamped=" . $stamped . " removed=" . $removed);
-  };
-} on-error={ :log warning "setup: juanfi-sweep not created" };
-
-:do { /system script run juanfi-sweep } on-error={ :log warning "setup: juanfi-sweep run failed" };
-
 :do { /system scheduler add name="juanfi-setup-daily" start-time=startup interval=1d policy=read,write,test,policy,ftp on-event="/system script run juanfi-setup" } on-error={ :log warning "setup: juanfi-setup-daily not added" };
-:do { /system scheduler add name="juanfi-sweep-daily" start-time=04:20:00 interval=1d policy=read,write,test on-event="/system script run juanfi-sweep" } on-error={ :log warning "setup: juanfi-sweep-daily not added" };
-:do { /system scheduler add name="juanfi-netstatus-1m" start-time=startup interval=1m policy=read,write,test on-event="/system script run juanfi-netstatus" } on-error={ :log warning "setup: juanfi-netstatus-1m not added" };
 
 :put "=== done, verifying ===";
 :put [/system clock get date-time];
@@ -198,5 +95,4 @@
 :if ($VPath = "") do={ :set VPath "hotspot" };
 :put ("portal files = " . $VPath);
 :do { :put ("site-id  = " . [/file get [find name=($VPath . "/data/site-id.txt")] contents]) } on-error={ :put "site-id  = MISSING" };
-:do { :put ("netstatus= " . [/file get [find name=($VPath . "/data/netstatus.txt")] contents]) } on-error={ :put "netstatus= MISSING" };
 :put "=== juanfi-setup done ===";
