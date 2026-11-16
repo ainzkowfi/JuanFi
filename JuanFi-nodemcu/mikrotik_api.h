@@ -694,6 +694,24 @@ void handleAdminHotspotUserAction() {
     String attrs[1]; attrs[0] = "=.id=" + sid;
     ok = apiTransact("/ip/hotspot/active/remove", attrs, 1, 7000);
     err = apiLast.trapMessage.length() ? apiLast.trapMessage : String("Disconnect failed");
+  } else if (action == "addTime") {
+    String sname = sanitizeCommandToken(name, 32, "");
+    int addMinutes = server.hasArg("minutes") ? server.arg("minutes").toInt() : 0;
+    if (sname.length() == 0) { apiSendJsonErr(400, "Missing user name"); return; }
+    if (addMinutes <= 0) { apiSendJsonErr(400, "Minutes must be greater than 0"); return; }
+    // read current user limits
+    String q[2]; q[0] = "?name=" + sname; q[1] = "=.proplist=.id,limit-uptime";
+    if (!apiTransact("/ip/hotspot/user/print", q, 2, 7000) || apiLast.records == 0) {
+      apiSendJsonErr(404, apiLast.trapMessage.length() ? apiLast.trapMessage.c_str() : "User not found");
+      return;
+    }
+    String uid = apiLast.reId.length() > 0 ? apiLast.reId : sname;
+    long curUptime = parseRosTimeToSeconds(apiLast.reLimitUptime);
+    long newUptime = curUptime + (long)addMinutes * 60L;
+    if (newUptime < 0) newUptime = 0;
+    String sattrs[2]; sattrs[0] = "=.id=" + uid; sattrs[1] = "=limit-uptime=" + formatRosTimeSeconds(newUptime);
+    ok = apiTransact("/ip/hotspot/user/set", sattrs, 2, 7000);
+    err = apiLast.trapMessage.length() ? apiLast.trapMessage : String("Failed to add time");
   } else if (action == "remove" || action == "disable" || action == "enable") {
     String sname = sanitizeCommandToken(name, 32, "");
     if (sname.length() == 0) { apiSendJsonErr(400, "Missing user name"); return; }

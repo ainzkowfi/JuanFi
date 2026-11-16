@@ -202,7 +202,7 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
         </div>
         <div class="card">
           <h3>Hotspot users</h3>
-          <p class="desc">Search by exact username (leave empty to list up to 20). Actions apply on the MikroTik router.</p>
+          <p class="desc">Search by exact username (leave empty to list up to 20). Actions apply on the MikroTik router (RAM/API only, no ESP writes, no sales/customer stats).</p>
           <div class="grid two" style="margin-bottom:12px">
             <div class="field"><label for="userSearchInput">Username</label><input type="text" id="userSearchInput" autocomplete="off" spellcheck="false" placeholder="Exact username (optional)"></div>
             <div class="field" style="align-self:end"><button type="button" class="btn" id="searchUsersBtn">Search / list</button></div>
@@ -580,11 +580,11 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
     $('.tablinks').on('click', function () { var tab=$(this).data('tab'); if(tab==='Dashboard') openDashboard(); else if(tab==='SystemConfigration') openSystemConfig(); else if(tab==='PromoRate') openPromoRates(); else if(tab==='Users') openUsersTab(); else openTab(tab); });
 
   function escHtml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-  function loadActiveUsers() {
+  function loadActiveUsers(cb) {
     $('#activeUsersBody').html('<tr><td colspan="5" class="hint" style="padding:10px">Loading…</td></tr>');
     $.getJSON('admin/api/hotspotActiveList?query=' + new Date().getTime()).done(function (res) {
       var items = (res && res.items) || [];
-      if (!items.length) { $('#activeUsersBody').html('<tr><td colspan="5" class="hint" style="padding:10px">No active sessions</td></tr>'); return; }
+      if (!items.length) { $('#activeUsersBody').html('<tr><td colspan="5" class="hint" style="padding:10px">No active sessions</td></tr>'); if(cb) cb(); return; }
       var html = '';
       for (var i=0;i<items.length;i++) {
         var it = items[i] || {};
@@ -600,10 +600,12 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
           '<td style="padding:8px;border-bottom:1px solid var(--border);text-align:right"><button type="button" class="btn sm danger" data-act="disconnect" data-id="' + id + '">Disconnect</button></td></tr>';
       }
       $('#activeUsersBody').html(html);
+      if(cb) cb();
     }).fail(function (xhr) {
       var msg = 'Unavailable';
-      try { var j = xhr.responseJSON || JSON.parse(xhr.responseText||''); if (j && j.error) msg = j.error; } catch(e){}
+      try { var j = xhr.responseJSON || JSON.parse(xhr.responseText||''); if (j && j.error) msg = j.error; else if (xhr.status) msg = 'Error ' + xhr.status; } catch(e){}
       $('#activeUsersBody').html('<tr><td colspan="5" class="hint" style="padding:10px">' + escHtml(msg) + '</td></tr>');
+      if(cb) cb();
     });
   }
   function loadHotspotUsers() {
@@ -628,6 +630,7 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
           '<td style="padding:8px;border-bottom:1px solid var(--border)">' + lim + '</td>' +
           '<td style="padding:8px;border-bottom:1px solid var(--border)">' + status + '</td>' +
           '<td style="padding:8px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap">' +
+          '<button type="button" class="btn sm" data-act="addTime" data-name="' + escHtml(rawName) + '">Add time</button> ' +
           '<button type="button" class="btn sm" data-act="' + toggle + '" data-name="' + escHtml(rawName) + '">' + toggleLabel + '</button> ' +
           '<button type="button" class="btn sm danger" data-act="remove" data-name="' + escHtml(rawName) + '">Remove</button></td></tr>';
       }
@@ -638,11 +641,11 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
       $('#hotspotUsersBody').html('<tr><td colspan="5" class="hint" style="padding:10px">' + escHtml(msg) + '</td></tr>');
     });
   }
-  function openUsersTab() { openTab('Users'); loadActiveUsers(); loadHotspotUsers(); }
+  function openUsersTab() { openTab('Users'); loadActiveUsers(function(){ loadHotspotUsers(); }); }
   function runUserAction(action, payload, confirmMsg) {
     if (confirmMsg && !confirm(confirmMsg)) return;
     $.post('admin/api/hotspotUserAction', payload).done(function () {
-      loadActiveUsers(); loadHotspotUsers();
+      loadActiveUsers(function(){ loadHotspotUsers(); });
       try { loadHotspotSummary(); } catch(e){}
     }).fail(function (xhr) {
       var msg = 'Action failed';
@@ -667,13 +670,14 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
     $(document).on('input change','#promoRateBody input', function(){ var m=String(this.id).match(/(\d+)$/); if(m) updateRatePreview(m[1]); });
     $('#generateVoucherBtn').on('click', generateVoucher);
     $('#uploadFwBtn').on('click', uploadMainBin);
-    $('#refreshUsersBtn').on('click', function(){ loadActiveUsers(); loadHotspotUsers(); });
+    $('#refreshUsersBtn').on('click', function(){ loadActiveUsers(function(){ loadHotspotUsers(); }); });
     $('#searchUsersBtn').on('click', loadHotspotUsers);
     $('#userSearchInput').on('keydown', function(e){ if(e.key==='Enter'){ e.preventDefault(); loadHotspotUsers(); } });
     $(document).on('click', '[data-act="disconnect"]', function(){ runUserAction('disconnect', {action:'disconnect', id: $(this).data('id')}, 'Disconnect this active session?'); });
     $(document).on('click', '[data-act="disable"]', function(){ var n=$(this).data('name'); runUserAction('disable', {action:'disable', name:n}, 'Disable user "'+n+'"?'); });
     $(document).on('click', '[data-act="enable"]', function(){ var n=$(this).data('name'); runUserAction('enable', {action:'enable', name:n}, null); });
     $(document).on('click', '[data-act="remove"]', function(){ var n=$(this).data('name'); runUserAction('remove', {action:'remove', name:n}, 'Remove hotspot user "'+n+'" from MikroTik? This cannot be undone.'); });
+    $(document).on('click', '[data-act="addTime"]', function(){ var n=$(this).data('name'); var mins = prompt('Add how many minutes to "'+n+'"? (extends uptime on MikroTik, no sales/customer stats)', '60'); if (mins === null) return; mins = parseInt(mins, 10); if (!isFinite(mins) || mins <= 0) { alert('Enter a valid number of minutes greater than 0.'); return; } runUserAction('addTime', {action:'addTime', name:n, minutes: mins}, null); });
 
     openDashboard();
     var __lastAdminPingAt = 0;
