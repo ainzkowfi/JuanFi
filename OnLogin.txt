@@ -1,44 +1,29 @@
-# WHERE THIS GOES
-# IP -> Hotspot -> User Profiles -> default -> Login tab -> On Login
-#
-# NOT Hotspot -> Server Profiles. The server profile's Login tab only holds
-# login-by checkboxes and trial-uptime; there is no script field there.
-# Every voucher the ESP creates is "/ip hotspot user add name=X" with no
-# profile=, so they all land on "default".
-#
-# Paste from the first line below to the closing brace. Clear the box first -
-# an older copy may still be sitting there.
-#
-# Run README script A1 FIRST. On-Login expects data/site-id.txt to exist.
-#
-# This is the original JuanFi on-login script (ivanalayan15/JuanFi README
-# step 8) with exactly one change, marked CHANGE below. Everything else is
-# verbatim, including the parts that look odd.
-#
-# Original also has three optional blocks for the upstream author's vending
-# business: Telegram notification, JuanFi online-monitoring API, and
-# daily/monthly income counters. They are dropped. The income counters call
-# "/system script get todayincome" with no error guard - if those scripts do
-# not exist, that line aborts the script.
-#
-# OnLogout.txt goes in the same tab's On Logout box.
-
 # HSFilePath for this repo: hAP lite = "hotspot" (hex/hAP-ax use "flash/hotspot").
 :local HSFilePath "hotspot";
 
 # --- # Get User Data -------------------------------------------------------
 :local aUsrNote [/ip hotspot user get $user comment];
+
+# Clear the comment FIRST — a parse error below can no longer skip it.
+/ip hotspot user set [find name=$user] comment="";
+
 :local aUsrNote [:toarray $aUsrNote];
-:local iUsrTime [:totime ($aUsrNote->0)];
-:local iSaleAmt [:tonum ($aUsrNote->1)];
-:local iExtCode ($aUsrNote->2);
-:local iVdoName ($aUsrNote->3);
+:local iUsrTime 0;
+:local iSaleAmt 0;
+:local iExtCode 0;
+:local iVdoName "";
+:do {
+  :set iUsrTime [:totime ($aUsrNote->0)];
+  :set iSaleAmt [:tonum ($aUsrNote->1)];
+  :set iExtCode ($aUsrNote->2);
+  :set iVdoName ($aUsrNote->3);
+} on-error={};
+
 :local iTimeMin [/ip hotspot user get $user limit-uptime];
 :local iUserReg [/system scheduler find name=$user];
 
 # --- # Check User Data -----------------------------------------------------
 :if (($iTimeMin>0) and ($iUsrTime>=0) and (($iUserReg="") or ($iExtCode=1))) do={
-  /ip hotspot user set $user comment="";
   :local iFileMac;
   :local mac $"mac-address";
   :for i from=0 to=([:len $mac] - 1) do={
@@ -80,8 +65,8 @@
 # --- # Save Data File ------------------------------------------------------
   :if ([/file find name="$HSFilePath/data"]="") do={
     :do { /file print file=("$HSFilePath/data/.keep") where name="dummyfile" } on-error={};
-    :local _mk 3;
-    :while (($_mk>0) and ([/file find name=("$HSFilePath/data/.keep")]="")) do={ :set _mk ($_mk-1); :delay 1s };
+    :local mkWait 3;
+    :while (($mkWait>0) and ([/file find name=("$HSFilePath/data/.keep")]="")) do={ :set mkWait ($mkWait-1); :delay 1s };
     :do { /file remove ("$HSFilePath/data/.keep") } on-error={};
   }
   :local iValidUntil [/system scheduler get $user next-run];
@@ -122,8 +107,8 @@
   :if ([:len [/file find name=$jfSess]]=0) do={
     :if ([/file find name="$HSFilePath/data"]="") do={
       :do { /file print file=("$HSFilePath/data/.keep") where name="dummyfile" } on-error={};
-      :local _mk 3;
-      :while (($_mk>0) and ([/file find name=("$HSFilePath/data/.keep")]="")) do={ :set _mk ($_mk-1); :delay 1s };
+      :local mkWait 3;
+      :while (($mkWait>0) and ([/file find name=("$HSFilePath/data/.keep")]="")) do={ :set mkWait ($mkWait-1); :delay 1s };
       :do { /file remove ("$HSFilePath/data/.keep") } on-error={};
     }
     /file print file="$jfSess" where name="dummyfile";
