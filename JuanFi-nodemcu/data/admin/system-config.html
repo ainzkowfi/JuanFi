@@ -414,6 +414,8 @@ input[type="file"]{width:100%;padding:8px;font-size:0.875rem;color:var(--foregro
       $('#voucherLoginOption').val('0');
       $('#voucherValidity').val('0');
       $('#ipAddressMode').val('1');
+      // The generation tab had its own hardcoded "VC" prefix; follow the saved one.
+      $('#voucherGeneratePrefix').val($('#voucherPrefix').val() || 'P');
       ipAddressModeChange();
     };
     var setStaticDefaults = function () {

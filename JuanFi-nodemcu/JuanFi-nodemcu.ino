@@ -4,7 +4,7 @@
  * Config schema (current): 26 fields, with legacy 25/27/30 compatibility.
  */
 
-#define CURRENT_VERSION "v1"
+#define CURRENT_VERSION "v1.1"
 
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
@@ -100,7 +100,7 @@ int VOUCHER_LOGIN_OPTION = 0;
 int VOUCHER_VALIDITY_OPTION = 0;
 String VOUCHER_PROFILE = "default";
 String VOUCHER_PREFIX = "P";
-int VOUCHER_CODE_LENGTH = 6;
+int VOUCHER_CODE_LENGTH = 5;
 
 int MAX_WAIT_COIN_SEC = 30000;
 int SETUP_FINISH = 0;
@@ -148,7 +148,6 @@ const int WIFI_CONNECT_DELAY = 500;
 const String INTERNET_CHECK_URL = "http://ifconfig.me";
 
 bool networkConnected = false;
-bool pendingRestartAfterSave = false;
 
 // ---------- Utilities ----------
 
@@ -655,10 +654,13 @@ void loadAutoRestartConfig() {
 }
 
 void loadVoucherCodeLengthConfig() {
-  String data = readFile("/admin/config/vouchercodelen.data");
+  String data = readFile("/admin/config/vcode.data");
   data.trim();
+  // Missing file: keep the compiled default rather than clamping an empty
+  // string to 1, which would mint one-character codes.
+  if (data.length() == 0) return;
   VOUCHER_CODE_LENGTH = clampInt(data.toInt(), 1, 10);
-  if (VOUCHER_CODE_LENGTH <= 0) VOUCHER_CODE_LENGTH = 6;
+  if (VOUCHER_CODE_LENGTH <= 0) VOUCHER_CODE_LENGTH = 5;
 }
 
 void scheduleAutoRestart() {
@@ -719,7 +721,7 @@ void setup() {
   WiFi.mode(WIFI_STA);
 
   if (IP_ADDRESS_MODE == 1) {
-    WiFi.config(local_IP, primaryDNS, gateway, subnet);
+    WiFi.config(local_IP, gateway, subnet, primaryDNS);
   }
 
   if (SETUP_FINISH == 1 && ssid.length() > 0) {
@@ -824,9 +826,6 @@ void loop() {
       }
     }
 
-    if (pendingRestartAfterSave && systemIsIdleForRestart()) {
-      ESP.restart();
-    }
     if (autoRestartAtMs > 0 && (long)(currentMilis - autoRestartAtMs) >= 0 && systemIsIdleForRestart()) {
       ESP.restart();
     }

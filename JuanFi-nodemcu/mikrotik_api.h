@@ -639,7 +639,7 @@ void handleAdminHotspotActiveList() {
     if (!apiReadWordTo(word, sizeof(word), remain)) { apiLast.fatal = true; apiClient.stop(); apiSendJsonErr(500, "API read failed"); return; }
     if (word[0] == '\0') {
       if (current == ApiReplyType::RE) {
-        if ((!commentsOnly || curCom[0] != '\0') && emitted < MAX_ITEMS) {
+        if (emitted < MAX_ITEMS) {
           if (emitted > 0) out += ',';
           out += "{\"id\":\""; apiJsonEscapeAppend(out, curId);
           out += "\",\"user\":\""; apiJsonEscapeAppend(out, curUser);

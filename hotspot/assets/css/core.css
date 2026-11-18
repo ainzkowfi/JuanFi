@@ -1058,7 +1058,7 @@ hr.foot-hr {
 /* Motion + keyboard: kill infinite coin animations for vestibular safety,
    keep a visible focus ring on the coin button for keyboard users. */
 @media (prefers-reduced-motion: reduce) {
-	#insertBtn, #insertBtn::before, .spinner-ring, .progress-bar-animated, #remainTime.time-low, .vshake, body.coin-focus #coinPanel, body.haze-in .hero::before, body.haze-in .brandmark, body.haze-in [id^="view-"], body.haze-in .footer, .tbox .tnum.tick, .tbox .tnum.roll { animation: none !important; }
+	#insertBtn, #insertBtn::before, .spinner-ring, .progress-bar-animated, #remainTime.time-low, .vshake, body.coin-focus #coinPanel, body.haze-in .hero::before, body.haze-in .brandmark, body.haze-in [id^="view-"], body.haze-in .footer, body.haze-in .topbar .iconbtn, body.haze-in #vendoSelectDiv, .tbox .tnum.tick, .tbox .tnum.roll { animation: none !important; }
 	#app .btn:active { transform: none !important; }
 	#bootLoader.boot-fade { transition: none !important; }
 }
@@ -1093,6 +1093,10 @@ body.haze-in .hero::before { animation: hazeIn 2.2s cubic-bezier(.22, .61, .36, 
 body.haze-in .brandmark { animation: riseIn 350ms cubic-bezier(.22, 1, .36, 1) both; }
 body.haze-in [id^="view-"] { animation: riseIn 350ms cubic-bezier(.22, 1, .36, 1) 140ms both; }
 body.haze-in .footer { animation: riseIn 350ms cubic-bezier(.22, 1, .36, 1) 280ms both; }
+/* The top bar buttons and the vendo picker used to pop in with no entrance
+   while everything around them rose - a stagger hole, not a preference. */
+body.haze-in .topbar .iconbtn,
+body.haze-in #vendoSelectDiv { animation: riseIn 350ms cubic-bezier(.22, 1, .36, 1) 70ms both; }
 .hero > * { position: relative; }
 /* One hairline per card, and it always sits at the top of the card the
    customer is actually looking at. While the coin panel is open the page

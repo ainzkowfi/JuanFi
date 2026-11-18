@@ -1,7 +1,5 @@
 #pragma once
 
-extern bool pendingRestartAfterSave;
-
 String generateSessionToken() {
   String t = "";
   const char *hex = "0123456789abcdef";
@@ -131,14 +129,11 @@ void handleAdminSaveSystemConfig() {
   const String &data = server.arg("data");
   if (data.length() > 4096) { server.send(413, "text/plain", "too large"); return; }
   if (!handleFileWrite("/admin/config/system.data", data)) { server.send(500, "text/plain", "write failed"); return; }
-  if (systemIsIdleForRestart()) {
-    server.send(200, "text/plain", "ok");
-    delay(1000);
-    ESP.restart();
-  } else {
-    pendingRestartAfterSave = true;
-    server.send(200, "text/plain", "ok-restart-pending");
-  }
+  // Always reboot: waiting for an idle slot left saves unapplied for as long
+  // as a customer session was live, and the admin had no way to force it.
+  server.send(200, "text/plain", "ok");
+  delay(1000);
+  ESP.restart();
 }
 
 void handleAdminGetSystemConfig() {
@@ -212,7 +207,7 @@ void handleAdminSaveVoucherCodeLength() {
   if (!isAuthorized()) { handleNotAuthorize(); return; }
   int len = clampInt(server.arg("length").toInt(), 1, 10);
   if (len <= 0) len = 5;
-  if (!handleFileWrite("/admin/config/vouchercodelen.data", String(len))) {
+  if (!handleFileWrite("/admin/config/vcode.data", String(len))) {
     server.send(500, "text/plain", "write failed");
     return;
   }
