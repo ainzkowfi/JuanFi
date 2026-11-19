@@ -978,6 +978,18 @@ bool registerNewVoucher(const String &voucher, bool *existedBefore = nullptr) {
   return false;
 }
 
+// A failed query answers "no": a dead API must not block a sale that
+// useVoucher would retry anyway.
+bool voucherExists(const String &voucher) {
+  String v = sanitizeCommandToken(voucher, 24, "");
+  if (v.length() == 0) return false;
+  String q[2];
+  q[0] = "?name=" + v;
+  q[1] = "=.proplist=.id";
+  if (!apiTransact("/ip/hotspot/user/print", q, 2, 7000)) return false;
+  return apiLast.records > 0;
+}
+
 bool addTimeToVoucher(const String &voucher, int secondsToAdd) {
   String v = sanitizeCommandToken(voucher, 24, "");
   if (v.length() == 0) return false;

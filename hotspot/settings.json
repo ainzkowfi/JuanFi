@@ -103,7 +103,5 @@
   "showPauseTime": true,
   "enableCoinslotBan": true,
   "coinslotBanCount": 3,
-  "coinslotBanMinutes": 5,
-  "wifreePortalKey": "",
-  "wifreeSstpIp": ""
+  "coinslotBanMinutes": 5
 }

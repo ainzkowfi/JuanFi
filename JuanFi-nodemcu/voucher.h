@@ -444,7 +444,23 @@ void topUp() {
 
   currentValidity = 0;
   if (voucher.length() == 0) {
-    voucher = generateVoucher();
+    // registerNewVoucher() treats "already exists" as success, so a minted code
+    // that collides would silently put the coins on another customer's voucher.
+    // Check before handing it out; without a router connection there is nothing
+    // to check against and useVoucher still copes.
+    bool canCheck = ensureMikrotikConnection();
+    bool fresh = false;
+    for (int i = 0; i < (canCheck ? 5 : 1); i++) {
+      voucher = generateVoucher();
+      if (!canCheck || !voucherExists(voucher)) { fresh = true; break; }
+    }
+    if (!fresh) {
+      const char *keys[] = {"status", "errorCode"};
+      const char *values[] = {"false", "coin.slot.notavailable"};
+      setupCORSPolicy();
+      server.send(200, "application/json", toJson(keys, values, 2));
+      return;
+    }
     isNewVoucher = true;
   } else if (currentActiveVoucher.length() == 0) {
     isNewVoucher = true;

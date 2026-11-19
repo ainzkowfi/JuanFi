@@ -72,10 +72,6 @@ var showPauseTime = false;
 var enableCoinslotBan = true;
 var coinslotBanCount = 3;
 var coinslotBanMinutes = 5;
-// WiFree e-wallet (payments.wifree.network). Empty key or SSTP IP = nothing
-// loads at all, so a site that never signed up stays fully offline.
-var wifreePortalKey = "";
-var wifreeSstpIp = "";
 	// Set only when settings.json was served but would not parse. Missing file is
 // a supported case (the fallbacks above), malformed JSON is an operator error
 // and must not be silent - see the note at the parse below.
@@ -140,8 +136,6 @@ function applySettings(text) {
 		if (typeof __setJson.enableCoinslotBan === "boolean") { enableCoinslotBan = __setJson.enableCoinslotBan; }
 		if (typeof __setJson.coinslotBanCount === "number") { coinslotBanCount = parseInt(__setJson.coinslotBanCount, 10); }
 		if (typeof __setJson.coinslotBanMinutes === "number") { coinslotBanMinutes = parseInt(__setJson.coinslotBanMinutes, 10); }
-		if (typeof __setJson.wifreePortalKey === "string" && __setJson.wifreePortalKey) { wifreePortalKey = __setJson.wifreePortalKey; }
-		if (typeof __setJson.wifreeSstpIp === "string" && __setJson.wifreeSstpIp) { wifreeSstpIp = __setJson.wifreeSstpIp; }
 		if (!isFinite(coinslotBanCount) || coinslotBanCount < 1) { coinslotBanCount = 3; }
 		if (!isFinite(coinslotBanMinutes) || coinslotBanMinutes < 1) { coinslotBanMinutes = 5; }
 		}
@@ -1280,23 +1274,6 @@ function hideBoot() {
 	}, 450);
 }
 
-// WiFree e-wallet: the vendor ships the button + payment modal as one remote
-// script that reads its config from data-* attributes. Our input/button ids
-// differ from their defaults ('username' / 'vouLoginBtn'), so both are passed
-// explicitly - otherwise a bought code is never filled into the voucher box.
-function loadWiFreeWidget() {
-	if (!wifreePortalKey || !wifreeSstpIp) { return; }
-	if (document.querySelector("script[data-wifree-widget]")) { return; }
-	var s = document.createElement("script");
-	s.src = "https://payments.wifree.network/widgetv2/juanfi/ewallet-widget.js";
-	s.setAttribute("data-portal-key", wifreePortalKey);
-	s.setAttribute("data-sstp-ip", wifreeSstpIp);
-	s.setAttribute("data-voucher-input-id", "voucherInput");
-	s.setAttribute("data-submit-btn-id", "connectBtn");
-	s.setAttribute("data-wifree-widget", "1");
-	document.body.appendChild(s);
-}
-
 function __stepSecs(t0) {
 	try { return (((new Date()).getTime() - t0) / 1000).toFixed(1) + "s"; }
 	catch (e) { return ""; }
@@ -1370,7 +1347,6 @@ function boot() {
 function bootRest() {
 	$("#footYear").text(new Date().getFullYear());
 	applyFlags();
-	try { loadWiFreeWidget(); } catch (e) {}
 	try { sfxPreload(); } catch (e) {}
 	try { dbgLog("boot page=" + (typeof PAGE !== 'undefined' ? PAGE : "?") + " vendo=" + (typeof vendorIpAddress !== 'undefined' ? vendorIpAddress : "?") + " mac=" + (typeof mac !== 'undefined' ? mac : "?")); } catch (e) { }
 	// Records the value in __adoptedPre so loadSiteId can correct it later.
